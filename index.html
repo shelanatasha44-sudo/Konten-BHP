@@ -345,7 +345,14 @@
   .btn:active { transform: translateY(10px); box-shadow: 0 6px 0 var(--gold-deep), 0 16px 30px rgba(0,0,0,.4); }
   .btn:focus-visible { outline: 6px solid #fff; outline-offset: 10px; }
   .btn svg { width: 56px; height: 56px; fill: var(--navy); }
-  #start .note { margin-top: 60px; font-size: 28px; color: rgba(255,255,255,.5); }
+  .toggle {
+    margin-top: 44px; font: 700 34px/1 var(--font); color: #fff; cursor: pointer;
+    background: rgba(255,255,255,.08); border: 3px solid rgba(255,255,255,.35); border-radius: 60px; padding: 18px 36px;
+  }
+  .toggle[aria-pressed="false"] { opacity: .6; }
+  .toggles { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .toggle:focus-visible { outline: 6px solid var(--gold); outline-offset: 6px; }
+  #start .note { margin-top: 36px; font-size: 28px; color: rgba(255,255,255,.5); }
 
   #closing .l1 { margin-top: 80px; font-size: 64px; line-height: 1.12; font-weight: 800; letter-spacing: .02em; }
   #closing .l2 { margin-top: 26px; font-size: 44px; color: #BFD2F2; font-weight: 600; }
@@ -429,7 +436,11 @@
     <h1>Semua Masalah<br>Ke <em>BHP</em>? 🤔</h1>
     <p>Tasya &amp; Dinda ngobrolin<br>Balai Harta Peninggalan</p>
     <button class="btn" id="playBtn" type="button"><svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 001.5.87l12-7.5a1 1 0 000-1.74l-12-7.5A1 1 0 007 4.5z"/></svg>Putar</button>
-    <div class="note">±90 detik</div>
+    <div class="toggles">
+      <button class="toggle" id="soundBtn" type="button" aria-pressed="true">🔊 Narator: ON</button>
+      <button class="toggle" id="musicBtn" type="button" aria-pressed="true">🎵 Backsound: ON</button>
+    </div>
+    <div class="note">±1,5 menit · <span id="voiceNote"></span></div>
   </section>
 
   <section id="closing" class="screen" hidden>
@@ -456,6 +467,16 @@
 const CHARACTERS = {
   tasya: { name: 'Tasya', tag: 'Gen Z', side: 'left' },
   dinda: { name: 'Dinda', tag: 'BHP',   side: 'right' },
+};
+
+/* Suara (Text-to-Speech Bahasa Indonesia, id-ID) — atur nada & kecepatan tiap penutur.
+   Opsional per pesan: say: '...' untuk ejaan bacaan yang berbeda dari teks di layar,
+   atau audio: 'vo/s1-1.mp3' untuk memakai rekaman suara asli (menggantikan TTS). */
+const VOICES = {
+  tasya:   { pitch: 1.3,  rate: 1.08 },
+  dinda:   { pitch: 1.0,  rate: 1.02 },
+  boss:    { pitch: 0.65, rate: 0.92 },
+  narator: { pitch: 0.95, rate: 1.0 },
 };
 
 const SCENES = [
@@ -494,7 +515,8 @@ const SCENES = [
       { from: 'tasya', act: 'phone',   emote: '👻', text: 'Bentar... orang hilang nggak ada kabar, kayak mantan gue yang ghosting, harta nggak ada yang urus, juga ke BHP?' },
       { from: 'dinda', act: 'laugh',   emote: '😏', text: 'Mantan lo nggak masuk, Sya. Nggak ada hartanya.' },
       { from: 'tasya', act: 'shock',   emote: '😤', text: 'Eh!' },
-      { from: 'dinda', act: 'explain', emote: '📚', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga.' },
+      { from: 'dinda', act: 'explain', emote: '📚', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga.',
+        say: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya af-we-zikh-heit. Kalau nggak ada pemiliknya sama sekali, on-be-heer-de na-la-ten-skhap. BHP yang jaga.' },
       { from: 'dinda', act: 'bounce',  emote: '😉', text: 'Lu belum tau aja, ada lagi loh tusi lain!' },
       // Kolom terpisah: layar chat dibersihkan, lalu kartu daftar tusi muncul poin demi poin
       { from: 'dinda', act: 'explain', fresh: true, text: 'Tusi BHP lainnya 👇',
@@ -719,6 +741,147 @@ function estimateScene(sc) {
 const SEGMENTS = [...SCENES.map(estimateScene), T.wipe * 2 + T.wipeHold + T.closing];
 console.info(`[BHP] Estimasi durasi total: ${(SEGMENTS.reduce((a, b) => a + b, 0) / 1000).toFixed(1)} detik`);
 
+/* ===================== Narator / suara ===================== */
+const TTS = 'speechSynthesis' in window;
+let soundOn = true, idVoice = null, currentAudio = null;
+function pickVoice() {
+  if (!TTS) return;
+  const vs = speechSynthesis.getVoices().filter((v) => /^id(-|_|$)/i.test(v.lang));
+  idVoice = vs.find((v) => /google/i.test(v.name)) || vs.find((v) => /natural|online/i.test(v.name)) || vs[0] || null;
+  updateSoundUi();
+}
+const cleanSpeech = (t) => t.replace(/[\p{Extended_Pictographic}️‍]/gu, '').replace(/\s+/g, ' ').trim();
+/* Membacakan teks; selesai saat suara berakhir (dengan batas waktu aman). */
+function speak(text, who, audioSrc) {
+  if (!soundOn) return Promise.resolve();
+  Music.duck(true);
+  return speakRaw(text, who, audioSrc).then(() => Music.duck(false));
+}
+function speakRaw(text, who, audioSrc) {
+  if (audioSrc) {
+    return new Promise((res) => {
+      const a = new Audio(audioSrc); currentAudio = a;
+      a.onended = a.onerror = () => res();
+      a.play().catch(() => res());
+    });
+  }
+  const t = cleanSpeech(text || '');
+  if (!TTS || !t) return Promise.resolve();
+  return new Promise((res) => {
+    const u = new SpeechSynthesisUtterance(t);
+    const v = VOICES[who] || VOICES.narator;
+    u.lang = 'id-ID'; if (idVoice) u.voice = idVoice;
+    u.pitch = v.pitch; u.rate = v.rate * Math.min(SPEED, 2);
+    let done = false; const finish = () => { if (!done) { done = true; res(); } };
+    u.onend = u.onerror = finish;
+    setTimeout(finish, (t.length * 95) / u.rate + 2500); // jaga-jaga bila event "end" tak muncul
+    speechSynthesis.speak(u);
+  });
+}
+/* ===================== Backsound & SFX (Web Audio, tanpa file) =====================
+   Beat lo-fi/trap 92 BPM: kick, clap, hi-hat roll, 808, pad chord, arpeggio, kresek vinyl.
+   SFX meme: pop, whoosh, vine boom, ding, stempel, riser, drop, record scratch. */
+let musicOn = true;
+const Music = (() => {
+  let ctx, master, bus, duckG, sfx, noiseBuf, timer = null, stopTimer = null, step = 0, next = 0;
+  const BPM = 92, SPB = 60 / BPM / 4;
+  const CHORDS = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]]; // Fmaj7 Em7 Dm7 Cmaj7
+  const ROOTS = [41, 40, 38, 36];
+  const ARP = [0, 2, 1, 3, 2, 1, 3, 2];
+  const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+  function init() {
+    if (ctx) return true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
+    master = ctx.createGain(); master.gain.value = .9; master.connect(comp);
+    bus = ctx.createGain(); bus.gain.value = 0;
+    duckG = ctx.createGain(); bus.connect(duckG); duckG.connect(master);
+    sfx = ctx.createGain(); sfx.gain.value = .7; sfx.connect(master);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return true;
+  }
+  function noise(t, dur, { type = 'highpass', freq = 7000, to, q = 1, gain = .2, dest = bus } = {}) {
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
+    f.frequency.setValueAtTime(freq, t); if (to) f.frequency.exponentialRampToValueAtTime(to, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + dur + .05);
+  }
+  function tone(t, freq, dur, { type = 'sine', to, gain = .2, attack = .005, lp, dest = bus } = {}) {
+    const o = ctx.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(freq, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    let n = o; if (lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; o.connect(f); n = f; }
+    n.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + .05);
+  }
+  function beat(s, t) {
+    const bar = Math.floor(s / 16) % 4, i = s % 16, ch = CHORDS[bar];
+    if (i === 0) ch.forEach((n) => { tone(t, hz(n), SPB * 16, { type: 'triangle', gain: .04, attack: .3, lp: 1300 }); tone(t, hz(n) * 1.005, SPB * 16, { gain: .03, attack: .35 }); });
+    if (i === 0 || i === 6 || i === 10) tone(t, 150, .35, { to: 45, gain: .85 });                       // kick
+    if (i === 4 || i === 12) { noise(t, .18, { type: 'bandpass', freq: 1500, q: .8, gain: .4 }); noise(t + .012, .12, { type: 'bandpass', freq: 1100, gain: .25 }); } // clap
+    const roll = Math.floor(s / 16) % 2 === 1 && i >= 12;                                               // hi-hat roll
+    if (roll) { noise(t, .04, { freq: 8000, gain: .09 }); noise(t + SPB / 2, .04, { freq: 8000, gain: .06 }); }
+    else if (i % 2 === 0) noise(t, .045, { freq: 8000, gain: i % 4 === 0 ? .11 : .07 });
+    if (i === 0) tone(t, hz(ROOTS[bar]), SPB * 6, { gain: .5, attack: .01 });                          // 808
+    if (i === 10) tone(t, hz(ROOTS[bar]), SPB * 5, { gain: .45, attack: .01 });
+    if (s >= 32 && i % 2 === 0) tone(t + (i % 4 === 2 ? SPB * .12 : 0), hz(ch[ARP[i / 2]] + 12), .28, { type: 'triangle', gain: .06, lp: 2800 }); // arpeggio
+    if (Math.random() < .3) noise(t, .012, { freq: 3000, gain: .03 });                                 // kresek vinyl
+  }
+  function tick() { while (next < ctx.currentTime + .12) { beat(step, next); step++; next += SPB; } }
+  const now = () => ctx.currentTime;
+  const ok = () => musicOn && init();
+  return {
+    start(vol = .8) {
+      if (!ok()) return;
+      ctx.resume();
+      clearTimeout(stopTimer);
+      if (!timer) { step = 0; next = now() + .05; timer = setInterval(tick, 25); }
+      bus.gain.cancelScheduledValues(now()); bus.gain.setTargetAtTime(vol, now(), .15);
+    },
+    stop(fade = .5) {
+      if (!ctx) return;
+      bus.gain.cancelScheduledValues(now()); bus.gain.setTargetAtTime(0, now(), Math.max(.01, fade / 3));
+      clearTimeout(stopTimer);
+      stopTimer = setTimeout(() => { clearInterval(timer); timer = null; }, fade * 1000 + 150);
+    },
+    duck(on) { if (ctx) duckG.gain.setTargetAtTime(on ? .35 : 1, now(), .08); },
+    pop()   { if (ok()) tone(now(), 520, .09, { to: 1150, gain: .22, dest: sfx }); },
+    whoosh(){ if (ok()) noise(now(), .45, { type: 'bandpass', freq: 350, to: 4200, q: 1.3, gain: .35, dest: sfx }); },
+    ding()  { if (ok()) { tone(now(), 1320, .45, { gain: .16, dest: sfx }); tone(now(), 1980, .3, { gain: .07, dest: sfx }); } },
+    stamp() { if (ok()) { tone(now(), 150, .3, { to: 45, gain: .8, dest: sfx }); noise(now(), .12, { type: 'lowpass', freq: 900, gain: .45, dest: sfx }); } },
+    vine()  { if (ok()) { tone(now(), 85, .7, { to: 38, gain: .95, dest: sfx }); tone(now(), 170, .35, { to: 80, gain: .35, dest: sfx }); } },
+    boom()  { if (ok()) { tone(now(), 95, 1.8, { to: 30, gain: 1, dest: sfx }); noise(now(), 2, { freq: 4500, gain: .28, dest: sfx }); } },
+    riser(sec) {
+      if (!ok()) return;
+      const t = now(), s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2;
+      f.frequency.setValueAtTime(200, t); f.frequency.exponentialRampToValueAtTime(6000, t + sec);
+      const g = ctx.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3, t + sec);
+      g.gain.linearRampToValueAtTime(0, t + sec + .05);
+      s.connect(f); f.connect(g); g.connect(sfx); s.start(t); s.stop(t + sec + .1);
+    },
+    scratch() {
+      if (!ok()) return;
+      const t = now(), o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(220, t); o.frequency.linearRampToValueAtTime(950, t + .12); o.frequency.linearRampToValueAtTime(140, t + .38);
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 1.5;
+      const g = ctx.createGain(); g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.0001, t + .4);
+      o.connect(f); f.connect(g); g.connect(sfx); o.start(t); o.stop(t + .45);
+      noise(t, .4, { type: 'bandpass', freq: 2000, to: 500, gain: .2, dest: sfx });
+    },
+    get ready() { return !!ctx; },
+  };
+})();
+
+function stopSpeech() {
+  if (TTS) speechSynthesis.cancel();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+}
+
 /* Sleep yang bisa dibatalkan saat "Ulang" */
 let runId = 0;
 const CANCEL = Symbol('cancel');
@@ -788,10 +951,12 @@ function setScene(sc) {
 async function wipe(label, swap) {
   wipeEl.querySelector('span').textContent = label || '';
   wipeEl.className = 'cover';
+  Music.whoosh();
   await sleep(T.wipe);
   swap();
   await sleep(T.wipeHold);
   wipeEl.className = 'reveal';
+  Music.whoosh();
   await sleep(T.wipe);
   wipeEl.className = '';
 }
@@ -830,6 +995,8 @@ async function sendMessage(m) {
     b.appendChild(ul);
   }
   typing.replaceWith(b);
+  Music.pop();
+  if (m.act === 'shock') Music.vine();
   ch.classList.remove('thinking');
   if (m.act) ch.classList.add(`act-${m.act}`);
   if (m.emote) { const e = document.createElement('div'); e.className = 'emote'; e.textContent = m.emote; ch.appendChild(e); }
@@ -837,18 +1004,25 @@ async function sendMessage(m) {
 
   const hold = holdDur(m);
   if (m.list) {
-    // Poin tusi muncul satu per satu sambil Dinda menjelaskan
-    ch.classList.add('talking');
-    for (const li of b.querySelectorAll('li')) { await sleep(T.listItemGap); li.classList.add('in'); }
+    // Poin tusi muncul satu per satu sambil Dinda membacakannya
+    await Promise.all([sleep(600), speak(m.say || m.text, m.from)]);
+    for (const [k, li] of [...b.querySelectorAll('li')].entries()) {
+      li.classList.add('in');
+      Music.ding();
+      await Promise.all([sleep(T.listItemGap), speak(m.list[k].say || m.list[k].text, m.from)]);
+    }
     ch.classList.remove('talking');
     await sleep(T.listHold);
     clearChar(ch);
     return;
   }
+  // Mulut bergerak selama suara diputar (minimal talkMs), lalu sisa waktu baca
+  const t0 = performance.now();
   const talkMs = clamp(m.text.length * T.talkPerChar, 600, hold - 300);
-  await sleep(talkMs);
+  await Promise.all([sleep(talkMs), speak(m.say || m.text, m.from, m.audio)]);
   ch.classList.remove('talking');
-  await sleep(hold - talkMs);
+  const spent = (performance.now() - t0) * SPEED;
+  await sleep(Math.max(500, hold - spent));
   clearChar(ch);
 }
 
@@ -858,7 +1032,12 @@ async function showOverlay(o, num) {
   overlay.querySelector('.otitle').textContent = o.title;
   overlay.querySelector('.osub').textContent = o.sub || '';
   overlay.classList.add('show');
-  await sleep(T.overlayIn + T.overlayHold);
+  Music.whoosh();
+  sleep(T.overlayIn + 150).then(() => Music.stamp(), () => {}); // saat stempel "BISA DI BHP" mendarat
+  await Promise.all([
+    sleep(T.overlayIn + T.overlayHold),
+    sleep(T.overlayIn).then(() => speak(`Catat! Di BHP bisa: ${o.title}. ${o.sub || ''}`, 'narator')),
+  ]);
 }
 
 async function climax(c) {
@@ -866,6 +1045,7 @@ async function climax(c) {
   cast.tasya.classList.add('act-shock');
   cast.dinda.classList.add('act-tilt');
   app.classList.add('dim');
+  Music.stop(1.2); // musik hilang → hening
   if (!reduced()) world.classList.add('zoom');
   await sleep(T.silence);
 
@@ -877,9 +1057,11 @@ async function climax(c) {
   boss.classList.add('in');
   await sleep(T.bossIn);
 
-  // Dialog kata per kata
+  // Dialog kata per kata, dibacakan suara Kepala Kantor
+  const bossVoice = speak(c.say || c.text, 'boss', c.audio);
+  Music.riser((speech.children.length * T.wordGap + T.afterWords) / 1000 / SPEED);
   for (const span of speech.children) { span.classList.add('in'); await sleep(T.wordGap); }
-  await sleep(T.afterWords);
+  await Promise.all([sleep(T.afterWords), bossVoice]);
 
   // Tagline besar + flash + shake, kedua tokoh melonjak
   tagline.querySelector('.t1').textContent = c.tagline[0];
@@ -890,10 +1072,12 @@ async function climax(c) {
     app.classList.remove('shake'); void app.offsetWidth; app.classList.add('shake');
   }
   tagline.classList.add('show');
-  await sleep(T.taglineHold);
+  Music.boom(); Music.start(.9); // drop!
+  await Promise.all([sleep(T.taglineHold), speak(c.tagline.join(' '), 'narator')]);
 
-  // Freeze frame
+  // Freeze frame + record scratch
   app.classList.add('frozen');
+  Music.scratch(); Music.stop(.05);
   await sleep(T.freeze);
 }
 
@@ -902,14 +1086,18 @@ async function showClosing() {
   await wipe('', () => {
     closingEl.hidden = false;
     closingEl.classList.remove('show'); void closingEl.offsetWidth; closingEl.classList.add('show');
+    Music.start(.55);
   });
-  await sleep(T.replayAfter);
+  await Promise.all([sleep(T.replayAfter),
+    speak('Balai Harta Peninggalan Medan. Kementerian Hukum Republik Indonesia. Pasti selalu ada solusinya!', 'narator')]);
   replayBtn.hidden = false;
   replayBtn.focus({ preventScroll: true });
 }
 
 async function play(from = 0) {
   runId++;
+  stopSpeech();
+  Music.start(.8);
   replayBtn.hidden = true;
   try {
     for (let i = from; i < SCENES.length; i++) {
@@ -930,6 +1118,26 @@ async function play(from = 0) {
     if (e !== CANCEL) throw e;
   }
 }
+
+/* Tombol suara di layar awal + tombol M untuk mute */
+const soundBtn = $('#soundBtn');
+function updateSoundUi() {
+  soundBtn.textContent = soundOn ? '🔊 Narator: ON' : '🔇 Narator: OFF';
+  soundBtn.setAttribute('aria-pressed', String(soundOn));
+  $('#voiceNote').textContent = !TTS ? 'Browser ini tidak mendukung suara.'
+    : idVoice ? `Suara: ${idVoice.name}` : 'Suara Bahasa Indonesia belum terpasang di perangkat ini.';
+}
+soundBtn.addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) stopSpeech(); updateSoundUi(); });
+addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') { soundOn = !soundOn; if (!soundOn) stopSpeech(); updateSoundUi(); } });
+const musicBtn = $('#musicBtn');
+musicBtn.addEventListener('click', () => {
+  musicOn = !musicOn;
+  if (!musicOn) Music.stop(.2);
+  musicBtn.textContent = musicOn ? '🎵 Backsound: ON' : '🔇 Backsound: OFF';
+  musicBtn.setAttribute('aria-pressed', String(musicOn));
+});
+if (TTS) { pickVoice(); speechSynthesis.addEventListener?.('voiceschanged', pickVoice); }
+updateSoundUi();
 
 $('#playBtn').addEventListener('click', () => play(START_AT));
 replayBtn.addEventListener('click', () => play(0));
