@@ -404,6 +404,7 @@ const Demo = (() => {
       db.events.push(e); log('BUAT', e, ''); save(); return e;
     },
     apiMoveEvent(i, mulai) { const e = db.events.find(x => x.id === i); const span = dayDiff(e.mulai, e.selesai); e.mulai = mulai; e.selesai = addDays(mulai, span); log('PINDAH', e, mulai); save(); return e; },
+    apiSetStatus(i, st) { const e = db.events.find(x => x.id === i); e.status = st; e.diubahOleh = me; e.diubahPada = new Date().toISOString(); log('UBAH', e, st); save(); return e; },
     apiDeleteEvent(i) { const e = db.events.find(x => x.id === i); e.dihapus = true; log('HAPUS', e, ''); save(); return true; },
     apiRestoreEvent(i) { const e = db.events.find(x => x.id === i); e.dihapus = false; log('PULIHKAN', e, ''); save(); return true; },
     apiDuplicateEvent(i, mulai) { const e = db.events.find(x => x.id === i); return this.apiSaveEvent(Object.assign({}, e, { id: '', mulai, selesai: addDays(mulai, dayDiff(e.mulai, e.selesai)), status: 'Direncanakan' })); },
@@ -451,7 +452,7 @@ function avatar(email, sm) { const n = String(email || '?').split('@')[0]; retur
 function color(e) { return CATS[e.kategori] || CATS.Umum; }
 function soft(c, a = .14) { const n = parseInt(c.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function size(b) { b = Number(b); return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
-function timeStr(e) { return e.seharian || !e.jamMulai ? 'Seharian' : e.jamMulai + (e.jamSelesai ? '–' + e.jamSelesai : ''); }
+function timeStr(e) { return e.seharian || !e.jamMulai ? 'Seharian' : esc(e.jamMulai + (e.jamSelesai ? '–' + e.jamSelesai : '')); }
 function isNow(e) {
   const t = todayKey(); if (t < e.mulai || t > e.selesai) return false;
   if (e.seharian || !e.jamMulai) return false;
@@ -478,7 +479,7 @@ function applyData(d) {
 async function refresh(silent) {
   const d = await call('apiData');
   const before = S.version; applyData(d); render();
-  if (current && current.id) { const upd = S.events.find(e => e.id === current.id); if (upd) current = upd; }
+  if (current && current.id && !S.editing) { const upd = S.events.find(e => e.id === current.id); if (upd) current = upd; }
   if (!silent && before && d.version !== before) toast('🔄 Data diperbarui oleh anggota tim');
 }
 
@@ -543,7 +544,7 @@ function chip(e) {
   const c = color(e);
   return `<div class="chip ${e.status === 'Selesai' ? 'done' : ''}" draggable="true" ondragstart="dragStart(event,'${e.id}')"
     onclick="event.stopPropagation();openDetail('${e.id}')" style="background:${soft(c)};border-color:${c};color:${c}"
-    title="${esc(e.judul)} • ${timeStr(e)}">${e.jamMulai && !e.seharian ? e.jamMulai + ' ' : ''}${esc(e.judul)}</div>`;
+    title="${esc(e.judul)} • ${timeStr(e)}">${e.jamMulai && !e.seharian ? esc(e.jamMulai) + ' ' : ''}${esc(e.judul)}</div>`;
 }
 function rowHtml(e) {
   const c = color(e), nf = filesOf(e.id).length, nc = commentsOf(e.id).length;
@@ -619,7 +620,7 @@ function openTodoAdd() {
 async function todoAdd() {
   const id = document.getElementById('tdE').value, items = document.getElementById('tdT').value.split('\n').map(x => x.trim()).filter(Boolean);
   if (!items.length) return toast('Tulis tugasnya');
-  await call('apiAddChecklist', id, items); closeModal(); toast('✅ Tugas ditambahkan'); refresh(true);
+  await safe(async () => { await call('apiAddChecklist', id, items); closeModal(); toast('✅ Tugas ditambahkan'); refresh(true); });
 }
 
 function renderBoard(v) {
@@ -668,7 +669,8 @@ function renderStats(v) {
 
 async function renderLog(v) {
   v.innerHTML = '<div class="scroll"><div class="empty">Memuat log…</div></div>';
-  const logs = await call('apiLogs', 400);
+  let logs; try { logs = await call('apiLogs', 400); } catch (err) { v.innerHTML = `<div class="scroll"><div class="empty">⚠️ Gagal memuat log: ${esc(err.message)}</div></div>`; return; }
+  if (S.view !== 'log') return; // pengguna sudah pindah tampilan
   const icon = { BUAT: '🟢', AI_DOKUMEN: '✨', BUAT_DOKUMEN: '📄', UBAH: '✏️', HAPUS: '🗑️', PULIHKAN: '♻️', PINDAH: '↔️', UNGGAH: '📎', HAPUS_FILE: '❌', KOMENTAR: '💬', CHECKLIST: '☑️' };
   v.innerHTML = `<div class="scroll"><div class="panel" style="margin:0"><h3>📜 Log aktivitas (audit trail) — semua perubahan tercatat permanen di Google Sheets</h3>
     ${logs.map(l => logItem(l, icon)).join('') || '<div class="empty">Belum ada log</div>'}</div></div>`;
@@ -700,14 +702,14 @@ async function dropDay(ev, k) {
   ev.preventDefault(); ev.currentTarget.classList.remove('drop'); if (!dragId) return;
   const e = S.events.find(x => x.id === dragId); dragId = null; if (!e || e.mulai === k) return;
   const old = e.mulai, span = dayDiff(e.mulai, e.selesai); e.mulai = k; e.selesai = addDays(k, span); render(); // optimistic
-  try { await call('apiMoveEvent', e.id, k); toast(`↔️ "${e.judul}" dipindah ke ${fmtShort(k)}`, 'Batal', () => call('apiMoveEvent', e.id, old).then(() => refresh(true))); refresh(true); }
+  try { await call('apiMoveEvent', e.id, k); toast(`↔️ "${e.judul}" dipindah ke ${fmtShort(k)}`, 'Batal', () => safe(async () => { await call('apiMoveEvent', e.id, old); refresh(true); })); refresh(true); }
   catch (err) { toast('⚠️ ' + err.message); refresh(true); }
 }
 async function dropStatus(ev, st) {
   ev.preventDefault(); ev.currentTarget.classList.remove('drop');
   const e = S.events.find(x => x.id === dragId); dragId = null; if (!e || e.status === st) return;
   e.status = st; render();
-  try { await call('apiSaveEvent', Object.assign({}, e, { status: st })); toast(`✅ Status "${e.judul}" → ${st}`); refresh(true); } catch (err) { toast('⚠️ ' + err.message); }
+  try { await call('apiSetStatus', e.id, st); toast(`✅ Status "${e.judul}" → ${st}`); refresh(true); } catch (err) { toast('⚠️ ' + err.message); refresh(true); }
 }
 
 /* ---------- quick add (bahasa alami) */
@@ -741,19 +743,19 @@ async function quickAdd() {
   const inp = document.getElementById('quick'); if (!inp.value.trim()) return inp.focus();
   const o = parseQuick(inp.value); if (!o.judul) return toast('Tulis judul kegiatannya ya');
   inp.value = '';
-  try { const e = await call('apiSaveEvent', o); toast(`✨ "${e.judul}" ditambahkan · ${fmtLong(e.mulai)} ${timeStr(e)}`, 'Buka', () => openDetail(e.id)); S.cursor = parse(e.mulai); await refresh(true); }
+  try { const e = await call('apiSaveEvent', o); toast(`✨ "${e.judul}" ditambahkan · ${fmtLong(e.mulai)} ${e.seharian || !e.jamMulai ? 'Seharian' : e.jamMulai}`, 'Buka', () => openDetail(e.id)); S.cursor = parse(e.mulai); await refresh(true); }
   catch (err) { toast('⚠️ ' + err.message); }
 }
 
 /* ---------- modal: form */
 function openModal(html) { document.getElementById('modal').innerHTML = html; document.getElementById('ov').classList.add('show'); }
-function closeModal() { document.getElementById('ov').classList.remove('show'); current = null; }
+function closeModal() { document.getElementById('ov').classList.remove('show'); current = null; S.editing = false; }
 
 function openForm(id, k) {
   const e = id ? JSON.parse(JSON.stringify(S.events.find(x => x.id === id))) : {
     judul: '', deskripsi: '', mulai: k || S.sel || todayKey(), selesai: k || S.sel || todayKey(), jamMulai: '09:00', jamSelesai: '10:00', seharian: false,
     lokasi: '', kategori: 'Umum', prioritas: 'Sedang', status: 'Direncanakan', peserta: [], checklist: [], tautan: [] };
-  current = e;
+  current = e; S.editing = true;
   const pills = (name, opts, colors) => `<div class="pills" data-name="${name}">${opts.map(o => `<button type="button" data-val="${o}" class="${e[name] === o ? 'on' : ''}" style="${e[name] === o ? `background:${colors[o]}` : `color:${colors[o]}`}" onclick="pick(this,'${name}')">${o}</button>`).join('')}</div>`;
   openModal(`<div class="mh"><h2>${id ? '✏️ Ubah kegiatan' : '✨ Kegiatan baru'}</h2><button class="icon-btn" onclick="closeModal()">✕</button></div>
   <form class="mb" id="form" onsubmit="event.preventDefault();saveForm()">
@@ -816,22 +818,24 @@ async function saveForm() {
   if (!d.judul) return toast('Judul wajib diisi');
   if (d.selesai < d.mulai) return toast('Tanggal selesai tidak boleh sebelum tanggal mulai');
   const b = document.getElementById('saveBtn'); b.disabled = true; b.textContent = 'Menyimpan…';
-  try { const e = await call('apiSaveEvent', d); toast(d.id ? '✅ Perubahan tersimpan & tercatat di log' : '🎉 Kegiatan dibuat'); await refresh(true); openDetail(e.id, d.id ? 'detail' : 'files'); }
+  try { const e = await call('apiSaveEvent', d); S.editing = false; toast(d.id ? '✅ Perubahan tersimpan & tercatat di log' : '🎉 Kegiatan dibuat'); await refresh(true); openDetail(e.id, d.id ? 'detail' : 'files'); }
   catch (err) { toast('⚠️ ' + err.message); b.disabled = false; b.textContent = '💾 Simpan'; }
 }
 async function delEvent(id) {
   const e = S.events.find(x => x.id === id);
   if (!confirm(`Hapus "${e.judul}"?\nData tetap tersimpan di log dan bisa dipulihkan.`)) return;
-  await call('apiDeleteEvent', id); closeModal();
-  toast('🗑️ Kegiatan dihapus', 'Urungkan', async () => { await call('apiRestoreEvent', id); refresh(true); });
-  refresh(true);
+  await safe(async () => {
+    await call('apiDeleteEvent', id); closeModal();
+    toast('🗑️ Kegiatan dihapus', 'Urungkan', () => safe(async () => { await call('apiRestoreEvent', id); refresh(true); }));
+    refresh(true);
+  });
 }
-async function restore(id) { if (!confirm('Pulihkan kegiatan yang dihapus ini?')) return; await call('apiRestoreEvent', id); toast('♻️ Dipulihkan'); await refresh(true); openDetail(id); }
+async function restore(id) { if (!confirm('Pulihkan kegiatan yang dihapus ini?')) return; await safe(async () => { await call('apiRestoreEvent', id); toast('♻️ Dipulihkan'); await refresh(true); openDetail(id); }); }
 
 /* ---------- modal: detail */
 function openDetail(id, tab) {
   const e = S.events.find(x => x.id === id); if (!e) return toast('Kegiatan tidak ditemukan');
-  current = e; tab = tab || 'detail';
+  current = e; S.editing = false; tab = tab || 'detail';
   const c = color(e), nf = filesOf(id).length, nc = commentsOf(id).length;
   openModal(`<div class="mh"><h2></h2><button class="icon-btn" title="Duplikat" onclick="dup('${id}')">⧉</button>
     <button class="icon-btn" title="Tambah ke Google Calendar pribadi" onclick="window.open(gcalLink(current),'_blank')">📆</button>
@@ -951,7 +955,7 @@ function aiHtml(id) {
       <button class="btn btn-soft" onclick="aiCreate('${id}',${i})" id="aiC${i}">Buat Google Doc</button></div>
       <small style="color:var(--muted)">${esc(d.alasan || '')}</small><details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;font-weight:600">Lihat draf isi</summary><pre>${esc(d.isi || '')}</pre></details></div>`).join('')}`;
 }
-async function aiToTodo(id) { await call('apiAddChecklist', id, S.ai.docs.map(d => 'Siapkan ' + d.nama)); toast('☑ Ditambahkan ke To Do List'); refresh(true); }
+async function aiToTodo(id) { await safe(async () => { await call('apiAddChecklist', id, S.ai.docs.map(d => 'Siapkan ' + d.nama)); toast('☑ Ditambahkan ke To Do List'); refresh(true); }); }
 async function aiCreate(id, i, quiet) {
   const d = S.ai.docs[i], b = document.getElementById('aiC' + i); if (b) { b.disabled = true; b.textContent = 'Membuat…'; }
   try { const f = await call('apiCreateDoc', id, d.nama, d.isi); if (b) { b.textContent = '✅ Dibuat'; } if (!quiet) { toast('📄 ' + d.nama + ' dibuat di Google Drive', 'Buka', () => window.open(f.url, '_blank')); refresh(true); } }
@@ -965,19 +969,23 @@ function countdown(e) {
   if (t > e.selesai) return '⚠️ Sudah lewat ' + dayDiff(e.selesai, t) + ' hari';
   return '📍 Hari ini';
 }
+// jalankan aksi dan tampilkan pesan bila gagal (koneksi putus, kegiatan sudah dihapus, dll.)
+async function safe(fn) { try { return await fn(); } catch (err) { toast('⚠️ ' + (err && err.message || err)); refresh(true).catch(() => {}); } }
 function linkify(s) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>'); }
 function gcalLink(e) {
   const d = (k, t) => k.replace(/-/g, '') + (t ? 'T' + t.replace(':', '') + '00' : '');
   const dates = e.seharian || !e.jamMulai ? d(e.mulai) + '/' + d(addDays(e.selesai, 1)) : d(e.mulai, e.jamMulai) + '/' + d(e.selesai, e.jamSelesai || e.jamMulai);
   return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(e.judul) + '&dates=' + dates + '&ctz=Asia/Jakarta&details=' + encodeURIComponent(e.deskripsi || '') + '&location=' + encodeURIComponent(e.lokasi || '');
 }
-async function toggleCk(id, i) { await call('apiToggleChecklist', id, i); await refresh(true); openDetail(id); }
-async function setStatus(id, s) { const e = S.events.find(x => x.id === id); await call('apiSaveEvent', Object.assign({}, e, { status: s })); toast('Status → ' + s); await refresh(true); openDetail(id); }
+async function toggleCk(id, i) { await safe(async () => { await call('apiToggleChecklist', id, i); await refresh(true); openDetail(id); }); }
+async function setStatus(id, s) { await safe(async () => { await call('apiSetStatus', id, s); toast('Status → ' + s); await refresh(true); openDetail(id); }); }
 async function dup(id) { const k = prompt('Duplikat ke tanggal (YYYY-MM-DD):', addDays(current.mulai, 7)); if (!k || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
-  const e = await call('apiDuplicateEvent', id, k); toast('⧉ Diduplikat ke ' + fmtLong(k)); await refresh(true); openDetail(e.id); }
+  await safe(async () => { const e = await call('apiDuplicateEvent', id, k); toast('⧉ Diduplikat ke ' + fmtLong(k)); await refresh(true); openDetail(e.id); }); }
 async function sendComment() {
-  const t = document.getElementById('cmt'); if (!t.value.trim()) return; const id = current.id;
-  await call('apiComment', id, t.value); await refresh(true); openDetail(id, 'comments');
+  const t = document.getElementById('cmt'); if (!t.value.trim() || t.disabled) return; const id = current.id;
+  t.disabled = true; // cegah komentar terkirim dua kali
+  try { await call('apiComment', id, t.value); await refresh(true); openDetail(id, 'comments'); }
+  catch (err) { t.disabled = false; toast('⚠️ ' + err.message); }
 }
 
 /* ---------- files: upload, hover preview & viewer */
@@ -1035,23 +1043,26 @@ function compress(file) {
 }
 async function delFile(fid) {
   const f = S.files.find(x => x.id === fid); if (!confirm(`Hapus lampiran "${f.nama}"? (dipindah ke Sampah Drive)`)) return;
-  await call('apiDeleteFile', fid); toast('Lampiran dihapus'); await refresh(true); openDetail(f.eventId, 'files');
+  await safe(async () => { await call('apiDeleteFile', fid); toast('Lampiran dihapus'); await refresh(true); openDetail(f.eventId, 'files'); });
 }
 
 /* ---------- export */
 function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); }
 function exportCSV() {
   const cols = ['judul', 'mulai', 'selesai', 'jamMulai', 'jamSelesai', 'lokasi', 'kategori', 'prioritas', 'status', 'deskripsi', 'dibuatOleh', 'diubahPada'];
-  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  // awali ' bila nilai bisa dibaca Excel sebagai rumus (=, +, -, @)
+  const q = v => { let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x)) x = "'" + x; return '"' + x.replace(/"/g, '""') + '"'; };
   download('kalender-kerja.csv', '﻿' + [cols.join(','), ...visible().map(e => cols.map(c => q(e[c])).join(','))].join('\n'), 'text/csv');
 }
 function exportICS() {
   const d = k => k.replace(/-/g, ''), t = s => s.replace(':', '') + '00';
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kalender Kerja Wilayah II//ID'];
-  visible().forEach(e => lines.push('BEGIN:VEVENT', 'UID:' + e.id + '@kkw2', 'SUMMARY:' + e.judul.replace(/[,;]/g, '\\$&'),
+  const tx = s => String(s || '').replace(/[\\,;]/g, '\\$&').replace(/\r?\n/g, '\\n'); // escape teks RFC 5545
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kalender Kerja Wilayah II//ID', 'CALSCALE:GREGORIAN'];
+  visible().forEach(e => lines.push('BEGIN:VEVENT', 'UID:' + e.id + '@kkw2', 'DTSTAMP:' + stamp, 'SUMMARY:' + tx(e.judul),
     e.seharian || !e.jamMulai ? 'DTSTART;VALUE=DATE:' + d(e.mulai) : 'DTSTART;TZID=Asia/Jakarta:' + d(e.mulai) + 'T' + t(e.jamMulai),
     e.seharian || !e.jamMulai ? 'DTEND;VALUE=DATE:' + d(addDays(e.selesai, 1)) : 'DTEND;TZID=Asia/Jakarta:' + d(e.selesai) + 'T' + t(e.jamSelesai || e.jamMulai),
-    'LOCATION:' + (e.lokasi || ''), 'DESCRIPTION:' + (e.deskripsi || '').replace(/\n/g, '\\n'), 'END:VEVENT'));
+    'LOCATION:' + tx(e.lokasi), 'DESCRIPTION:' + tx(e.deskripsi), 'END:VEVENT'));
   lines.push('END:VCALENDAR'); download('kalender-kerja.ics', lines.join('\r\n'), 'text/calendar');
 }
 

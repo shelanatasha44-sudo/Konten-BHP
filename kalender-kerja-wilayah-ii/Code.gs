@@ -115,6 +115,29 @@ function withLock_(fn) {
   try { return fn(); } finally { lock.releaseLock(); }
 }
 
+const KATEGORI = ['Umum', 'Rapat', 'Koordinasi', 'Penyumpahan', 'Inventarisasi', 'Lapangan', 'Laporan', 'Pelatihan', 'Cuti', 'Lainnya'];
+const PRIORITAS = ['Rendah', 'Sedang', 'Tinggi'];
+const STATUS = ['Direncanakan', 'Berjalan', 'Selesai', 'Dibatalkan'];
+
+function tanggal_(v, nama) {
+  v = String(v || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(new Date(v + 'T00:00:00Z'))) throw new Error(nama + ' tidak valid (format YYYY-MM-DD)');
+  return v;
+}
+function jam_(v) { v = String(v || ''); return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : ''; }
+function pilih_(v, daftar, bawaan) { return daftar.indexOf(v) >= 0 ? v : bawaan; }
+function daftarTeks_(v, maks, panjang) {
+  return (Array.isArray(v) ? v : []).map(function (x) { return String(x || '').trim().slice(0, panjang); })
+    .filter(Boolean).slice(0, maks);
+}
+function checklist_(v) {
+  return (Array.isArray(v) ? v : []).filter(function (c) { return c && String(c.t || '').trim(); }).slice(0, 100)
+    .map(function (c) { return { t: String(c.t).trim().slice(0, 300), d: !!c.d }; });
+}
+function eventAktif_(id) {
+  return readAll_('events').filter(function (e) { return e.id === id && e.dihapus !== 'TRUE'; })[0];
+}
+
 function parseEvent_(e) {
   const o = Object.assign({}, e);
   ['checklist', 'peserta', 'tautan'].forEach(function (k) {
@@ -150,31 +173,40 @@ function apiData() {
 
 function apiSaveEvent(input) {
   if (!input || !String(input.judul || '').trim()) throw new Error('Judul kegiatan wajib diisi');
-  if (!input.mulai) throw new Error('Tanggal mulai wajib diisi');
+  const mulai = tanggal_(input.mulai, 'Tanggal mulai');
+  const selesai = input.selesai ? tanggal_(input.selesai, 'Tanggal selesai') : mulai;
+  const seharian = !!input.seharian;
+  const jamMulai = seharian ? '' : jam_(input.jamMulai);
+  const clean = {
+    judul: String(input.judul).trim().slice(0, 200),
+    deskripsi: String(input.deskripsi || '').slice(0, 5000),
+    mulai: mulai,
+    selesai: selesai >= mulai ? selesai : mulai,
+    jamMulai: jamMulai,
+    jamSelesai: jamMulai ? jam_(input.jamSelesai) : '',
+    seharian: seharian || !jamMulai,
+    lokasi: String(input.lokasi || '').slice(0, 300),
+    kategori: pilih_(input.kategori, KATEGORI, 'Umum'),
+    prioritas: pilih_(input.prioritas, PRIORITAS, 'Sedang'),
+    status: pilih_(input.status, STATUS, 'Direncanakan'),
+    peserta: daftarTeks_(input.peserta, 50, 120).map(function (x) { return x.toLowerCase(); })
+      .filter(function (x) { return /^[^\s@<>"']+@[^\s@<>"']+$/.test(x); }),
+    checklist: checklist_(input.checklist),
+    tautan: daftarTeks_(input.tautan, 20, 500),
+  };
   return withLock_(function () {
     const sh = sheet_('events');
     const user = me_();
     const t = now_();
-    const clean = {
-      judul: String(input.judul).trim().slice(0, 200),
-      deskripsi: String(input.deskripsi || '').slice(0, 5000),
-      mulai: input.mulai,
-      selesai: input.selesai && input.selesai >= input.mulai ? input.selesai : input.mulai,
-      jamMulai: input.seharian ? '' : (input.jamMulai || ''),
-      jamSelesai: input.seharian ? '' : (input.jamSelesai || ''),
-      seharian: !!input.seharian,
-      lokasi: String(input.lokasi || '').slice(0, 300),
-      kategori: input.kategori || 'Umum',
-      prioritas: input.prioritas || 'Sedang',
-      status: input.status || 'Direncanakan',
-      peserta: input.peserta || [],
-      checklist: input.checklist || [],
-      tautan: input.tautan || [],
-    };
 
     if (input.id) {
-      const cur = readAll_('events').filter(function (e) { return e.id === input.id && e.dihapus !== 'TRUE'; })[0];
+      const cur = eventAktif_(input.id);
       if (!cur) throw new Error('Kegiatan tidak ditemukan (mungkin sudah dihapus)');
+      // anti-bentrok: tolak bila kegiatan sudah diubah orang lain sejak form dibuka
+      if (input.diubahPada && cur.diubahPada && input.diubahPada !== cur.diubahPada) {
+        throw new Error('Kegiatan ini baru saja diubah oleh ' + cur.diubahOleh +
+          '. Perubahan Anda belum disimpan — tutup form, lalu buka lagi untuk melihat versi terbaru.');
+      }
       const before = parseEvent_(cur);
       const diff = {};
       Object.keys(clean).forEach(function (k) {
@@ -198,8 +230,9 @@ function apiSaveEvent(input) {
 
 /** Pindah tanggal cepat (drag & drop). */
 function apiMoveEvent(id, mulai) {
+  mulai = tanggal_(mulai, 'Tanggal');
   return withLock_(function () {
-    const cur = readAll_('events').filter(function (e) { return e.id === id && e.dihapus !== 'TRUE'; })[0];
+    const cur = eventAktif_(id);
     if (!cur) throw new Error('Kegiatan tidak ditemukan');
     const ev = parseEvent_(cur);
     const span = (new Date(ev.selesai) - new Date(ev.mulai)) / 864e5;
@@ -209,6 +242,22 @@ function apiMoveEvent(id, mulai) {
     const rec = Object.assign({}, ev, { mulai: mulai, selesai: selesai, diubahOleh: me_(), diubahPada: now_() });
     sheet_('events').getRange(cur._row, 1, 1, SHEETS.events.length).setValues([toRow_('events', rec)]);
     log_('PINDAH', rec, JSON.stringify({ mulai: { dari: ev.mulai, ke: mulai } }));
+    bump_();
+    return rec;
+  });
+}
+
+/** Ganti status saja, agar tidak menimpa perubahan lain yang dibuat rekan. */
+function apiSetStatus(id, status) {
+  if (STATUS.indexOf(status) < 0) throw new Error('Status tidak dikenal');
+  return withLock_(function () {
+    const cur = eventAktif_(id);
+    if (!cur) throw new Error('Kegiatan tidak ditemukan');
+    const ev = parseEvent_(cur);
+    if (ev.status === status) return ev;
+    const rec = Object.assign({}, ev, { status: status, diubahOleh: me_(), diubahPada: now_() });
+    sheet_('events').getRange(cur._row, 1, 1, SHEETS.events.length).setValues([toRow_('events', rec)]);
+    log_('UBAH', rec, JSON.stringify({ status: { dari: ev.status, ke: status } }));
     bump_();
     return rec;
   });
@@ -239,6 +288,7 @@ function apiRestoreEvent(id) {
 }
 
 function apiDuplicateEvent(id, mulai) {
+  mulai = tanggal_(mulai, 'Tanggal');
   const cur = readAll_('events').filter(function (e) { return e.id === id; })[0];
   if (!cur) throw new Error('Kegiatan tidak ditemukan');
   const ev = parseEvent_(cur);
@@ -246,14 +296,14 @@ function apiDuplicateEvent(id, mulai) {
   const s = new Date(mulai + 'T00:00:00Z');
   s.setUTCDate(s.getUTCDate() + span);
   return apiSaveEvent(Object.assign({}, ev, {
-    id: '', mulai: mulai, selesai: s.toISOString().slice(0, 10), status: 'Direncanakan',
+    id: '', diubahPada: '', mulai: mulai, selesai: s.toISOString().slice(0, 10), status: 'Direncanakan',
     checklist: (ev.checklist || []).map(function (c) { return { t: c.t, d: false }; }),
   }));
 }
 
 function apiToggleChecklist(id, index) {
   return withLock_(function () {
-    const cur = readAll_('events').filter(function (e) { return e.id === id && e.dihapus !== 'TRUE'; })[0];
+    const cur = eventAktif_(id);
     if (!cur) throw new Error('Kegiatan tidak ditemukan');
     const ev = parseEvent_(cur);
     if (!ev.checklist[index]) return ev;
@@ -269,8 +319,9 @@ function apiToggleChecklist(id, index) {
 function apiUpload(eventId, name, mime, base64) {
   const bytes = Utilities.base64Decode(base64);
   if (bytes.length > MAX_UPLOAD_MB * 1024 * 1024) throw new Error('Ukuran file maks ' + MAX_UPLOAD_MB + ' MB');
-  const ev = readAll_('events').filter(function (e) { return e.id === eventId; })[0];
+  const ev = eventAktif_(eventId);
   if (!ev) throw new Error('Simpan kegiatan terlebih dahulu sebelum mengunggah');
+  name = String(name || 'lampiran').replace(/[\\/:*?"<>|]/g, '-').slice(0, 150);
 
   // Folder: Lampiran / 2026-09 / 2026-09-27 — Judul
   const root = DriveApp.getFolderById(PROP.getProperty('FOLDER_ID'));
@@ -298,7 +349,8 @@ function apiDeleteFile(id) {
     if (!f) return true;
     sheet_('files').getRange(f._row, SHEETS.files.indexOf('dihapus') + 1).setValue(true);
     try { DriveApp.getFileById(f.fileId).setTrashed(true); } catch (e) { /* tidak punya akses */ }
-    log_('HAPUS_FILE', { id: f.eventId, judul: '' }, f.nama);
+    const ev = readAll_('events').filter(function (e) { return e.id === f.eventId; })[0];
+    log_('HAPUS_FILE', { id: f.eventId, judul: ev ? ev.judul : '' }, f.nama);
     bump_();
     return true;
   });
@@ -307,10 +359,12 @@ function apiDeleteFile(id) {
 function apiComment(eventId, isi) {
   isi = String(isi || '').trim().slice(0, 2000);
   if (!isi) throw new Error('Komentar kosong');
+  const ev = eventAktif_(eventId);
+  if (!ev) throw new Error('Kegiatan tidak ditemukan (mungkin sudah dihapus)');
   return withLock_(function () {
     const rec = { id: uid_(), eventId: eventId, oleh: me_(), pada: now_(), isi: isi };
     sheet_('comments').appendRow(toRow_('comments', rec));
-    log_('KOMENTAR', { id: eventId, judul: '' }, isi.slice(0, 200));
+    log_('KOMENTAR', { id: eventId, judul: ev.judul }, isi.slice(0, 200));
     bump_();
     return rec;
   });
@@ -379,7 +433,8 @@ function geminiDocs_(ev, key) {
 
 /** Membuat draf Google Docs di folder kegiatan dan mencatatnya sebagai lampiran. */
 function apiCreateDoc(eventId, nama, isi) {
-  const ev = readAll_('events').filter(function (e) { return e.id === eventId; })[0];
+  nama = String(nama || 'Dokumen').replace(/[\\/]/g, '-').slice(0, 150);
+  const ev = eventAktif_(eventId);
   if (!ev) throw new Error('Kegiatan tidak ditemukan');
   const doc = DocumentApp.create(nama + ' — ' + ev.judul);
   const body = doc.getBody();
@@ -404,11 +459,11 @@ function apiCreateDoc(eventId, nama, isi) {
 /** Menambahkan item ke checklist (dipakai AI & To Do List). */
 function apiAddChecklist(eventId, items) {
   return withLock_(function () {
-    const cur = readAll_('events').filter(function (e) { return e.id === eventId && e.dihapus !== 'TRUE'; })[0];
+    const cur = eventAktif_(eventId);
     if (!cur) throw new Error('Kegiatan tidak ditemukan');
     const ev = parseEvent_(cur);
     const have = ev.checklist.map(function (c) { return c.t; });
-    [].concat(items).forEach(function (t) { t = String(t).trim(); if (t && have.indexOf(t) < 0) ev.checklist.push({ t: t, d: false }); });
+    [].concat(items).slice(0, 50).forEach(function (t) { t = String(t).trim().slice(0, 300); if (t && have.indexOf(t) < 0) ev.checklist.push({ t: t, d: false }); });
     ev.diubahOleh = me_(); ev.diubahPada = now_();
     sheet_('events').getRange(cur._row, 1, 1, SHEETS.events.length).setValues([toRow_('events', ev)]);
     log_('CHECKLIST', ev, '+ ' + [].concat(items).join(', '));

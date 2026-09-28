@@ -35,3 +35,9 @@ Buka `Index.html` langsung di browser. Aplikasi otomatis masuk **mode demo** (da
 
 ## ⌨️ Shortcut
 `N` baru · `T` hari ini · `M/W/A/O/B/S/L` ganti tampilan · `←/→` navigasi · `/` cari · `D` tema · `Ctrl+K` palette
+
+## 🛡️ Keamanan data & anti-bentrok
+- **Anti-bentrok**: jika dua orang mengubah kegiatan yang sama, perubahan yang datang belakangan ditolak dengan pesan siapa yang baru mengubah, sehingga tidak ada isian yang tertimpa diam-diam. Ganti status (tombol status & papan Kanban) hanya mengubah status, sehingga tidak menimpa checklist atau isian lain.
+- **Validasi di server**: tanggal (`YYYY-MM-DD`), jam (`HH:MM`), kategori, prioritas, status, email peserta, checklist, dan tautan diperiksa sebelum disimpan. Komentar, lampiran, dan dokumen hanya bisa ditambahkan ke kegiatan yang masih aktif.
+- **Ekspor aman**: CSV diberi pengaman terhadap rumus Excel (`=`, `+`, `-`, `@`), dan file `.ics` mengikuti standar RFC 5545 (escape teks & `DTSTAMP`).
+- Setiap aksi yang gagal (koneksi putus, kegiatan sudah dihapus rekan) menampilkan pesan, bukan gagal diam-diam.
