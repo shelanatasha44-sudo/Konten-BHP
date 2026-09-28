@@ -12,7 +12,7 @@ Dibangun sebagai **Google Apps Script Web App**: data di Google Sheets, lampiran
 - **✨ AI Asisten Dokumen**: AI menentukan dokumen yang perlu dibuat untuk sebuah kegiatan (undangan, KAK/TOR, daftar hadir, notulen, surat tugas, laporan, dll.) lengkap dengan draf isinya. Sekali klik, draf jadi **Google Docs** di folder Drive kegiatan, atau dimasukkan ke To Do List.
 - **Tampilan**: Bulan, Minggu, Agenda, To Do, Papan Kanban (seret untuk ganti status), Statistik, dan Log.
 - **Fitur canggih lainnya**: tambah cepat dengan bahasa alami (`Rapat evaluasi besok 09:00-11:00 @Aula #Rapat !tinggi`), seret-lepas untuk pindah tanggal (bisa di-*undo*), deteksi jadwal bentrok, sinkron realtime antar pengguna, command palette (`Ctrl+K`), shortcut keyboard, mode gelap, badge *LIVE*, heatmap aktivitas 12 bulan, ekspor CSV/.ics, tombol tambah ke Google Calendar pribadi, diskusi per kegiatan, duplikasi kegiatan, dan cetak.
-- **Mobile-first**: bottom navigation, tombol FAB, modal berbentuk *bottom sheet*, dan geser (swipe) kiri/kanan untuk ganti bulan.
+- **Mobile-first & ringan**: bottom navigation, tombol FAB, modal berbentuk *bottom sheet*, geser (swipe) kiri/kanan untuk ganti bulan. Di HP: kalender bulan ringkas dengan daftar kegiatan hari terpilih di bawahnya, menu berisi semua tampilan (Minggu, Papan, Log, dll.), tombol Hari ini, dan tambah cepat di form kegiatan baru. Efek blur/animasi berat dan font web dimatikan di HP, sinkron dicek tiap 30 detik (langsung saat aplikasi dibuka kembali), dan pencarian tidak menggambar ulang di setiap huruf.
 
 ## 🚀 Cara pasang (±5 menit)
 1. Buka <https://script.google.com> lalu klik **Proyek baru**.

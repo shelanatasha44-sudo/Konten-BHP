@@ -6,7 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Kalender Kerja Wilayah II</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- font dimuat tanpa menahan tampilan; di HP memakai font sistem agar lebih ringan -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="if(matchMedia('(min-width:901px)').matches)this.media='all'">
 <style>
 :root{
   --bg:#f4f5fb; --bg2:#eceefa; --card:rgba(255,255,255,.72); --card-solid:#fff; --line:rgba(20,20,60,.08);
@@ -259,9 +260,41 @@ kbd{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6p
   .bnav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--muted);padding:6px 10px;border-radius:14px}
   .bnav button.on{color:var(--accent);background:var(--accent-soft)}
   .bnav svg{width:22px;height:22px}
-  .toasts{left:10px;right:10px;bottom:84px}
-  .mobile-day{padding:10px 6px 0;max-height:34%;overflow:auto}
+  .toasts{left:10px;right:10px;top:10px;bottom:auto} /* di atas: tidak menutupi tombol + dan menu bawah */
+  /* bulan: grid ringkas + daftar hari terpilih memakai sisa layar */
+  .month{flex:none;grid-template-rows:none!important;grid-auto-rows:44px}
+  .cell{justify-content:flex-start}
+  .cell.sel:not(.today) .num{background:var(--accent-soft);color:var(--accent)}
+  .cell.sel{border-color:var(--accent)}
+  .mobile-day{flex:1;min-height:0;overflow:auto;padding:10px 8px 90px;border-top:1px solid var(--line);-webkit-overflow-scrolling:touch}
+  .mobile-day .row{padding:10px 12px}
+  /* tambah cepat pindah ke form kegiatan baru */
+  .quick{display:none}
+  .top .today-m{display:grid}
+  .f input,.f select,.f textarea,.search input,#cmt{font-size:16px} /* cegah zoom otomatis di iPhone */
+  .side .views-m{display:grid}
+  .side .close-m{display:grid}
+  .side .mini-nav{display:flex}
+  .mh h2:empty{display:none}.mh{justify-content:flex-end}
+  .file .x{display:grid} /* layar sentuh tidak punya hover */
+  .scroll{padding:12px 10px 90px}
+  .tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+  /* ringan: matikan efek yang berat di GPU HP */
+  body::before{animation:none;background:none}
+  .glass,.overlay,.palette{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .glass{background:var(--card-solid);box-shadow:0 2px 10px -4px rgba(40,30,120,.18)}
+  .cell:hover,.card:hover,.file:hover,.btn:hover{transform:none;box-shadow:none}
+  .ai-hero{animation:none}
+  .now-badge,.live i{animation:none}
 }
+.today-m,.views-m,.close-m{display:none}
+@media (min-width:901px){.quick-m{display:none}}
+.views-m{grid-template-columns:repeat(4,1fr);gap:6px}
+.views-m button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-size:11px;font-weight:700;color:var(--muted)}
+.views-m button.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.views-m b{font-size:18px}
+.mini-nav{display:flex;align-items:center;justify-content:space-between}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (min-width:901px){.mobile-day{display:none}}
 @media print{.side,.top,.quick,.bnav,.fab{display:none!important}.app{display:block}body{overflow:visible}}
 .search svg{flex:none}
@@ -275,13 +308,18 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
   <aside class="side glass" id="side">
     <div class="brand">
       <div class="logo">W2</div>
-      <div><b>Kalender Kerja</b><small>Wilayah II</small></div>
+      <div style="flex:1"><b>Kalender Kerja</b><small>Wilayah II</small></div>
+      <button class="icon-btn close-m" onclick="toggleSide(false)" title="Tutup">✕</button>
+    </div>
+    <div class="views-m" id="viewsM">
+      <button data-v="month"><b>📅</b>Bulan</button><button data-v="week"><b>🗓️</b>Minggu</button><button data-v="agenda"><b>📋</b>Agenda</button><button data-v="todo"><b>✅</b>To Do</button>
+      <button data-v="board"><b>🧩</b>Papan</button><button data-v="stats"><b>📊</b>Statistik</button><button data-v="log"><b>📜</b>Log</button><button onclick="toggleSide(false);toggleTheme()"><b>🌓</b>Tema</button>
     </div>
     <button class="btn btn-primary" onclick="openForm()"><svg><path d="M12 5v14M5 12h14"/></svg>Kegiatan Baru</button>
     <div>
-      <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="mini-nav">
         <div class="sec-title" id="miniTitle" style="margin:0"></div>
-        <div><button class="icon-btn" onclick="shift(-1)">‹</button><button class="icon-btn" onclick="shift(1)">›</button></div>
+        <div style="display:flex"><button class="icon-btn" onclick="shift(-1)">‹</button><button class="icon-btn" onclick="shift(1)">›</button></div>
       </div>
       <div class="mini" id="mini"></div>
     </div>
@@ -308,6 +346,7 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       <button class="icon-btn" onclick="shift(-1)" title="Sebelumnya (←)"><svg><path d="m15 18-6-6 6-6"/></svg></button>
       <button class="icon-btn" onclick="shift(1)" title="Berikutnya (→)"><svg><path d="m9 18 6-6-6-6"/></svg></button>
       <button class="btn btn-soft hide-m" onclick="goToday()">Hari ini</button>
+      <button class="icon-btn today-m" onclick="goToday()" title="Hari ini"><svg><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18"/><circle cx="12" cy="15" r="1.5"/></svg></button>
       <h1 id="title"></h1>
       <div class="seg hide-m" id="seg">
         <button data-v="month">Bulan</button><button data-v="week">Minggu</button><button data-v="agenda">Agenda</button><button data-v="todo">To Do</button>
@@ -315,7 +354,7 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       </div>
       <div class="grow hide-m"></div>
       <div class="search"><svg><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="q" placeholder="Cari kegiatan, lokasi, orang…" oninput="render()"><kbd class="hide-m">Ctrl K</kbd></div>
+        <input id="q" type="search" placeholder="Cari kegiatan, lokasi, orang…" oninput="clearTimeout(S.qt);S.qt=setTimeout(render,180)"><kbd class="hide-m">Ctrl K</kbd></div>
       <div class="live" id="live" title="Sinkron realtime"><i></i><span class="hide-m">Live</span></div>
       <button class="icon-btn" onclick="toggleTheme()" title="Tema"><svg><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
       <button class="icon-btn hide-m" onclick="openPalette()" title="Menu cepat"><svg><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
@@ -339,7 +378,7 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
   <button data-v="agenda"><svg><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Agenda</button>
   <button data-v="todo"><svg><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>To Do</button>
   <button data-v="stats"><svg><path d="M3 3v18h18M7 15l4-4 4 4 5-6"/></svg>Statistik</button>
-  <button data-v="more" onclick="document.getElementById('side').classList.toggle('open')"><svg><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</button>
+  <button data-v="more" onclick="toggleSide()"><svg><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</button>
 </nav>
 
 <!-- Modal kegiatan -->
@@ -494,7 +533,10 @@ function render() {
   ({ month: renderMonth, week: renderWeek, agenda: renderAgenda, todo: renderTodo, board: renderBoard, stats: renderStats, log: renderLog }[S.view] || renderMonth)(v);
 }
 
-function renderSide() {
+function renderSide(force) {
+  // di HP sidebar tersembunyi: tidak perlu digambar ulang sampai dibuka (lebih ringan)
+  if (!force && isMobile() && !document.getElementById('side').classList.contains('open')) return;
+  document.querySelectorAll('#viewsM button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === S.view));
   const c = S.cursor, y = c.getFullYear(), m = c.getMonth();
   document.getElementById('miniTitle').textContent = BLN[m] + ' ' + y;
   const start = new Date(y, m, 1 - new Date(y, m, 1).getDay());
@@ -686,10 +728,17 @@ function logItem(l, icon) {
 }
 
 /* ============================================================ interactions */
-function setView(v) { S.view = v; localStorage.setItem('kkw2-view', v); document.getElementById('side').classList.remove('open'); render(); }
+function setView(v) { S.view = v; localStorage.setItem('kkw2-view', v); toggleSide(false); render(); }
+const isMobile = () => matchMedia('(max-width:900px)').matches;
+function toggleSide(open) {
+  const side = document.getElementById('side');
+  open = open === undefined ? !side.classList.contains('open') : open;
+  side.classList.toggle('open', open);
+  if (open) renderSide(true);
+}
 function shift(n) { const c = S.cursor; S.view === 'week' ? c.setDate(c.getDate() + 7 * n) : c.setMonth(c.getMonth() + n, 1); render(); }
 function goToday() { S.cursor = new Date(); S.sel = todayKey(); render(); }
-function pickDay(k) { S.cursor = parse(k); S.sel = k; if (S.view !== 'week') S.view = S.view === 'month' ? 'month' : S.view; document.getElementById('side').classList.remove('open'); render(); }
+function pickDay(k) { S.cursor = parse(k); S.sel = k; toggleSide(false); render(); }
 function toggleCat(n) { S.hidden.has(n) ? S.hidden.delete(n) : S.hidden.add(n); localStorage.setItem('kkw2-hidden', JSON.stringify([...S.hidden])); render(); }
 function cellClick(ev, k) {
   if (matchMedia('(max-width:900px)').matches) { S.sel = k; render(); return; }
@@ -739,6 +788,7 @@ function parseQuick(txt) {
   o.judul = s.replace(/\s+/g, ' ').trim();
   return o;
 }
+function quickAddM() { const v = document.getElementById('quickM').value; if (!v.trim()) return; closeModal(); document.getElementById('quick').value = v; quickAdd(); }
 async function quickAdd() {
   const inp = document.getElementById('quick'); if (!inp.value.trim()) return inp.focus();
   const o = parseQuick(inp.value); if (!o.judul) return toast('Tulis judul kegiatannya ya');
@@ -759,6 +809,7 @@ function openForm(id, k) {
   const pills = (name, opts, colors) => `<div class="pills" data-name="${name}">${opts.map(o => `<button type="button" data-val="${o}" class="${e[name] === o ? 'on' : ''}" style="${e[name] === o ? `background:${colors[o]}` : `color:${colors[o]}`}" onclick="pick(this,'${name}')">${o}</button>`).join('')}</div>`;
   openModal(`<div class="mh"><h2>${id ? '✏️ Ubah kegiatan' : '✨ Kegiatan baru'}</h2><button class="icon-btn" onclick="closeModal()">✕</button></div>
   <form class="mb" id="form" onsubmit="event.preventDefault();saveForm()">
+    ${id ? '' : `<div class="f quick-m" style="margin-bottom:14px"><label>✨ Tambah cepat (opsional)</label><div style="display:flex;gap:8px"><input id="quickM" placeholder="Rapat evaluasi besok 09:00-11:00 @Aula #Rapat" onkeydown="if(event.key==='Enter'){event.preventDefault();quickAddM()}"><button type="button" class="btn btn-primary" onclick="quickAddM()">Tambah</button></div></div>`}
     <div class="warn" id="conflict"></div>
     <div class="grid2">
       <div class="f full"><label>Judul kegiatan *</label><input name="judul" required maxlength="200" value="${esc(e.judul)}" placeholder="mis. Rapat koordinasi program" autofocus></div>
@@ -1098,7 +1149,7 @@ function toggleTheme(force) {
   document.documentElement.dataset.theme = d; localStorage.setItem('kkw2-theme', d);
 }
 
-document.querySelectorAll('#seg button,#bnav button[data-v]:not([data-v=more])').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
+document.querySelectorAll('#seg button,#bnav button[data-v]:not([data-v=more]),#viewsM button[data-v]').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
   if (e.key === 'Escape') { closeViewer(); closePalette(); closeModal(); return; }
@@ -1129,12 +1180,14 @@ document.addEventListener('keydown', e => {
   render();
   // sinkron realtime: cek versi tiap 15 dtk (lebih jarang saat tab tidak aktif)
   const live = document.getElementById('live');
-  setInterval(async () => {
+  const cek = async () => {
     if (document.hidden) return;
     try { const v = await call('apiVersion'); live.classList.remove('off'); if (v !== S.version) refresh(); }
     catch (e) { live.classList.add('off'); }
-  }, 15000);
-  setInterval(() => { if (S.view === 'month' || S.view === 'agenda') renderSide(); }, 60000);
+  };
+  setInterval(cek, isMobile() ? 30000 : 15000); // HP: lebih hemat kuota & baterai
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) cek(); });
+  setInterval(() => { if (!document.hidden) renderSide(); }, 60000);
 })();
 </script>
 </body>
