@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BHP · Pasti Selalu Ada Solusinya!</title>
+<meta name="description" content="Animasi pendek gaya TikTok/Reels: Tasya dan Dinda ngobrol soal layanan Balai Harta Peninggalan.">
+<meta name="theme-color" content="#0B2A5B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0B2A5B;
+    --navy-deep: #06152E;
+    --navy-soft: #16407F;
+    --gold: #F2B705;
+    --gold-deep: #B98A00;
+    --paper: #F7F5F0;
+    --chat-bg: #EFEBE3;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --grey-bubble: #E4E7EC;
+    --font: "Plus Jakarta Sans", "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--navy-deep);
+    font-family: var(--font);
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ====== Kanvas 1080x1920, diskalakan agar muat layar ====== */
+  #stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 1080px; height: 1920px;
+    transform-origin: 50% 50%;
+    transform: translate(-50%, -50%) scale(var(--s, .4));
+    overflow: hidden;
+    background: var(--paper);
+    border-radius: 0;
+    box-shadow: 0 30px 120px rgba(0,0,0,.5);
+  }
+  #app { position: absolute; inset: 0; overflow: hidden;
+    background:
+      radial-gradient(900px 600px at 110% -10%, rgba(11,42,91,.10), transparent 60%),
+      radial-gradient(700px 500px at -20% 110%, rgba(242,183,5,.14), transparent 60%),
+      var(--paper);
+  }
+
+  /* ====== Progress ala story ====== */
+  #progress { position: absolute; top: 36px; left: 40px; right: 40px; height: 10px; display: flex; gap: 10px; z-index: 5; }
+  #progress i { flex: 1; background: rgba(11,42,91,.15); border-radius: 10px; overflow: hidden; position: relative; }
+  #progress i b { position: absolute; inset: 0; width: 0%; background: var(--navy); border-radius: 10px; }
+
+  /* ====== Chip scene ====== */
+  #chip {
+    position: absolute; top: 76px; left: 40px; height: 80px;
+    display: flex; align-items: center; gap: 18px;
+    padding: 0 34px 0 12px; border-radius: 80px;
+    background: #fff; box-shadow: 0 8px 24px rgba(11,42,91,.12);
+    font-weight: 800; font-size: 34px; color: var(--navy); letter-spacing: .01em;
+  }
+  #chip .ico { width: 58px; height: 58px; border-radius: 50%; background: var(--navy); display: grid; place-items: center; }
+  #chip .ico svg { width: 34px; height: 34px; stroke: var(--gold); }
+  #chip small { font-weight: 600; color: var(--ink-soft); font-size: 28px; }
+  #brand {
+    position: absolute; top: 90px; right: 40px; height: 52px; padding: 0 22px;
+    display: flex; align-items: center; border-radius: 50px;
+    background: var(--gold); color: var(--navy); font-weight: 800; font-size: 26px; letter-spacing: .08em;
+  }
+
+  /* ====== Kartu chat ala WhatsApp ====== */
+  #phone {
+    position: absolute; top: 184px; left: 40px; right: 40px; bottom: 40px;
+    border-radius: 52px; overflow: hidden; background: var(--chat-bg);
+    box-shadow: 0 24px 60px rgba(11,42,91,.18), 0 0 0 1px rgba(11,42,91,.06);
+    transform-origin: 50% 70%;
+    transition: transform 7s linear;
+  }
+  #phone.zoom { transform: scale(1.07); }
+  #head {
+    position: absolute; top: 0; left: 0; right: 0; height: 150px; z-index: 2;
+    background: var(--navy); color: #fff;
+    display: flex; align-items: center; gap: 22px; padding: 0 36px;
+  }
+  #head .back { width: 40px; height: 40px; stroke: #fff; opacity: .9; }
+  .pair { position: relative; width: 132px; height: 84px; flex: none; }
+  .pair .av { position: absolute; top: 0; width: 84px; height: 84px; font-size: 38px; border: 4px solid var(--navy); }
+  .pair .av:first-child { left: 0; }
+  .pair .av:last-child { left: 48px; }
+  #head .who { line-height: 1.15; }
+  #head .who b { display: block; font-size: 40px; font-weight: 800; }
+  #head .who span { font-size: 28px; color: #BFD2F2; font-weight: 500; }
+  #head .who span.typing { color: var(--gold); }
+  #head .icons { margin-left: auto; display: flex; gap: 34px; }
+  #head .icons svg { width: 42px; height: 42px; stroke: #fff; opacity: .85; }
+
+  #body {
+    position: absolute; top: 150px; left: 0; right: 0; bottom: 116px;
+    background-image:
+      radial-gradient(rgba(11,42,91,.06) 2.5px, transparent 3px),
+      radial-gradient(rgba(242,183,5,.10) 2.5px, transparent 3px);
+    background-size: 64px 64px, 64px 64px;
+    background-position: 0 0, 32px 32px;
+  }
+  #watermark { position: absolute; left: 50%; top: 42%; width: 520px; height: 520px; transform: translate(-50%,-50%); opacity: .06; pointer-events: none; }
+  #watermark svg { width: 100%; height: 100%; stroke: var(--navy); }
+  #msgs {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 26px;
+    padding: 40px 30px 290px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 90px);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 90px);
+  }
+  #inputbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 116px; background: #F2EFE9;
+    display: flex; align-items: center; gap: 20px; padding: 0 26px;
+  }
+  #inputbar .field { flex: 1; height: 76px; border-radius: 40px; background: #fff; display: flex; align-items: center; padding: 0 32px; color: #94A3B8; font-size: 30px; }
+  #inputbar .mic { width: 76px; height: 76px; border-radius: 50%; background: var(--navy); display: grid; place-items: center; }
+  #inputbar .mic svg { width: 36px; height: 36px; stroke: var(--gold); }
+
+  .row { display: flex; align-items: flex-end; gap: 16px; flex: none; }
+  .row.right { flex-direction: row-reverse; }
+  .av {
+    width: 72px; height: 72px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; font-weight: 800; font-size: 32px;
+  }
+  .av.tasya { background: var(--gold); color: var(--navy); }
+  .av.dinda { background: var(--navy-soft); color: var(--gold); }
+  .bubble {
+    position: relative; max-width: 780px; padding: 20px 28px 14px;
+    border-radius: 34px; font-size: 42px; line-height: 1.38; font-weight: 500;
+    box-shadow: 0 3px 0 rgba(15,23,42,.06), 0 8px 18px rgba(15,23,42,.06);
+    transform-origin: bottom left;
+    animation: pop .42s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .left .bubble { background: var(--grey-bubble); color: var(--ink); border-bottom-left-radius: 8px; }
+  .right .bubble { background: var(--navy); color: #fff; border-bottom-right-radius: 8px; transform-origin: bottom right; }
+  .bubble .name { font-size: 28px; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 12px; }
+  .left .bubble .name { color: var(--gold-deep); }
+  .right .bubble .name { color: var(--gold); }
+  .bubble .tag { font-size: 20px; font-weight: 700; padding: 3px 12px; border-radius: 20px; letter-spacing: .04em; }
+  .left .tag { background: rgba(185,138,0,.14); color: var(--gold-deep); }
+  .right .tag { background: var(--gold); color: var(--navy); }
+  .bubble .meta { text-align: right; font-size: 24px; margin-top: 6px; opacity: .6; font-weight: 600; }
+  .right .bubble .meta { color: #BFD2F2; opacity: 1; }
+  .right .bubble .meta .ticks { color: #7CC4FF; }
+  .bubble.typing { padding: 30px 34px; display: flex; gap: 12px; animation-duration: .3s; }
+  .bubble.typing i { width: 18px; height: 18px; border-radius: 50%; background: currentColor; opacity: .45; animation: dot 1s infinite ease-in-out; }
+  .bubble.typing i:nth-child(2) { animation-delay: .15s; }
+  .bubble.typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes dot { 0%, 60%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-14px); opacity: .9; } }
+  @keyframes pop {
+    0% { transform: scale(.55) translateY(24px); opacity: 0; }
+    70% { transform: scale(1.04); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ====== Overlay kartu putih bawah ====== */
+  #overlay {
+    position: absolute; left: 76px; right: 76px; bottom: 190px; z-index: 6;
+    display: flex; align-items: center; gap: 32px;
+    padding: 34px 40px 34px 34px; border-radius: 40px;
+    background: #fff; color: var(--ink);
+    border: 4px solid var(--navy);
+    box-shadow: 0 30px 60px rgba(11,42,91,.28), 14px 14px 0 var(--gold);
+    transform: translateX(-130%) rotate(-3deg); opacity: 0;
+    transition: transform .6s cubic-bezier(.2,1.2,.35,1), opacity .3s;
+  }
+  #overlay.show { transform: none; opacity: 1; }
+  #overlay .oico { width: 150px; height: 150px; border-radius: 32px; background: var(--navy); flex: none; display: grid; place-items: center; }
+  #overlay .oico svg { width: 88px; height: 88px; stroke: var(--gold); }
+  #overlay .kicker { font-size: 26px; font-weight: 800; letter-spacing: .12em; color: var(--gold-deep); text-transform: uppercase; }
+  #overlay .otitle { font-size: 52px; line-height: 1.12; font-weight: 800; color: var(--navy); margin-top: 6px; }
+  #overlay .osub { font-size: 40px; font-weight: 700; color: var(--ink); margin-top: 8px; }
+  #overlay .osub:empty { display: none; }
+
+  /* ====== Klimaks ====== */
+  #vignette {
+    position: absolute; inset: 0; z-index: 7; pointer-events: none; opacity: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 58%, rgba(6,21,46,.25) 0%, rgba(6,21,46,.78) 65%, rgba(0,0,0,.95) 100%);
+    transition: opacity 1.8s ease;
+  }
+  #app.dim #vignette { opacity: 1; }
+  #boss {
+    position: absolute; left: 90px; right: 90px; bottom: 110px; z-index: 8;
+    display: flex; flex-direction: column; align-items: center;
+    transform: translateY(115%); opacity: 0;
+    transition: transform 1.3s cubic-bezier(.16,1,.3,1), opacity .6s;
+  }
+  #boss.in { transform: none; opacity: 1; }
+  #boss .fig {
+    width: 560px; height: 520px; position: relative;
+    border-radius: 50% 50% 32px 32px / 42% 42% 32px 32px;
+    background: radial-gradient(circle at 50% 38%, rgba(242,183,5,.55), rgba(242,183,5,.08) 55%, transparent 70%);
+    display: grid; place-items: end center;
+  }
+  #boss.in .fig { animation: slowzoom 9s linear forwards; }
+  @keyframes slowzoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+  #boss .fig svg { width: 440px; height: 470px; }
+  #boss .plate {
+    margin-top: -24px; position: relative; z-index: 1;
+    background: var(--gold); color: var(--navy); font-weight: 800; font-size: 36px;
+    padding: 14px 40px; border-radius: 60px; letter-spacing: .03em;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  #boss .speech {
+    margin-top: 28px; width: 100%; min-height: 250px;
+    background: #fff; border-radius: 40px; padding: 36px 44px;
+    font-size: 52px; line-height: 1.3; font-weight: 700; color: var(--ink);
+    box-shadow: 0 30px 60px rgba(0,0,0,.4);
+  }
+  #boss .speech span { display: inline-block; opacity: 0; transform: translateY(18px); transition: opacity .25s, transform .3s cubic-bezier(.2,1.4,.4,1); margin-right: .26em; }
+  #boss .speech span.in { opacity: 1; transform: none; }
+  #boss .speech span.em { color: var(--navy); background: linear-gradient(transparent 62%, rgba(242,183,5,.55) 62%); }
+
+  #tagline {
+    position: absolute; left: 40px; right: 40px; top: 250px; z-index: 9;
+    text-align: center; pointer-events: none; opacity: 0;
+  }
+  #tagline .rays {
+    position: absolute; left: 50%; top: 50%; width: 1300px; height: 1300px; transform: translate(-50%,-50%) scale(.2); opacity: 0;
+    background: repeating-conic-gradient(from 0deg, rgba(242,183,5,.28) 0 6deg, transparent 6deg 18deg);
+    -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+            mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+    transition: transform 1.2s cubic-bezier(.16,1,.3,1), opacity .6s;
+  }
+  #tagline .t1, #tagline .t2 { position: relative; display: block; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+  #tagline .t1 { font-size: 108px; color: #fff; text-shadow: 0 8px 0 var(--navy), 0 20px 40px rgba(0,0,0,.6); }
+  #tagline .t2 { font-size: 150px; color: var(--gold); margin-top: 14px; text-shadow: 0 10px 0 var(--navy), 0 24px 50px rgba(0,0,0,.6); }
+  #tagline.show { opacity: 1; animation: tagpop .7s cubic-bezier(.2,1.5,.4,1) both; }
+  #tagline.show .rays { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  @keyframes tagpop { 0% { transform: scale(2.2); opacity: 0; } 60% { transform: scale(.93); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+  #flash { position: absolute; inset: 0; z-index: 10; background: #fff; opacity: 0; pointer-events: none; }
+  #flash.go { animation: flash .55s ease-out; }
+  @keyframes flash { 0% { opacity: 0; } 15% { opacity: .95; } 100% { opacity: 0; } }
+  #app.shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes shake {
+    10%, 90% { transform: translate(-4px, 2px); }
+    20%, 80% { transform: translate(8px, -4px); }
+    30%, 50%, 70% { transform: translate(-14px, 6px) rotate(-.4deg); }
+    40%, 60% { transform: translate(14px, -6px) rotate(.4deg); }
+  }
+  /* Freeze frame: semua berhenti, warna dikeraskan, bingkai putih */
+  #app.resetting, #app.resetting * { transition: none !important; }
+  #app.frozen, #app.frozen * { animation-play-state: paused !important; }
+  #app.frozen { filter: contrast(1.12) saturate(.75); }
+  #app.frozen::after {
+    content: ""; position: absolute; inset: 0; z-index: 11; pointer-events: none;
+    box-shadow: inset 0 0 0 18px #fff, inset 0 0 0 22px rgba(11,42,91,.6);
+  }
+  #freezetag {
+    position: absolute; top: 60px; right: 60px; z-index: 12; display: none;
+    background: #fff; color: var(--navy); font-weight: 800; font-size: 30px; padding: 10px 24px; border-radius: 12px;
+    letter-spacing: .1em;
+  }
+  #app.frozen #freezetag { display: block; }
+
+  /* ====== Wipe transisi ====== */
+  #wipe {
+    position: absolute; inset: 0; z-index: 30; pointer-events: none;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+    transform: translateX(-104%);
+    display: grid; place-items: center;
+  }
+  #wipe::before, #wipe::after { content: ""; position: absolute; top: 0; bottom: 0; width: 26px; background: var(--gold); }
+  #wipe::before { left: 0; } #wipe::after { right: 0; }
+  #wipe span { font-size: 64px; font-weight: 800; color: var(--gold); letter-spacing: .2em; }
+  #wipe.cover  { transform: translateX(0);    transition: transform .45s cubic-bezier(.7,0,.3,1); }
+  #wipe.reveal { transform: translateX(104%); transition: transform .45s cubic-bezier(.7,0,.3,1); }
+
+  /* ====== Layar mulai & penutup ====== */
+  .screen {
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 120px 90px; color: #fff;
+    background:
+      radial-gradient(800px 700px at 50% 40%, rgba(242,183,5,.16), transparent 60%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 2px, transparent 2px 36px),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+  }
+  .screen[hidden] { display: none; }
+  .emblem { width: 260px; height: 260px; border-radius: 50%; display: grid; place-items: center;
+    border: 8px solid var(--gold); background: rgba(255,255,255,.05); box-shadow: 0 0 0 18px rgba(242,183,5,.12); }
+  .emblem svg { width: 140px; height: 140px; stroke: var(--gold); }
+  #start h1 { margin-top: 70px; font-size: 92px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; }
+  #start h1 em { font-style: normal; color: var(--gold); }
+  #start p { margin-top: 30px; font-size: 38px; color: #BFD2F2; font-weight: 500; line-height: 1.4; }
+  .btn {
+    margin-top: 80px; display: inline-flex; align-items: center; gap: 24px;
+    font: 800 52px/1 var(--font); color: var(--navy); background: var(--gold);
+    border: 0; border-radius: 100px; padding: 36px 76px 36px 56px; cursor: pointer;
+    box-shadow: 0 16px 0 var(--gold-deep), 0 30px 60px rgba(0,0,0,.4);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn:hover { transform: translateY(-4px); }
+  .btn:active { transform: translateY(10px); box-shadow: 0 6px 0 var(--gold-deep), 0 16px 30px rgba(0,0,0,.4); }
+  .btn:focus-visible { outline: 6px solid #fff; outline-offset: 10px; }
+  .btn svg { width: 56px; height: 56px; fill: var(--navy); }
+  #start .note { margin-top: 70px; font-size: 28px; color: rgba(255,255,255,.5); }
+
+  #closing .l1 { margin-top: 80px; font-size: 64px; line-height: 1.12; font-weight: 800; letter-spacing: .02em; }
+  #closing .l2 { margin-top: 26px; font-size: 44px; color: #BFD2F2; font-weight: 600; }
+  #closing .l3 { margin-top: 60px; font-size: 50px; font-weight: 800; color: var(--navy); background: var(--gold); padding: 18px 44px; border-radius: 80px; }
+  #closing .btn { background: #fff; box-shadow: 0 16px 0 #9FB3D6, 0 30px 60px rgba(0,0,0,.4); }
+  #closing .btn[hidden] { display: none; }
+  #closing.show > * { animation: rise .8s cubic-bezier(.16,1,.3,1) both; }
+  #closing.show > *:nth-child(2) { animation-delay: .25s; }
+  #closing.show > *:nth-child(3) { animation-delay: .45s; }
+  #closing.show > *:nth-child(4) { animation-delay: .75s; }
+  #closing.show > *:nth-child(5) { animation-delay: 0s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(60px); } to { opacity: 1; transform: none; } }
+
+  /* ====== Hormati prefers-reduced-motion ====== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0s !important;
+      transition-duration: .01ms !important;
+      transition-delay: 0s !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stage" aria-label="Animasi obrolan Tasya dan Dinda tentang Balai Harta Peninggalan">
+  <div id="app">
+    <div id="progress" aria-hidden="true"></div>
+    <div id="chip"><span class="ico"></span><span class="txt"></span></div>
+    <div id="brand">BHP</div>
+
+    <div id="phone">
+      <header id="head">
+        <svg class="back" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        <div class="pair"><div class="av tasya">T</div><div class="av dinda">D</div></div>
+        <div class="who"><b>Tasya &amp; Dinda</b><span id="status">online</span></div>
+        <div class="icons">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/></svg>
+        </div>
+      </header>
+      <div id="body">
+        <div id="watermark"></div>
+        <div id="msgs" role="log" aria-live="polite"></div>
+      </div>
+      <div id="inputbar">
+        <div class="field">Ketik pesan…</div>
+        <div class="mic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></div>
+      </div>
+    </div>
+
+    <div id="overlay" aria-live="polite">
+      <div class="oico"></div>
+      <div><div class="kicker">💡 Catat, ya!</div><div class="otitle"></div><div class="osub"></div></div>
+    </div>
+
+    <div id="vignette"></div>
+    <div id="tagline" aria-live="polite"><div class="rays"></div><span class="t1"></span><span class="t2"></span></div>
+    <div id="boss" aria-live="polite">
+      <div class="fig">
+        <!-- Siluet kepala kantor -->
+        <svg viewBox="0 0 220 235" aria-hidden="true">
+          <defs>
+            <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#F2B705" stop-opacity=".9"/>
+              <stop offset=".12" stop-color="#0A1B38"/>
+              <stop offset=".88" stop-color="#0A1B38"/>
+              <stop offset="1" stop-color="#F2B705" stop-opacity=".9"/>
+            </linearGradient>
+          </defs>
+          <path d="M77 30c0-4 15-10 33-10s33 6 33 10v12H77z" fill="#050E1F"/>
+          <ellipse cx="110" cy="72" rx="36" ry="42" fill="url(#rim)"/>
+          <path d="M96 108h28v18H96z" fill="#0A1B38"/>
+          <path d="M20 235c0-62 30-102 90-106 60 4 90 44 90 106z" fill="url(#rim)"/>
+          <path d="M92 128l18 36 18-36-18 8z" fill="#E8EDF5"/>
+          <path d="M106 138h8l4 10-8 50-8-50z" fill="#F2B705"/>
+          <path d="M84 130l26 60-38-34 8-6-10-8zM136 130l-26 60 38-34-8-6 10-8z" fill="#050E1F"/>
+          <rect x="140" y="170" width="28" height="6" rx="3" fill="#F2B705" opacity=".85"/>
+        </svg>
+      </div>
+      <div class="plate">👔 Kepala Kantor BHP</div>
+      <div class="speech"></div>
+    </div>
+    <div id="flash"></div>
+    <div id="freezetag">⏸ FREEZE</div>
+  </div>
+
+  <section id="start" class="screen">
+    <div class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12M4 7h16M12 3l-1 1M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0z"/></svg></div>
+    <h1>Semua Masalah<br>Ke <em>BHP</em>? 🤔</h1>
+    <p>Obrolan Tasya &amp; Dinda soal<br>Balai Harta Peninggalan</p>
+    <button class="btn" id="playBtn" type="button"><svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 001.5.87l12-7.5a1 1 0 000-1.74l-12-7.5A1 1 0 007 4.5z"/></svg>Putar</button>
+    <div class="note">±90 detik · nyalakan suara imajinasimu 😄</div>
+  </section>
+
+  <section id="closing" class="screen" hidden>
+    <div class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12M4 7h16M12 3l-1 1M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0z"/></svg></div>
+    <div class="l1">BALAI HARTA PENINGGALAN<br>MEDAN</div>
+    <div class="l2">Kementerian Hukum RI</div>
+    <div class="l3">#PastiSelaluAdaSolusinya</div>
+    <button class="btn" id="replayBtn" type="button" hidden><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 11-6 6H4a8 8 0 108-8z"/></svg>Ulang</button>
+  </section>
+
+  <div id="wipe"><span></span></div>
+</div>
+
+<script>
+/* =====================================================================
+   DATA SCENE — ubah naskah, urutan, ikon & timing di sini saja.
+   Tiap pesan: { from: 'tasya' | 'dinda', text: '...' }
+   Opsional per pesan: typing (ms), hold (ms) untuk menimpa timing otomatis.
+   ===================================================================== */
+const CHARACTERS = {
+  tasya: { name: 'Tasya', tag: 'Gen Z',  side: 'left',  initial: 'T' },
+  dinda: { name: 'Dinda', tag: 'BHP',    side: 'right', initial: 'D' },
+};
+
+const SCENES = [
+  {
+    label: 'SCENE 1', title: 'Di Kafe ☕', icon: 'coffee',
+    messages: [
+      { from: 'tasya', text: 'Din, gue pusing. Tanah Papa mau gue balik nama, tapi Papa kan udah nggak ada. Ke mana dulu sih?' },
+      { from: 'dinda', text: 'Lo butuh Surat Keterangan Hak Waris. Di BHP aja. Bisa online.' },
+      { from: 'tasya', text: 'Hah? Segampang itu?' },
+    ],
+    overlay: { title: 'Surat Keterangan Hak Waris', sub: 'bisa online 📲', icon: 'doc' },
+  },
+  {
+    label: 'SCENE 2', title: 'Perwalian', icon: 'shield',
+    messages: [
+      { from: 'tasya', text: 'Terus tetangga gue, anaknya masih kecil, ibunya mau jual rumah. Boleh?' },
+      { from: 'dinda', text: 'Itu perwalian. Ada anak di bawah umur, walinya didampingi BHP. Hartanya aman, ibunya juga bebas dari prasangka negatif keluarga lain.' },
+      { from: 'tasya', text: 'Jadi BHP itu bodyguard-nya wali sekaligus harta anak?' },
+      { from: 'dinda', text: 'Tepat.' },
+    ],
+    overlay: { title: 'Perwalian', sub: 'BHP wali pengawas 🛡️', icon: 'shield' },
+  },
+  {
+    label: 'SCENE 3', title: 'Kepailitan', icon: 'scale',
+    messages: [
+      { from: 'tasya', text: 'Tetangga gue satu lagi, usahanya bangkrut, hutang di mana-mana.' },
+      { from: 'dinda', text: 'Itu pailit. BHP bisa jadi kurator-nya.' },
+      { from: 'tasya', text: 'Mahal dong?' },
+      { from: 'dinda', text: 'Justru lebih hemat. Nggak ada fee ini itu. Kita kan perwakilan negara.' },
+    ],
+    overlay: { title: 'Kepailitan', sub: 'BHP kurator negara ⚖️', icon: 'scale' },
+  },
+  {
+    label: 'SCENE 4', title: 'Orang Hilang?', icon: 'folder',
+    messages: [
+      { from: 'tasya', text: 'Bentar... orang hilang nggak ada kabar, kayak mantan gue yang ghosting, harta nggak ada yang urus, juga ke BHP?' },
+      { from: 'dinda', text: 'Mantan lo nggak masuk, Sya. Nggak ada hartanya.' },
+      { from: 'tasya', text: 'Eh!' },
+      { from: 'dinda', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga. Belum lagi uang pihak ketiga, surat wasiat...' },
+    ],
+    overlay: { title: 'Harta orang tak hadir & harta tak terurus 🗂️', sub: '', icon: 'folder' },
+  },
+  {
+    label: 'SCENE 5', title: 'Klimaks 🔥', icon: 'building',
+    messages: [
+      { from: 'tasya', text: 'Din, kok kayaknya semua masalah bisa selesai di BHP?! Ini kantor apa dukun?!' },
+    ],
+    climax: {
+      speaker: 'Kepala Kantor BHP',
+      text: 'Iya dong. Karena BHP kan UPT-nya Kementerian Hukum. Jadi...',
+      emphasis: ['UPT-nya', 'Kementerian', 'Hukum.'],
+      tagline: ['Pasti Selalu Ada', 'Solusinya!'],
+    },
+  },
+];
+
+/* Timing (ms). Durasi bubble dihitung dari panjang teks lalu dibatasi min/max. */
+const T = {
+  wipe: 450, wipeHold: 250, sceneIntro: 300,
+  typingBase: 400, typingPerChar: 7,  typingMin: 700,  typingMax: 1400,
+  readBase: 800,   readPerChar: 22,   readMin: 2000,   readMax: 4600,
+  overlayIn: 600, overlayHold: 2400,
+  silence: 2000, bossIn: 1300, wordGap: 250, afterWords: 900,
+  taglineHold: 2800, freeze: 1600, closing: 5000, replayAfter: 2000,
+};
+
+/* ===================== Ikon SVG inline ===================== */
+const ICONS = {
+  coffee:  '<path d="M4 9h12v5a5 5 0 01-5 5H9a5 5 0 01-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 010 5H16"/><path d="M8 3c-.8 1 .8 2 0 3M12 3c-.8 1 .8 2 0 3"/><path d="M3 21h15"/>',
+  doc:     '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h4"/><rect x="15" y="14" width="6" height="8" rx="1.2"/><path d="M17.5 20h1"/>',
+  shield:  '<path d="M12 3l7 3v6c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  scale:   '<path d="M12 3v18M6 21h12M4 7h16"/><path d="M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0z"/>',
+  folder:  '<path d="M3 6a1 1 0 011-1h5l2 2h9a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><circle cx="11.5" cy="12.5" r="2.5"/><path d="M13.3 14.3L16 17"/>',
+  building:'<path d="M3 21h18M4 10h16M12 3l9 5H3z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8M4 18h16"/>',
+};
+const svg = (name, sw = 2) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+
+/* ===================== Utilitas ===================== */
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const params = new URLSearchParams(location.search);
+const SPEED = clamp(parseFloat(params.get('kecepatan')) || 1, .25, 20);  // ?kecepatan=4 untuk uji cepat
+const START_AT = clamp((parseInt(params.get('mulai'), 10) || 1) - 1, 0, SCENES.length - 1); // ?mulai=5
+const rmQuery = matchMedia('(prefers-reduced-motion: reduce)');
+const reduced = () => rmQuery.matches;
+
+const typingDur = (m) => m.typing ?? clamp(T.typingBase + m.text.length * T.typingPerChar, T.typingMin, T.typingMax);
+const holdDur   = (m) => m.hold   ?? clamp(T.readBase   + m.text.length * T.readPerChar,   T.readMin,   T.readMax);
+
+function estimateScene(sc) {
+  let d = T.wipe * 2 + T.wipeHold + T.sceneIntro;
+  for (const m of sc.messages) d += typingDur(m) + holdDur(m);
+  if (sc.overlay) d += T.overlayIn + T.overlayHold;
+  if (sc.climax) d += T.silence + T.bossIn + sc.climax.text.split(/\s+/).length * T.wordGap + T.afterWords + T.taglineHold + T.freeze;
+  return d;
+}
+const SEGMENTS = [...SCENES.map(estimateScene), T.wipe * 2 + T.wipeHold + T.closing];
+console.info(`[BHP] Estimasi durasi total: ${(SEGMENTS.reduce((a, b) => a + b, 0) / 1000).toFixed(1)} detik`);
+
+/* Sleep yang bisa dibatalkan saat "Ulang" */
+let runId = 0;
+const CANCEL = Symbol('cancel');
+function sleep(ms) {
+  const my = runId;
+  return new Promise((res, rej) => setTimeout(() => (my === runId ? res() : rej(CANCEL)), ms / SPEED));
+}
+
+/* ===================== Skala responsif ===================== */
+function fit() {
+  const s = Math.min(innerWidth / 1080, innerHeight / 1920);
+  $('#stage').style.setProperty('--s', s);
+}
+addEventListener('resize', fit); fit();
+
+/* ===================== Progress bar ===================== */
+const progress = $('#progress');
+progress.innerHTML = SEGMENTS.map(() => '<i><b></b></i>').join('');
+const bars = [...progress.querySelectorAll('b')];
+let seg = { i: -1, start: 0, dur: 1 };
+function setSegment(i) {
+  bars.forEach((b, k) => (b.style.width = k < i ? '100%' : '0%'));
+  seg = { i, start: performance.now(), dur: SEGMENTS[i] / SPEED };
+}
+(function tick() {
+  if (seg.i >= 0 && bars[seg.i]) bars[seg.i].style.width = clamp((performance.now() - seg.start) / seg.dur, 0, 1) * 100 + '%';
+  requestAnimationFrame(tick);
+})();
+
+/* ===================== Elemen ===================== */
+const app = $('#app'), phone = $('#phone'), msgs = $('#msgs'), statusEl = $('#status');
+const overlay = $('#overlay'), boss = $('#boss'), tagline = $('#tagline'), flash = $('#flash');
+const wipeEl = $('#wipe'), startEl = $('#start'), closingEl = $('#closing'), replayBtn = $('#replayBtn');
+
+let clock = 19 * 60 + 2;
+const stamp = () => { const t = clock++; return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}.${String(t % 60).padStart(2, '0')}`; };
+
+function setStatus(text, typing = false) { statusEl.textContent = text; statusEl.classList.toggle('typing', typing); }
+
+function resetStage() {
+  // Matikan transisi sementara supaya reset (vignette, zoom, boss) tidak terlihat "mundur pelan"
+  app.classList.add('resetting');
+  msgs.innerHTML = '';
+  overlay.classList.remove('show');
+  app.classList.remove('dim', 'shake', 'frozen');
+  phone.classList.remove('zoom');
+  boss.classList.remove('in');
+  boss.querySelector('.speech').innerHTML = '';
+  tagline.classList.remove('show');
+  flash.classList.remove('go');
+  setStatus('online');
+  void app.offsetWidth;
+  app.classList.remove('resetting');
+}
+
+function setScene(sc) {
+  resetStage();
+  $('#chip .ico').innerHTML = svg(sc.icon, 2.2);
+  $('#chip .txt').innerHTML = `${sc.label.replace('SCENE', 'Scene')} <small>· ${sc.title}</small>`;
+  $('#watermark').innerHTML = svg(sc.icon, 1.2);
+}
+
+async function wipe(label, swap) {
+  wipeEl.querySelector('span').textContent = label || '';
+  wipeEl.className = 'cover';
+  await sleep(T.wipe);
+  swap();
+  await sleep(T.wipeHold);
+  wipeEl.className = 'reveal';
+  await sleep(T.wipe);
+  wipeEl.className = '';
+}
+
+function makeRow(who) {
+  const c = CHARACTERS[who];
+  const row = document.createElement('div');
+  row.className = `row ${c.side}`;
+  row.innerHTML = `<div class="av ${who}" aria-hidden="true">${c.initial}</div>`;
+  return row;
+}
+
+async function sendMessage(m) {
+  const c = CHARACTERS[m.from];
+  const row = makeRow(m.from);
+  const typing = document.createElement('div');
+  typing.className = 'bubble typing';
+  typing.setAttribute('aria-label', `${c.name} sedang mengetik`);
+  typing.innerHTML = '<i></i><i></i><i></i>';
+  row.appendChild(typing);
+  msgs.appendChild(row);
+  setStatus(`${c.name} sedang mengetik…`, true);
+  await sleep(typingDur(m));
+
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.innerHTML = `<div class="name">${c.name}<span class="tag">${c.tag}</span></div>
+    <div class="text"></div>
+    <div class="meta">${stamp()} ${c.side === 'right' ? '<span class="ticks">✓✓</span>' : ''}</div>`;
+  b.querySelector('.text').textContent = m.text;
+  typing.replaceWith(b);
+  setStatus('online');
+  await sleep(holdDur(m));
+}
+
+async function showOverlay(o) {
+  overlay.querySelector('.oico').innerHTML = svg(o.icon, 1.8);
+  overlay.querySelector('.otitle').textContent = o.title;
+  overlay.querySelector('.osub').textContent = o.sub || '';
+  overlay.classList.add('show');
+  await sleep(T.overlayIn + T.overlayHold);
+}
+
+async function climax(c) {
+  // Hening 2 detik: layar meredup + zoom pelan
+  setStatus('');
+  app.classList.add('dim');
+  if (!reduced()) phone.classList.add('zoom');
+  await sleep(T.silence);
+
+  // Kepala Kantor muncul dari bawah
+  const speech = boss.querySelector('.speech');
+  speech.setAttribute('aria-label', `${c.speaker}: ${c.text}`);
+  speech.innerHTML = c.text.split(/\s+/).map((w) =>
+    `<span class="${c.emphasis?.includes(w) ? 'em' : ''}" aria-hidden="true">${w.replace(/</g, '&lt;')}</span>`).join('');
+  boss.classList.add('in');
+  await sleep(T.bossIn);
+
+  // Dialog kata per kata
+  for (const span of speech.children) { span.classList.add('in'); await sleep(T.wordGap); }
+  await sleep(T.afterWords);
+
+  // Tagline besar + flash + shake
+  tagline.querySelector('.t1').textContent = c.tagline[0];
+  tagline.querySelector('.t2').textContent = c.tagline[1];
+  if (!reduced()) {
+    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    app.classList.remove('shake'); void app.offsetWidth; app.classList.add('shake');
+  }
+  tagline.classList.add('show');
+  await sleep(T.taglineHold);
+
+  // Freeze frame
+  app.classList.add('frozen');
+  await sleep(T.freeze);
+}
+
+async function showClosing() {
+  setSegment(SCENES.length);
+  await wipe('', () => {
+    closingEl.hidden = false;
+    closingEl.classList.remove('show'); void closingEl.offsetWidth; closingEl.classList.add('show');
+  });
+  await sleep(T.replayAfter);
+  replayBtn.hidden = false;
+  replayBtn.focus({ preventScroll: true });
+}
+
+async function play(from = 0) {
+  runId++;
+  clock = 19 * 60 + 2;
+  replayBtn.hidden = true;
+  try {
+    for (let i = from; i < SCENES.length; i++) {
+      const sc = SCENES[i];
+      setSegment(i);
+      bars.forEach((b, k) => { if (k < from) b.style.width = '100%'; });
+      await wipe(sc.label, () => {
+        startEl.hidden = true;
+        closingEl.hidden = true;
+        setScene(sc);
+      });
+      await sleep(T.sceneIntro);
+      for (const m of sc.messages) await sendMessage(m);
+      if (sc.overlay) await showOverlay(sc.overlay);
+      if (sc.climax) await climax(sc.climax);
+    }
+    await showClosing();
+  } catch (e) {
+    if (e !== CANCEL) throw e;
+  }
+}
+
+$('#playBtn').addEventListener('click', () => play(START_AT));
+replayBtn.addEventListener('click', () => play(0));
+setScene(SCENES[0]);
+</script>
+</body>
+</html>
