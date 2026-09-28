@@ -74,8 +74,10 @@ function kop(brk = true) {
     k([new TextRun({ text: "Jalan Listrik No. 10 Medan", font: FONT, size: 20 })]),
     k([new TextRun({ text: "Telepon: (061) 451 7830, Faksimile: (061) 451 4328", font: FONT, size: 20 })]),
     new Paragraph({ children: [new TextRun({ text: "Laman: www.bhpmedan.kemenkum.go.id, Pos-el: bhp.medan@kemenkum.go.id", font: FONT, size: 20 })],
-      alignment: AlignmentType.CENTER, indent: { left: 1418 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: "A0A0A0", space: 6 } }, spacing: { after: 160 } }),
+      alignment: AlignmentType.CENTER, indent: { left: 1418 } }),
+    // garis kop selebar margin (seperti garis horizontal surat CV Hitado), bukan mulai dari indentasi teks kop
+    new Paragraph({ children: [], spacing: { before: 40, after: 160, line: 120, lineRule: "exact" },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: "A0A0A0", space: 1 } } }),
   ];
 }
 
