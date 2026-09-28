@@ -8,13 +8,13 @@ const {
 
 const FONT = "Arial";
 const SZ = 22;           // 11 pt, seperti isi surat CV Hitado
-const LOGO = fs.readFileSync("logo.png");
+const LOGO = fs.readFileSync("logo.jpg");
 const PERKARA = "Putusan Pengadilan Niaga pada Pengadilan Negeri Medan Nomor 33/Pdt.Sus-PKPU/2022/PN Niaga Mdn tanggal 10 April 2023";
 const HGU = "eks Hak Guna Usaha Nomor 2/Sei Tampa, Kecamatan Selesai, Kabupaten Langkat";
 
 function runs(text, base = {}) {
   const out = []; const re = /(\*\*[^*]+\*\*|_[^_]+_)/g; let last = 0, m;
-  const mk = (t, o) => new TextRun({ text: t, font: FONT, size: SZ, ...base, ...o });
+  const mk = (t, o) => new TextRun({ text: t, ...base, ...o });
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(mk(text.slice(last, m.index), {}));
     const t = m[0];
@@ -64,7 +64,7 @@ function kop(brk = true) {
   return [
     k([
       new TextRun({ text: "KEMENTERIAN HUKUM REPUBLIK INDONESIA", font: FONT, size: 24 }),
-      new ImageRun({ type: "png", data: LOGO, transformation: { width: 77, height: 87 },
+      new ImageRun({ type: "jpg", data: LOGO, transformation: { width: 77, height: 87 },
         floating: { horizontalPosition: { relative: HorizontalPositionRelativeFrom.COLUMN, offset: -5997 },
           verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: 87999 },
           wrap: { type: TextWrappingType.NONE }, allowOverlap: true } }),
@@ -469,7 +469,7 @@ for (const s of [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, LAMP]) 
 const doc = new Document({
   creator: "Balai Harta Peninggalan Medan",
   title: "Himpunan Konsep Surat Cessie PT Rata Makmur",
-  styles: { default: { document: { run: { font: FONT, size: 24 } } } },
+  styles: { default: { document: { run: { font: FONT, size: SZ } } } },
   numbering,
   sections: [{
     properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 737, right: 1361, bottom: 737, left: 1474, header: 400, footer: 400 } } },

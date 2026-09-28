@@ -19,6 +19,24 @@ function tabel(header, rows, widths, aligns) {
       ...rows.map(r => { const shade = !!r.bold; const cells = r.cells || r; return new TableRow({ cantSplit: true, children: cells.map((t, i) => cell(t, i, false, shade)) }); }),
     ] });
 }
+
+// Tabel dengan kolom No di depan; awalan "1. " pada sel pertama dihapus
+function tabelN(header, rows, widths, aligns) {
+  const nr = rows.map((r, i) => { const cells = (r.cells || r).slice(); cells[0] = String(cells[0]).replace(/^\d+\.\s+/, ""); const out = [String(i + 1), ...cells]; return r.bold ? { cells: out, bold: true } : out; });
+  return tabel(["No", ...header], nr, [500, ...widths], ["C", ...aligns]);
+}
+// Kotak bunyi pasal: judul tebal, bunyi rata kanan-kiri, latar abu muda, bingkai tipis
+function pasal(judul, ...ayat) {
+  const bd = { style: BorderStyle.SINGLE, size: 6, color: "7F7F7F" };
+  return [new Table({ width: { size: 8628, type: WidthType.DXA }, columnWidths: [8628], indent: { size: 453, type: WidthType.DXA },
+    rows: [new TableRow({ cantSplit: true, children: [new TableCell({ width: { size: 8628, type: WidthType.DXA },
+      borders: { top: bd, bottom: bd, left: { style: BorderStyle.SINGLE, size: 24, color: "404040" }, right: bd },
+      shading: { type: ShadingType.CLEAR, color: "auto", fill: "F2F2F2" }, margins: { top: 80, bottom: 80, left: 160, right: 160 },
+      children: [
+        new Paragraph({ children: runs(`**${judul}**`, { size: 20 }), spacing: { after: 60 }, keepNext: true }),
+        ...ayat.map(t => new Paragraph({ children: runs(t, { size: 20 }), alignment: AlignmentType.JUSTIFIED, spacing: { line: 252, after: 40 } })),
+      ] })] })] }), new Paragraph({ children: [], spacing: { after: 100 } })];
+}
 const TOT = (...cells) => ({ cells, bold: true });
 const jeda = () => new Paragraph({ children: [], spacing: { after: 120 } });
 
@@ -64,13 +82,13 @@ const doc_ = [
 
   H("III.\tJAWABAN SINGKAT"),
   ...butirList([
-    "**Dapat.** Kedua hak tersebut adalah tagihan yang bernilai uang. Kurator berwenang mengalihkannya dengan izin Hakim Pengawas, melalui akta notaris, dan pengalihan itu mengikat pihak yang wajib membayar setelah diberitahukan kepadanya. Yurisprudensi Mahkamah Agung mendukung setiap unsurnya.",
+    "**Dapat.** Kedua hak tersebut adalah tagihan yang bernilai uang. Kurator berwenang mengalihkannya, baik melalui lelang KPKNL (piutang adalah objek lelang menurut PMK 122/2023) maupun di bawah tangan dengan izin Hakim Pengawas, dan pengalihan itu mengikat pihak yang wajib membayar setelah diberitahukan kepadanya. Yurisprudensi Mahkamah Agung mendukung setiap unsurnya.",
     "**Semua pihak diuntungkan.** Kreditor memperoleh pembayaran dari hak yang selama ini tidak dapat dicairkan, utang Debitor berkurang dan Debitor terbebas dari kewajiban pembongkaran, dan Kurator memperoleh jalan pemberesan yang sah dan aman. Dengan biaya sekitar Rp65 juta sampai dengan Rp228 juta, perkiraan hasilnya Rp0,9 miliar sampai dengan Rp12,3 miliar, dengan titik impas sekitar Rp1,33 miliar.",
     "**Paling masuk akal**, karena semua jalan lain terbentur hukum, waktu, atau biaya. Cessie kepada calon pemohon HGU baru mempertemukan hak ganti rugi dengan pihak yang kelak wajib membayarnya, sehingga nilainya dapat diuangkan sekarang.",
   ]),
 
   H("IV.\tFAKTA YANG RELEVAN"),
-  tabel(["Tanggal", "Peristiwa"], [
+  tabelN(["Tanggal", "Peristiwa"], [
     ["31 Agustus 2013", "HGU Nomor 2/Sei Tampa atas nama PT Rata Makmur berakhir tanpa perpanjangan maupun pembaruan."],
     ["9 Agustus 2022", "PT Rata Makmur dinyatakan dalam PKPU Sementara atas permohonan eks karyawan."],
     ["10 April 2023", "PT Rata Makmur dinyatakan pailit, dan Balai Harta Peninggalan Medan diangkat sebagai Kurator."],
@@ -81,21 +99,65 @@ const doc_ = [
     ["10 Desember 2025", "Dalam Rapat Kreditor, Debitor menyatakan tidak ada aset lain dan berjanji menyetor dana paling lambat 18 Desember 2025. Janji itu tidak dipenuhi."],
     ["14 September 2026", "Rapat dengan kuasa hukum Debitor. Tagihan eks karyawan telah dibayar lunas, sehingga yang tersisa hanya tagihan KPP Pratama Binjai sebesar Rp1.108.581.903,00 yang belum dibayar sama sekali."],
     ["Saat ini", "Kebun masih berproduksi dan dipanen pihak lain. Tim khusus Kanwil BPN Sumatera Utara menangani status eks HGU dengan berpedoman pada PP 18/2021 dan Permen ATR/BPN 18/2021."],
-  ], [2000, 7081], ["L", "J"]),
+  ], [1800, 6781], ["L", "J"]),
   jeda(),
 
-  H("V.\tDASAR HUKUM"),
-  tabel(["Peraturan", "Pokok ketentuan yang dipakai"], [
+  H("V.\tRINGKASAN DASAR HUKUM"),
+  tabelN(["Peraturan", "Pokok ketentuan yang dipakai"], [
     ["UU 5/1960 (UUPA), Pasal 5 dan 34", "Hukum tanah nasional bersumber pada hukum adat yang menganut asas pemisahan horizontal; HGU hapus karena jangka waktunya berakhir."],
     ["UU 37/2004 tentang Kepailitan dan PKPU", "Pasal 21 (cakupan harta pailit), Pasal 24 ayat (1) (Debitor kehilangan hak mengurus hartanya), Pasal 16 dan 69 (kewenangan Kurator), Pasal 15 ayat (3) (independensi), Pasal 72 (tanggung jawab Kurator), Pasal 77 (keberatan atas tindakan Kurator), Pasal 185 (cara penjualan harta pailit), dan Pasal 202 (berakhirnya kepailitan)."],
     ["PP 40/1996", "Pasal 17 (hapusnya HGU dan tanah menjadi tanah negara), Pasal 18 (kewajiban bekas pemegang hak dan hak atas ganti rugi), dan Pasal 4 ayat (4) (ganti kerugian dibebankan kepada pemegang HGU baru)."],
     ["PP 18/2021, Pasal 22", "Jangka waktu HGU; setelah berakhir, tanah kembali dikuasai negara, penataannya menjadi kewenangan Menteri, dan dapat diberikan prioritas kepada bekas pemegang hak dengan memperhatikan syarat-syarat tertentu."],
     ["Permen ATR/BPN 18/2021, Pasal 70 sampai dengan Pasal 73 dan 79", "Menjadi pedoman surat terakhir Kantor Pertanahan Kabupaten Langkat dan Kanwil BPN Sumatera Utara."],
+    ["PMK 122/2023 tentang Petunjuk Pelaksanaan Lelang", "Piutang termasuk barang tidak berwujud yang dapat menjadi objek lelang; risalah lelang merupakan akta otentik."],
     ["KUHPerdata", "Pasal 511 (tagihan adalah benda bergerak), Pasal 613 (cara dan akibat cessie), Pasal 1334 ayat (1) (benda yang akan ada dapat menjadi pokok perjanjian), Pasal 1436 (percampuran utang), dan Pasal 1533 sampai dengan Pasal 1535 (tanggung jawab penjual piutang)."],
-  ], [2400, 6681], ["L", "J"]),
+  ], [2300, 6281], ["L", "J"]),
   jeda(),
 
-  H("VI.\tANALISIS"),
+
+  H("VI.\tBUNYI PASAL YANG MENJADI DASAR"),
+  isi("Bagian ini memuat bunyi ketentuan yang dirujuk dalam analisis, agar setiap kesimpulan dapat dicocokkan langsung dengan teks aturannya."),
+  Sub("A.\tUndang-Undang Nomor 37 Tahun 2004 tentang Kepailitan dan PKPU"),
+  ...pasal("Pasal 15 ayat (3)", "\"Kurator yang diangkat sebagaimana dimaksud pada ayat (1) harus independen, tidak mempunyai benturan kepentingan dengan Debitor atau Kreditor, dan tidak sedang menangani perkara kepailitan dan penundaan kewajiban pembayaran utang lebih dari 3 (tiga) perkara.\""),
+  ...pasal("Pasal 16 ayat (1)", "\"Kurator berwenang melaksanakan tugas pengurusan dan/atau pemberesan atas harta pailit sejak tanggal putusan pailit diucapkan meskipun terhadap putusan tersebut diajukan kasasi atau peninjauan kembali.\""),
+  ...pasal("Pasal 21", "\"Kepailitan meliputi seluruh kekayaan Debitor pada saat putusan pernyataan pailit diucapkan serta segala sesuatu yang diperoleh selama kepailitan.\""),
+  ...pasal("Pasal 24 ayat (1)", "\"Debitor demi hukum kehilangan haknya untuk menguasai dan mengurus kekayaannya yang termasuk dalam harta pailit, sejak tanggal putusan pernyataan pailit diucapkan.\""),
+  ...pasal("Pasal 69 ayat (1)", "\"Tugas Kurator adalah melakukan pengurusan dan/atau pemberesan harta pailit.\""),
+  ...pasal("Pasal 72", "\"Kurator bertanggung jawab terhadap kesalahan atau kelalaiannya dalam melaksanakan tugas pengurusan dan/atau pemberesan yang menyebabkan kerugian terhadap harta pailit.\""),
+  ...pasal("Pasal 185",
+    "(1)  \"Semua benda harus dijual di muka umum sesuai dengan tata cara yang ditentukan dalam peraturan perundang-undangan.\"",
+    "(2)  \"Dalam hal penjualan di muka umum sebagaimana dimaksud pada ayat (1) tidak tercapai maka penjualan di bawah tangan dapat dilakukan dengan izin Hakim Pengawas.\"",
+    "(3)  \"Semua benda yang tidak segera atau sama sekali tidak dapat dibereskan maka Kurator yang memutuskan tindakan yang harus dilakukan terhadap benda tersebut dengan izin Hakim Pengawas.\""),
+  Sub("B.\tPeraturan Pemerintah Nomor 40 Tahun 1996"),
+  ...pasal("Pasal 4 ayat (4)", "\"Dalam hal di atas tanah yang akan diberikan dengan Hak Guna Usaha itu terdapat tanaman dan/atau bangunan milik pihak lain yang keberadaannya berdasarkan alas hak yang sah, pemilik bangunan dan tanaman tersebut diberi ganti kerugian yang dibebankan pada pemegang Hak Guna Usaha baru.\""),
+  ...pasal("Pasal 17",
+    "(1)  \"Hak Guna Usaha hapus karena: a. berakhirnya jangka waktu sebagaimana ditetapkan dalam keputusan pemberian atau perpanjangannya; ...\"",
+    "(2)  \"Hapusnya Hak Guna Usaha sebagaimana dimaksud dalam ayat (1) mengakibatkan tanahnya menjadi tanah Negara.\""),
+  ...pasal("Pasal 18",
+    "(1)  \"Apabila Hak Guna Usaha hapus dan tidak diperpanjang atau diperbaharui, bekas pemegang hak wajib membongkar bangunan-bangunan dan benda-benda yang ada di atasnya dan menyerahkan tanah dan tanaman yang ada di atas tanah bekas Hak Guna Usaha tersebut kepada Negara dalam batas waktu yang ditetapkan oleh Menteri.\"",
+    "(2)  \"Apabila bangunan, tanaman dan benda-benda sebagaimana dimaksud dalam ayat (1) masih diperlukan untuk melangsungkan atau memulihkan pengusahaan tanahnya, maka kepada bekas pemegang hak diberikan ganti rugi yang bentuk dan jumlahnya diatur lebih lanjut dengan Keputusan Presiden.\"",
+    "(3)  \"Pembongkaran bangunan dan benda-benda sebagaimana dimaksud dalam ayat (1) dilaksanakan atas biaya bekas pemegang Hak Guna Usaha.\""),
+  Sub("C.\tPeraturan Pemerintah Nomor 18 Tahun 2021"),
+  ...pasal("Pasal 22",
+    "(1)  \"Hak guna usaha diberikan untuk jangka waktu paling lama 35 (tiga puluh lima) tahun, diperpanjang untuk jangka waktu paling lama 25 (dua puluh lima) tahun, dan diperbarui untuk jangka waktu paling lama 35 (tiga puluh lima) tahun.\"",
+    "(2)  \"Setelah jangka waktu pemberian, perpanjangan, dan pembaruan sebagaimana dimaksud pada ayat (1) berakhir, Tanah hak guna usaha kembali menjadi Tanah yang Dikuasai Langsung oleh Negara atau Tanah Hak Pengelolaan.\"",
+    "(3)  \"Tanah yang Dikuasai Langsung oleh Negara sebagaimana dimaksud pada ayat (2), penataan kembali penggunaan, pemanfaatan, dan pemilikan menjadi kewenangan Menteri dan dapat diberikan prioritas kepada bekas pemegang hak dengan memperhatikan: a. tanahnya masih diusahakan dan dimanfaatkan dengan baik sesuai dengan keadaan, sifat, dan tujuan pemberian hak; b. syarat-syarat pemberian hak dipenuhi dengan baik oleh pemegang hak; c. pemegang hak masih memenuhi syarat sebagai pemegang hak; d. tanahnya masih sesuai dengan rencana tata ruang; e. tidak dipergunakan dan/atau direncanakan untuk kepentingan umum; f. sumber daya alam dan lingkungan hidup; dan g. keadaan Tanah dan masyarakat sekitar.\""),
+  Sub("D.\tKitab Undang-Undang Hukum Perdata"),
+  ...pasal("Pasal 511 angka 3", "Yang dianggap sebagai barang bergerak karena ketentuan undang-undang antara lain: \"perikatan-perikatan dan tuntutan-tuntutan mengenai jumlah-jumlah uang yang dapat ditagih atau yang mengenai barang-barang bergerak.\""),
+  ...pasal("Pasal 613",
+    "(1)  \"Penyerahan akan piutang-piutang atas nama dan kebendaan tak bertubuh lainnya, dilakukan dengan jalan membuat sebuah akta otentik atau di bawah tangan, dengan mana hak-hak atas kebendaan itu dilimpahkan kepada orang lain.\"",
+    "(2)  \"Penyerahan yang demikian bagi si berutang tiada akibatnya, melainkan setelah penyerahan itu diberitahukan kepadanya, atau secara tertulis disetujui dan diakuinya.\""),
+  ...pasal("Pasal 1334 ayat (1)", "\"Barang-barang yang baru akan ada di kemudian hari dapat menjadi pokok suatu persetujuan.\""),
+  ...pasal("Pasal 1436", "\"Apabila kedudukan-kedudukan sebagai orang berpiutang dan orang berutang berkumpul pada satu orang, maka terjadilah demi hukum suatu percampuran utang, dengan mana piutang itu dihapuskan.\""),
+  ...pasal("Pasal 1533 sampai dengan Pasal 1535",
+    "Pasal 1533: \"Penjualan suatu piutang meliputi segala sesuatu yang melekat padanya, seperti penanggungan-penanggungan, hak-hak istimewa dan hipotek-hipotek.\"",
+    "Pasal 1534: \"Barangsiapa menjual suatu piutang atau suatu hak tak bertubuh lainnya, harus menanggung bahwa hak-hak itu benar ada pada waktu diserahkannya, biarpun penjualan dilakukan tanpa janji penanggungan.\"",
+    "Pasal 1535: \"Ia tidak bertanggung jawab tentang cukup mampunya si berutang, kecuali jika ia telah mengikatkan dirinya untuk itu; tetapi dalam hal yang demikian pun ia hanya bertanggung jawab untuk jumlah harga pembelian yang telah diterimanya.\""),
+  Sub("E.\tPeraturan Menteri Keuangan Nomor 122 Tahun 2023 tentang Petunjuk Pelaksanaan Lelang"),
+  ...pasal("Pasal 6 ayat (2) (pokok isi)", "Barang tidak berwujud yang dapat menjadi objek lelang meliputi antara lain hak menikmati barang, piutang, hak kekayaan intelektual, hak siar atau tayang, surat berharga, dan barang tidak berwujud lainnya sesuai ketentuan peraturan perundang-undangan."),
+  isi("_Catatan: bunyi pasal KUHPerdata mengikuti terjemahan R. Subekti dan R. Tjitrosudibio; Pasal 22 PP 18/2021 dicocokkan dengan salinan yang disampaikan Sdr. Hutri Zebua; ketentuan PMK 122/2023 disajikan pokok isinya dan perlu dicocokkan dengan salinan resmi sebelum dikutip dalam dokumen resmi._"),
+
+  H("VII.\tANALISIS"),
   Sub("A.\tApa yang sebenarnya masih dimiliki harta pailit"),
   isi("Langkah pertama adalah memisahkan tanah dari benda di atasnya. Menurut Pasal 34 huruf a UUPA jo. Pasal 17 PP 40/1996, HGU hapus karena jangka waktunya berakhir dan tanahnya menjadi tanah negara. Pasal 22 ayat (2) PP 18/2021 menegaskan hal yang sama. Karena itu, pada 10 April 2023 tanah tersebut sudah bukan milik Debitor dan berada di luar harta pailit menurut Pasal 21 UU 37/2004. Sejalan dengan itu, Putusan MA Nomor 3350 K/Pdt/2020 menyatakan tanah eks HGU kembali kepada negara setelah jangka waktunya berakhir."),
   isi("Akan tetapi, hukum tanah nasional menganut asas pemisahan horizontal: bangunan dan tanaman bukan bagian dari tanah. Asas ini telah lama diterapkan Mahkamah Agung, antara lain dalam Putusan Nomor 123 K/Sip/1970, 286 K/Sip/1971, dan 3196 K/Pdt/1984, yang pada pokoknya menyatakan bahwa kepemilikan bangunan dapat berbeda dari kepemilikan tanah. Pasal 18 PP 40/1996 memberi bentuk konkret asas tersebut bagi HGU yang berakhir: bangunan, benda, dan tanaman yang masih diperlukan untuk melangsungkan pengusahaan tanah melahirkan hak atas ganti rugi bagi bekas pemegang hak. Pasal 4 ayat (4) peraturan yang sama membebankan ganti kerugian itu kepada pemegang HGU yang baru."),
@@ -106,52 +168,57 @@ const doc_ = [
 
   Sub("C.\tApakah hak-hak itu dapat dialihkan melalui cessie"),
   isi("Cessie adalah penyerahan piutang atas nama kepada pihak lain, yang diatur dalam Pasal 613 KUHPerdata. Keabsahannya diuji dengan lima syarat berikut.", 120, true),
-  tabel(["Syarat", "Pengujian", "Hasil"], [
+  tabelN(["Syarat", "Pengujian", "Hasil"], [
     ["1. Objeknya tagihan yang dapat dialihkan", "Hak atas ganti rugi dan hak menagih hasil kebun adalah tagihan uang, yang oleh Pasal 511 KUHPerdata digolongkan sebagai benda bergerak. Hak atas ganti rugi masih bersyarat, tetapi Pasal 1334 ayat (1) KUHPerdata membolehkan benda yang baru akan ada menjadi pokok perjanjian, sepanjang dasarnya sudah ada (PP 40/1996) dan objeknya dapat ditentukan melalui inventarisasi dan penilaian. Tidak ada larangan undang-undang, dan hak itu tidak bersifat pribadi.", "Terpenuhi"],
     ["2. Pihak yang mengalihkan berwenang", "Debitor kehilangan hak mengurus hartanya sejak putusan pailit (Pasal 24 ayat (1) UU 37/2004), dan kewenangan itu ada pada Kurator (Pasal 16 dan 69). Karena hak tagih bersyarat tidak dapat dilelang secara wajar, Kurator memutuskan tindakannya dengan izin Hakim Pengawas (Pasal 185 ayat (3)).", "Terpenuhi dengan izin Hakim Pengawas"],
-    ["3. Bentuk akta", "Pasal 613 ayat (1) KUHPerdata mensyaratkan akta otentik atau akta di bawah tangan. Akta notaris dipilih agar pembuktiannya sempurna dan dapat dirujuk BPN.", "Terpenuhi"],
+    ["3. Bentuk akta", "Pasal 613 ayat (1) KUHPerdata mensyaratkan akta otentik atau akta di bawah tangan. Bila dijual melalui lelang, risalah lelang yang dibuat pejabat lelang berkedudukan sebagai akta otentik. Bila dijual di bawah tangan, dibuat akta notaris agar pembuktiannya sempurna dan dapat dirujuk BPN.", "Terpenuhi"],
     ["4. Mengikat pihak yang wajib membayar", "Menurut Pasal 613 ayat (2) KUHPerdata, cessie berlaku terhadap pihak yang berutang setelah diberitahukan kepadanya atau diakuinya secara tertulis. Pemberitahuan ditujukan kepada BPN untuk hak ganti rugi, serta kepada Debitor dan pihak yang memanen untuk hak tagih hasil kebun.", "Terpenuhi setelah pemberitahuan"],
     ["5. Sejalan dengan hukum pertanahan dan asas kepailitan", "Tanah tidak ikut dialihkan dan kewenangan Menteri tidak dilangkahi. Hasilnya masuk rekening harta pailit dan dibagi menurut Daftar Piutang Tetap. Penawaran terbuka, penilaian KJPP, dan izin Hakim Pengawas menjaga independensi Kurator (Pasal 15 ayat (3)).", "Terpenuhi"],
-  ], [2200, 5381, 1500], ["L", "J", "C"]),
+  ], [2000, 5081, 1500], ["L", "J", "C"]),
   jeda(),
   isi("Yurisprudensi Mahkamah Agung memberi petunjuk praktis tentang cara melaksanakan cessie ini.", 120, true),
-  tabel(["Putusan", "Kaidah", "Pelajaran bagi Kurator"], [
+  tabelN(["Putusan", "Kaidah", "Pelajaran bagi Kurator"], [
     ["MA No. 48 K/Pdt/2000, 18 Oktober 2002", "Dalam jual beli piutang tidak ada aturan yang mengharuskan para pihak memberitahukan pengalihan kepada debitur agar peralihan itu sah di antara mereka.", "Hak beralih kepada pembeli sejak akta ditandatangani. Pemberitahuan tetap diperlukan agar pihak yang berutang terikat membayar kepada pembeli."],
     ["MA No. 125 PK/Pdt.Sus-Pailit/2015", "Mahkamah Agung membatalkan putusan sebelumnya karena peralihan piutang belum diberitahukan secara resmi kepada debitur melalui juru sita pengadilan.", "Pemberitahuan cessie sebaiknya tidak hanya melalui surat, tetapi juga disampaikan secara resmi melalui juru sita Pengadilan Niaga agar tidak dapat dibantah."],
     ["MA No. 1809 K/Pdt/2007, 28 Januari 2008", "Utang debitur tetap ada meskipun kreditur telah mengalihkan piutangnya kepada pihak lain.", "Pihak yang memanen kebun tidak terbebas dari kewajibannya karena hak tagih dijual; kewajiban itu kini ditagih oleh pembeli."],
     ["MA No. 1771 K/Pdt/2019", "Bekas pemegang hak yang menguasai objek secara terus-menerus tetap memperoleh hak prioritas meskipun haknya berakhir (perkara HGB).", "Prioritas memang hidup setelah hak berakhir, tetapi ukurannya penguasaan sendiri. Karena kebun dikuasai pihak lain, prioritas lebih tepat dilepaskan kepada pembeli daripada dipakai Kurator."],
-  ], [2300, 3400, 3381], ["L", "J", "J"]),
+  ], [2100, 3300, 3181], ["L", "J", "J"]),
   jeda(),
 
-  Sub("D.\tKedudukan prioritas menurut Pasal 22 PP 18/2021"),
+  Sub("D.\tCessie dapat dilaksanakan melalui lelang"),
+  isi("Pengalihan hak tagih tidak harus melalui penjualan di bawah tangan. PMK 122/2023 tentang Petunjuk Pelaksanaan Lelang menggolongkan piutang sebagai barang tidak berwujud yang dapat menjadi objek lelang (Pasal 6 ayat (2)). Karena itu, hak atas ganti rugi dan hak menagih hasil kebun dapat dilelang bersama bangunan dan benda dalam satu paket melalui KPKNL Medan sebagai lelang eksekusi harta pailit atas permohonan Kurator."),
+  isi("Jalur lelang justru paling sejalan dengan Pasal 185 ayat (1) UU 37/2004 yang mewajibkan harta pailit dijual di muka umum. Risalah lelang yang dibuat pejabat lelang berkedudukan sebagai akta otentik, sehingga syarat bentuk dalam Pasal 613 ayat (1) KUHPerdata terpenuhi tanpa akta notaris tersendiri. Pemberitahuan kepada pihak yang berutang tetap wajib dilakukan menurut Pasal 613 ayat (2), sebaiknya melalui juru sita."),
+  isi("Dengan demikian urutan pemberesan yang dianjurkan adalah: **pertama**, lelang paket melalui KPKNL dengan nilai limit dari laporan KJPP; **kedua**, bila lelang tidak laku, penjualan di bawah tangan dengan izin Hakim Pengawas (Pasal 185 ayat (2)), melalui penawaran terbuka kepada para peminat. Pasal 185 ayat (3) tetap tersedia sebagai dasar bila Hakim Pengawas menilai hak tagih bersyarat tidak dapat dibereskan secara wajar melalui lelang. Pelepasan kedudukan prioritas tidak dilelang sebagai objek, tetapi dinyatakan dalam syarat lelang sebagai tindakan yang akan dilakukan Kurator setelah pemenang membayar lunas."),
+
+  Sub("E.\tKedudukan prioritas menurut Pasal 22 PP 18/2021"),
   isi("Pasal 22 ayat (3) PP 18/2021 menetapkan bahwa penataan kembali tanah bekas HGU menjadi kewenangan Menteri, dan prioritas **dapat** diberikan kepada bekas pemegang hak dengan memperhatikan antara lain apakah tanahnya masih diusahakan dengan baik, apakah syarat pemberian hak dipenuhi, dan apakah pemegang hak masih memenuhi syarat. Kata \"dapat\" menunjukkan bahwa prioritas adalah pertimbangan kebijakan, bukan hak yang dapat dituntut atau dijual."),
   isi("Kurator tidak menggunakan prioritas itu untuk memohon HGU baru atas nama PT Rata Makmur, karena syaratnya lemah (kebun dikuasai pihak lain dan perseroan dalam pailit), biayanya besar, dan tugas Kurator adalah membereskan, bukan melanjutkan usaha. Yang dilakukan Kurator adalah **melepaskan** kedudukan prioritas itu dengan izin Hakim Pengawas sebagai bagian dari paket, sehingga calon pemohon HGU baru tidak terhalang. Pelepasan inilah yang memberi nilai tambah bagi pembeli."),
 
-  Sub("E.\tMengapa pembeli yang paling tepat adalah calon pemohon HGU baru"),
+  Sub("F.\tMengapa pembeli yang paling tepat adalah calon pemohon HGU baru"),
   isi("Menurut Pasal 4 ayat (4) PP 40/1996, pemegang HGU baru wajib memberi ganti kerugian atas tanaman dan bangunan milik bekas pemegang hak. Bila hak atas ganti rugi itu dialihkan kepada calon pemohon HGU baru, lalu ia benar-benar memperoleh HGU, maka ia sekaligus menjadi pihak yang berhak dan pihak yang wajib membayar ganti rugi. Kewajiban itu hapus karena percampuran utang (Pasal 1436 KUHPerdata)."),
   isi("Artinya, **pembeli membayar ganti rugi tersebut di muka kepada harta pailit**. Tidak ada pembayaran ganda, tidak ada sengketa antara Kurator dan pemegang hak baru, dan harta pailit tidak perlu menunggu proses penataan tanah yang memakan waktu."),
 
-  Sub("F.\tRisiko hukum dan cara mengatasinya"),
-  tabel(["Risiko", "Cara mengatasi"], [
+  Sub("G.\tRisiko hukum dan cara mengatasinya"),
+  tabelN(["Risiko", "Cara mengatasi"], [
     ["BPN menilai bangunan atau tanaman tidak lagi diperlukan, sehingga hak ganti rugi tidak timbul.", "Meminta sikap tertulis BPN sebelum harga ditetapkan dan menjual dalam kondisi apa adanya. Kurator hanya menjamin adanya hak (Pasal 1534 KUHPerdata), bukan kemampuan pihak yang berutang membayar (Pasal 1535)."],
     ["Tanah ditata untuk Bank Tanah atau reforma agraria, bukan untuk pemohon swasta.", "Menjadikannya titik keputusan: bila demikian, hak ganti rugi ditagih kepada negara dan tidak dijual kepada swasta."],
     ["Pihak yang memanen menolak membayar hasil kebun.", "Risiko penagihan beralih kepada pembeli yang telah memperhitungkannya dalam harga. Pemberitahuan disampaikan melalui juru sita sesuai Putusan MA No. 125 PK/Pdt.Sus-Pailit/2015."],
-    ["Kreditor atau Debitor menilai harga terlalu rendah.", "Nilai KJPP menjadi acuan, disertai penawaran terbuka dan izin Hakim Pengawas. Keberatan tetap dapat diajukan menurut Pasal 77 UU 37/2004."],
+    ["Kreditor atau Debitor menilai harga terlalu rendah.", "Nilai KJPP menjadi nilai limit, disertai lelang terbuka atau penawaran terbuka dan izin Hakim Pengawas. Keberatan tetap dapat diajukan menurut Pasal 77 UU 37/2004."],
     ["Pembeli ternyata terafiliasi dengan Debitor atau pihak yang memanen.", "Surat pernyataan tidak terafiliasi dengan sanksi pembatalan, serta pemeriksaan akta pendirian dan susunan pengurus pembeli."],
     ["Kelak ada kewajiban membongkar bangunan.", "Beban pembongkaran dialihkan kepada pembeli dalam akta."],
-  ], [3600, 5481], ["J", "J"]),
+  ], [3400, 5181], ["J", "J"]),
   jeda(),
 
-  H("VII.\tMANFAAT BAGI PARA PIHAK"),
-  tabel(["Pihak", "Manfaat"], [
+  H("VIII.\tMANFAAT BAGI PARA PIHAK"),
+  tabelN(["Pihak", "Manfaat"], [
     ["Kreditor (KPP Pratama Binjai, satu-satunya kreditor yang belum dibayar)", "Memperoleh pembayaran atas tagihan pajak dari hak yang selama ini bernilai nol bagi harta pailit. Pembayaran terjadi dalam hitungan bulan, bukan menunggu penataan tanah atau perkara bertahun-tahun. Biaya penagihan tidak mengurangi harta pailit karena risikonya beralih kepada pembeli, dan tidak ada risiko lelang dibatalkan yang dapat memaksa pengembalian hasil pembagian."],
     ["Debitor (PT Rata Makmur dan direksinya)", "Sisa utang berkurang sebesar hasil yang dibagikan, sehingga beban yang tetap melekat setelah kepailitan berakhir ikut berkurang. Paparan tanggung jawab tanggung renteng direksi menurut Pasal 104 ayat (2) UU 40/2007 menyusut. Debitor terbebas dari kewajiban membongkar bangunan menurut Pasal 18 PP 40/1996, dan nilai kebun yang pernah dibangunnya dihargai. Bila hasilnya melampaui titik impas, seluruh tagihan lunas, kepailitan dapat berakhir (Pasal 202 UU 37/2004), kelebihannya dikembalikan kepada Debitor, dan jalan rehabilitasi terbuka."],
     ["Kurator (BHP Medan)", "Memiliki jalan pemberesan yang sah dan didukung penetapan Hakim Pengawas, sehingga risiko tanggung jawab menurut Pasal 72 UU 37/2004 terkendali. Terhindar dari lelang atas benda yang bukan milik Debitor. Tidak perlu menguasai atau mengelola kebun secara fisik, sehingga risiko keamanan di lokasi berkurang. Perkara yang berjalan sejak 2023 dapat diselesaikan, mendukung pengendalian Risiko 15.1 dalam Dokumen Manajemen Risiko BHP Medan, dan setiap langkah terdokumentasi."],
     ["Negara dan calon pemegang hak baru", "Status keperdataan di atas tanah menjadi bersih sebelum hak baru diberikan: tidak ada klaim ganti rugi yang tertunda dan tidak ada kedudukan prioritas yang menghalangi."],
-  ], [2300, 6781], ["L", "J"]),
+  ], [2200, 6381], ["L", "J"]),
   jeda(),
 
-  H("VIII.\tESTIMASI BIAYA DAN PEROLEHAN"),
+  H("IX.\tESTIMASI BIAYA DAN PEROLEHAN"),
   isi("**Seluruh angka pada bagian ini adalah perkiraan untuk perencanaan, bukan nilai.** Data umur tanaman, luas tertanam, dan isi kontrak panen belum tersedia, sehingga perkiraan disusun dari asumsi yang dinyatakan terbuka. Nilai yang sah ditentukan oleh laporan KJPP dan hasil penawaran terbuka."),
   Sub("A.\tBiaya pelaksanaan"),
   tabel(["No", "Komponen", "Dasar perkiraan", "Kisaran (Rp)"], [
@@ -159,7 +226,7 @@ const doc_ = [
     ["2", "Pengukuran atau plotting bidang oleh Kantah Langkat", "Batas bawah untuk plotting dan pengembalian batas; batas atas untuk pengukuran penuh ± 389 Ha menurut tarif PNBP pertanahan (PP 128/2015). Perlu dikonfirmasi ke Kantah.", "15.000.000 s.d. 95.000.000"],
     ["3", "Jasa penilaian KJPP", "Penilaian bangunan, tanaman ± 340 Ha, dan hak tagih.", "25.000.000 s.d. 75.000.000"],
     ["4", "Operasional lapangan dan koordinasi", "Perjalanan, uang harian, dan konsumsi sesuai Standar Biaya Masukan, tanpa pembayaran di luar ketentuan.", "10.000.000 s.d. 20.000.000"],
-    ["5", "Pengumuman penawaran terbuka", "Iklan di dua surat kabar.", "5.000.000 s.d. 15.000.000"],
+    ["5", "Pengumuman lelang atau penawaran terbuka", "Iklan di surat kabar; bea lelang bagian pembeli ditanggung pembeli.", "5.000.000 s.d. 15.000.000"],
     ["6", "Pengumuman daftar pembagian", "Iklan di surat kabar.", "5.000.000 s.d. 10.000.000"],
     ["7", "Surat-menyurat dan pengiriman", "Pos tercatat dan penggandaan berkas.", "2.000.000 s.d. 5.000.000"],
     ["8", "Akta notaris", "Ditanggung pembeli menurut pokok-pokok akta.", "0"],
@@ -169,17 +236,17 @@ const doc_ = [
   jeda(),
   isi("Sebagian biaya (juru sita, pengukuran, dan KJPP) harus dibayar sebelum ada hasil penjualan, sedangkan rekening harta pailit belum memiliki saldo yang cukup. Pembiayaannya dapat ditempuh dengan meminta calon pembeli menanggung biaya penilaian dan pengukuran sebagai syarat penawaran yang diperhitungkan dalam harga, atau meminta Debitor menyetor biaya pemberesan sesuai komitmennya dalam rapat 14 September 2026."),
   Sub("B.\tAsumsi perolehan"),
-  tabel(["Asumsi", "Konservatif", "Moderat", "Optimis", "Keterangan"], [
+  tabelN(["Asumsi", "Konservatif", "Moderat", "Optimis", "Keterangan"], [
     ["Luas tertanam efektif", "250 Ha", "300 Ha", "338 Ha", "Dari 338,7463 Ha, dikurangi emplasemen, jalan, dan areal kosong."],
     ["Nilai ganti rugi tanaman per Ha", "Rp5 juta", "Rp15 juta", "Rp40 juta", "Rendah bila tanaman asal tahun 1990-an yang telah lewat umur ekonomis; tinggi bila telah diremajakan."],
     ["Bangunan dan benda", "Rp100 juta", "Rp300 juta", "Rp500 juta", "Menunggu hasil inventarisasi."],
     ["Potongan kondisi apa adanya dan risiko", "40%", "30%", "20%", "Risiko sikap BPN, penguasaan fisik, dan pembongkaran."],
     ["Nilai kontrak panen per Ha per tahun", "Rp1 juta", "Rp2 juta", "Rp3 juta", "Selama ± 3,5 tahun sejak 10 April 2023."],
     ["Harga hak tagih hasil kebun dibanding nilai klaim", "10%", "20%", "30%", "Potongan besar karena sulit ditagih."],
-  ], [2300, 1350, 1150, 1150, 3131], ["L", "C", "C", "C", "J"]),
+  ], [2100, 1300, 1100, 1100, 2981], ["L", "C", "C", "C", "J"]),
   jeda(),
   Sub("C.\tPerkiraan perolehan dan pembagian"),
-  tabel(["Uraian (Rp)", "Konservatif", "Moderat", "Optimis"], [
+  tabelN(["Uraian (Rp)", "Konservatif", "Moderat", "Optimis"], [
     ["Nilai tanaman (luas × nilai per Ha)", "1.250.000.000", "4.500.000.000", "13.520.000.000"],
     ["Paket tanaman dan bangunan setelah potongan", "810.000.000", "3.360.000.000", "11.216.000.000"],
     ["Nilai klaim hasil kebun", "875.000.000", "2.100.000.000", "3.549.000.000"],
@@ -191,35 +258,35 @@ const doc_ = [
     ["Dibayar kepada KPP Pratama Binjai", "732.198.981", "1.108.581.903", "1.108.581.903"],
     TOT("Tagihan yang tidak terbayar", "376.382.922", "0", "0"),
     TOT("Sisa yang dikembalikan kepada Debitor", "0", "2.451.117.078", "10.844.317.078"),
-  ], [3481, 1850, 1850, 1900], ["L", "R", "R", "R"]),
+  ], [3081, 1800, 1800, 1900], ["L", "R", "R", "R"]),
   jeda(),
   isi("**Titik impas** adalah harga paket sekitar **Rp1,33 miliar**, yaitu tagihan KPP Pratama Binjai (Rp1.108.581.903), PNBP (± Rp100,3 juta), dan biaya pelaksanaan (± Rp120 juta). Bila harga penawaran terbaik mencapai angka itu, tagihan pajak lunas, seluruh kreditor telah dibayar penuh, dan kelebihannya dikembalikan kepada Debitor."),
   isi("Bahkan pada skenario konservatif, cessie menghasilkan sekitar Rp730 juta, atau kurang lebih dua pertiga tagihan KPP Pratama Binjai. Tanpa cessie, hasilnya nol. Faktor penentu terbesar adalah umur dan kondisi tanaman, sehingga inventarisasi harus mencatat tahun tanam per blok, dan nilai limit penawaran ditetapkan dari laporan KJPP."),
 
-  H("IX.\tMENGAPA INI LANGKAH YANG PALING MUNGKIN DAN MASUK AKAL"),
+  H("X.\tMENGAPA INI LANGKAH YANG PALING MUNGKIN DAN MASUK AKAL"),
   isi("Setiap alternatif diuji dengan ukuran yang sama: dasar hukum, peluang memperoleh nilai, waktu, serta biaya dan risiko bagi harta pailit.", 120, true),
-  tabel(["Alternatif", "Dasar hukum", "Peluang nilai", "Waktu", "Biaya dan risiko", "Penilaian"], [
+  tabelN(["Alternatif", "Dasar hukum", "Peluang nilai", "Waktu", "Biaya dan risiko", "Penilaian"], [
     ["1. Lelang tanah eks HGU (rencana 2024)", "Tidak ada; tanah bukan harta pailit.", "Nol; lelang dapat dibatalkan.", "-", "Tinggi (Pasal 72).", "Tidak layak"],
-    ["2. Lelang terpisah bangunan dan hak tagih melalui KPKNL", "Ada (Pasal 185 ayat (1)).", "Rendah; hak bersyarat hampir tidak laku, bangunan dinilai sebagai bongkaran.", "Menengah", "Sedang.", "Kurang layak"],
+    ["2. Lelang terpisah per objek (bangunan sendiri, hak tagih sendiri)", "Ada (Pasal 185 ayat (1)).", "Rendah; hak tagih yang dipisah dari bangunan dan kebun hampir tidak laku, bangunan dinilai sebagai bongkaran.", "Menengah", "Sedang.", "Kurang layak"],
     ["3. Kurator menagih sendiri ganti rugi", "Ada.", "Tidak pasti; pemegang hak baru belum ada.", "Sangat lama", "Tinggi; perkara dibiayai harta pailit.", "Kurang layak"],
     ["4. Kurator memohon HGU baru dan mengelola kebun", "Lemah; syarat prioritas tidak terpenuhi.", "Tidak pasti.", "Lama", "Sangat tinggi; modal dan keamanan.", "Tidak layak"],
     ["5. Menunggu Debitor membayar", "Ada.", "Bergantung pada kemauan Debitor; janji Desember 2025 gagal.", "Tidak pasti", "Rendah.", "Tidak dapat diandalkan sendiri"],
     ["6. Mengakhiri kepailitan tanpa pemberesan hak ini", "Ada (Pasal 18).", "Nol bagi kreditor.", "Cepat", "Rendah.", "Membuang nilai"],
-    TOT("7. Penjualan paket dengan cessie melalui penawaran terbuka", "Ada (Pasal 185 ayat (3) UU 37/2004; Pasal 613 KUHPerdata).", "Nyata; ada peminat dan kebun produktif.", "± 4 sampai 5 bulan", "Rendah; risiko beralih kepada pembeli.", "Paling layak"),
-  ], [1850, 1650, 1700, 1250, 1400, 1231], ["L", "J", "J", "C", "J", "C"]),
+    TOT("7. Penjualan satu paket dengan cessie melalui lelang KPKNL, atau di bawah tangan bila lelang tidak laku", "Ada (Pasal 185 UU 37/2004; PMK 122/2023; Pasal 613 KUHPerdata).", "Nyata; ada peminat dan kebun produktif.", "± 4 sampai 5 bulan", "Rendah; risiko beralih kepada pembeli.", "Paling layak"),
+  ], [1700, 1500, 1600, 1150, 1400, 1231], ["L", "J", "J", "C", "J", "C"]),
   jeda(),
   isi("Kesimpulan perbandingan itu bertumpu pada empat alasan. **Pertama**, hanya jalur ini yang sah sekaligus menghasilkan uang: jalur lain yang sah tidak menghasilkan nilai wajar, sedangkan jalur yang tampak bernilai (lelang tanah) tidak sah. **Kedua**, nilai hak ganti rugi hanya dapat dicairkan oleh pihak yang akan mengusahakan tanah, dan cessie mempertemukan keduanya. **Ketiga**, syarat pasarnya sudah ada: kebun produktif, peminat tertulis, dan BPN sedang menangani statusnya. **Keempat**, risiko lapangan, penagihan, dan pembongkaran berpindah kepada pembeli yang paling mampu menanggungnya, sementara jalur setoran Debitor tetap terbuka."),
 
-  H("X.\tKESIMPULAN"),
+  H("XI.\tKESIMPULAN"),
   ...butirList([
     "Cessie atas hak atas ganti rugi dan hak menagih hasil kebun milik PT Rata Makmur (Dalam Pailit) **dapat dilaksanakan secara sah** oleh Kurator dengan izin Hakim Pengawas, melalui akta notaris dan pemberitahuan resmi kepada pihak yang berutang, sejalan dengan Pasal 613 KUHPerdata dan yurisprudensi Mahkamah Agung.",
     "Langkah ini **menguntungkan semua pihak**. Dengan biaya sekitar Rp65 juta sampai dengan Rp228 juta, hasilnya diperkirakan Rp0,9 miliar sampai dengan Rp12,3 miliar, dengan titik impas sekitar Rp1,33 miliar.",
-    "Dibandingkan enam alternatif lain, penjualan paket dengan cessie melalui penawaran terbuka adalah **satu-satunya langkah yang sah, menghasilkan nilai nyata, dan dapat diselesaikan dalam waktu wajar**.",
+    "Dibandingkan enam alternatif lain, penjualan satu paket dengan cessie, melalui lelang atau bila tidak laku di bawah tangan, adalah **satu-satunya langkah yang sah, menghasilkan nilai nyata, dan dapat diselesaikan dalam waktu wajar**.",
   ]),
 
-  H("XI.\tSARAN"),
+  H("XII.\tSARAN"),
   ...butirList([
-    "Menyetujui penjualan paket dengan cessie sebagai arah pemberesan dan menandatangani Surat 1 sampai dengan Surat 7 dalam Himpunan Konsep Surat.",
+    "Menyetujui penjualan satu paket dengan cessie sebagai arah pemberesan, dengan urutan lelang melalui KPKNL Medan terlebih dahulu dan penjualan di bawah tangan bila lelang tidak laku, serta menandatangani Surat 1 sampai dengan Surat 7 dalam Himpunan Konsep Surat.",
     "Menjadikan sikap tertulis Kanwil BPN Sumatera Utara sebagai syarat sebelum harga paket ditetapkan.",
     "Menyampaikan pemberitahuan cessie secara resmi melalui juru sita Pengadilan Niaga, di samping surat Kurator, sesuai pelajaran Putusan MA No. 125 PK/Pdt.Sus-Pailit/2015.",
     "Tetap membuka jalur setoran Debitor ke rekening harta pailit secara paralel.",
@@ -235,7 +302,7 @@ const doc_ = [
 const doc = new Document({
   creator: "Balai Harta Peninggalan Medan",
   title: "Telaah Hukum Cessie PT Rata Makmur",
-  styles: { default: { document: { run: { font: FONT, size: 24 } } } },
+  styles: { default: { document: { run: { font: FONT, size: SZ } } } },
   numbering,
   sections: [{
     properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 737, right: 1361, bottom: 737, left: 1474, header: 400, footer: 400 } } },
