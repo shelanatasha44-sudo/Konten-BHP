@@ -1,4 +1,4 @@
-// Himpunan konsep surat BHP Medan — mengikuti format surat CV Hitado (28 Sept 2026)
+// Himpunan konsep surat BHP Medan, mengikuti format surat CV Hitado (28 Sept 2026)
 const fs = require("fs");
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType,
@@ -84,7 +84,7 @@ function kop(brk = true) {
 function kepala(sifat, lampiran, hal) {
   const W = [1304, 236, 4139, 3402];
   const c = (t, i, right) => new TableCell({ borders: NOB, width: { size: W[i], type: WidthType.DXA },
-    children: [new Paragraph({ children: runs(t), alignment: right ? AlignmentType.RIGHT : AlignmentType.LEFT, spacing: { after: 40 } })] });
+    children: [new Paragraph({ children: runs(t), alignment: right ? AlignmentType.RIGHT : (i === 2 ? AlignmentType.JUSTIFIED : AlignmentType.LEFT), spacing: { after: 40 } })] });
   const row = (a, b, d = "") => new TableRow({ children: [c(a, 0), c(":", 1), c(b, 2), c(d, 3, true)] });
   return new Table({ width: { size: 9081, type: WidthType.DXA }, columnWidths: W, borders: NOB, rows: [
     row("Nomor", "W.2.AHU.AHU.1-AH.06.06-……", "Medan, ……………… 2026"),
@@ -435,7 +435,7 @@ const S13 = surat({
     "Harga sebesar Rp…………………… telah diterima lunas pada rekening harta pailit Nomor …………………… tanggal ……………, sebagaimana bukti setor terlampir;",
     "Surat pernyataan pelepasan kedudukan prioritas telah ditandatangani dan disampaikan kepada Kantor Wilayah Badan Pertanahan Nasional Provinsi Sumatera Utara pada tanggal ……………;",
     "Pemberitahuan cessie telah disampaikan kepada seluruh pihak pada tanggal …………… sesuai Pasal 613 Kitab Undang-Undang Hukum Perdata, dan kunci serta dokumen bangunan telah diserahkan kepada pembeli di Kantor Balai Harta Peninggalan Medan pada tanggal ……………;",
-    "Selanjutnya Kurator akan menyusun daftar pembagian sebagaimana dimaksud Pasal 189 Undang-Undang Nomor 37 Tahun 2004 untuk dimintakan persetujuan Hakim Pengawas, termasuk arahan mengenai urutan pembayaran antara tagihan eks karyawan dan tagihan pajak.",
+    "Selanjutnya Kurator akan menyusun daftar pembagian sebagaimana dimaksud Pasal 189 Undang-Undang Nomor 37 Tahun 2004 untuk dimintakan persetujuan Hakim Pengawas, guna pembayaran tagihan KPP Pratama Binjai sebagai satu-satunya tagihan yang belum dibayar.",
   ],
   penutup: "Demikian laporan ini kami sampaikan. Atas perhatian Hakim Pengawas, kami ucapkan terima kasih.",
   tembus: TEMBUS_HP,
