@@ -110,8 +110,8 @@ function tembusan(list) {
   const n = ++inst;
   return [
     blank(),
-    new Paragraph({ children: [new TextRun({ text: "Tembusan:", font: FONT, size: 16 })], spacing: { ...LS, after: 40 } }),
-    ...list.map(t => new Paragraph({ children: [new TextRun({ text: t, font: FONT, size: 16 })], numbering: { reference: "tembusan", level: 0, instance: n }, alignment: AlignmentType.JUSTIFIED, spacing: LS })),
+    new Paragraph({ children: [new TextRun({ text: "Tembusan:", font: FONT, size: 16 })], spacing: { ...LS, after: 40 }, keepNext: true }),
+    ...list.map((t, i) => new Paragraph({ children: [new TextRun({ text: t, font: FONT, size: 16 })], numbering: { reference: "tembusan", level: 0, instance: n }, alignment: AlignmentType.JUSTIFIED, spacing: LS, keepNext: i < list.length - 1 })),
   ];
 }
 
@@ -419,7 +419,7 @@ const S12 = surat({
       "hak atas ganti rugi atas bangunan, tanaman, dan benda milik PT Rata Makmur di lokasi eks HGU Nomor 2/Sei Tampa sebagaimana dimaksud Pasal 18 dan Pasal 4 ayat (4) Peraturan Pemerintah Nomor 40 Tahun 1996; dan",
       "hak menagih hasil kebun dan uang kontrak panen yang diterima sejak tanggal 10 April 2023.",
     ]),
-    par("Pemberitahuan ini disampaikan sesuai Pasal 613 Kitab Undang-Undang Hukum Perdata, yang menentukan bahwa penyerahan piutang atas nama berlaku terhadap pihak yang berutang setelah penyerahan itu diberitahukan kepadanya. Terhitung sejak surat ini diterima, pembayaran atas hak-hak tersebut hanya sah apabila dilakukan kepada penerima pengalihan sebagaimana tersebut di atas. Bangunan dan benda milik PT Rata Makmur di lokasi tersebut juga telah dijual kepada pihak yang sama berdasarkan akta tersendiri. Pemberitahuan ini juga disampaikan secara resmi melalui Juru Sita Pengadilan Niaga pada Pengadilan Negeri Medan."),
+    par("Pemberitahuan ini disampaikan sesuai Pasal 613 Kitab Undang-Undang Hukum Perdata, yang menentukan bahwa penyerahan piutang atas nama berlaku terhadap pihak yang berutang setelah penyerahan itu diberitahukan kepadanya. Terhitung sejak surat ini diterima, pembayaran atas hak-hak tersebut hanya sah apabila dilakukan kepada penerima pengalihan sebagaimana tersebut di atas. Pemberitahuan ini juga disampaikan secara resmi melalui Juru Sita Pengadilan Niaga pada Pengadilan Negeri Medan."),
   ],
   penutup: "Demikian pemberitahuan ini kami sampaikan untuk menjadi perhatian. Atas kerja sama Bapak/Ibu/Saudara, kami ucapkan terima kasih.",
   tembus: ["Hakim Pengawas Kepailitan PT Rata Makmur (Dalam Pailit)", "Penerima pengalihan"],
