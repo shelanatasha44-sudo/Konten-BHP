@@ -167,6 +167,15 @@
   }
   .left .bubble::after { left: 190px; border-top-color: var(--grey-bubble); transform: skewX(20deg); }
   .right .bubble::after { right: 190px; border-top-color: var(--navy); transform: skewX(-20deg); }
+  .bubble.listcard { background: #fff; color: var(--navy); border: 5px solid var(--gold); padding: 26px 34px 30px; min-width: 760px; }
+  .right .bubble.listcard::after { border-top-color: var(--gold); }
+  .listcard .ltitle { font-size: 46px; font-weight: 800; margin: 4px 0 14px; }
+  .listcard ul { list-style: none; display: grid; gap: 14px; }
+  .listcard li { display: flex; align-items: center; gap: 20px; font-size: 38px; font-weight: 700; line-height: 1.25;
+    background: #F4F6FA; border-left: 10px solid var(--navy); border-radius: 18px; padding: 14px 20px;
+    opacity: 0; transform: translateX(40px); transition: opacity .3s, transform .45s cubic-bezier(.2,1.4,.4,1); }
+  .listcard li.in { opacity: 1; transform: none; }
+  .listcard li span { font-size: 48px; flex: none; }
   .line.old .bubble { opacity: .72; transform: scale(.92); }
   .line.old .bubble::after { display: none; }
   .bubble .name { font-size: 28px; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 12px; }
@@ -199,7 +208,23 @@
   }
   #overlay.show { transform: none; opacity: 1; }
   #overlay .oico { width: 150px; height: 150px; border-radius: 32px; background: var(--navy); flex: none; display: grid; place-items: center; }
+  #overlay .oico { position: relative; }
+  #overlay .oico .oi { display: grid; place-items: center; }
   #overlay .oico svg { width: 88px; height: 88px; stroke: var(--gold); }
+  #overlay .onum {
+    position: absolute; top: -22px; left: -22px; width: 76px; height: 76px; border-radius: 50%;
+    background: var(--gold); color: var(--navy); border: 5px solid #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 28px; box-shadow: 0 6px 14px rgba(0,0,0,.2);
+  }
+  #overlay .onum b { font-size: 38px; }
+  #overlay .stamp {
+    position: absolute; right: -6px; top: -48px; padding: 8px 20px; border-radius: 14px;
+    background: #fff; color: #15803D; border: 6px solid #15803D;
+    font-weight: 800; font-size: 32px; letter-spacing: .06em; white-space: nowrap;
+    opacity: 0; transform: rotate(-8deg) scale(3);
+  }
+  #overlay.show .stamp { animation: stamp .45s cubic-bezier(.2,1.5,.4,1) .6s forwards; }
+  @keyframes stamp { to { opacity: 1; transform: rotate(-8deg) scale(1); } }
   #overlay .kicker { font-size: 26px; font-weight: 800; letter-spacing: .12em; color: var(--gold-deep); text-transform: uppercase; }
   #overlay .otitle { font-size: 52px; line-height: 1.12; font-weight: 800; color: var(--navy); margin-top: 6px; }
   #overlay .osub { font-size: 40px; font-weight: 700; color: var(--ink); margin-top: 8px; }
@@ -363,8 +388,9 @@
     <div id="brand">BHP</div>
 
     <div id="overlay" aria-live="polite">
-      <div class="oico"></div>
-      <div><div class="kicker">💡 Catat, ya!</div><div class="otitle"></div><div class="osub"></div></div>
+      <div class="oico"><span class="oi"></span><span class="onum">#<b>1</b></span></div>
+      <div><div class="kicker">📌 Catat! Di BHP bisa:</div><div class="otitle"></div><div class="osub"></div></div>
+      <div class="stamp" aria-hidden="true">✔ BISA DI BHP</div>
     </div>
 
     <div id="vignette"></div>
@@ -468,7 +494,15 @@ const SCENES = [
       { from: 'tasya', act: 'phone',   emote: '👻', text: 'Bentar... orang hilang nggak ada kabar, kayak mantan gue yang ghosting, harta nggak ada yang urus, juga ke BHP?' },
       { from: 'dinda', act: 'laugh',   emote: '😏', text: 'Mantan lo nggak masuk, Sya. Nggak ada hartanya.' },
       { from: 'tasya', act: 'shock',   emote: '😤', text: 'Eh!' },
-      { from: 'dinda', act: 'explain', emote: '📚', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga. Belum lagi uang pihak ketiga, surat wasiat...' },
+      { from: 'dinda', act: 'explain', emote: '📚', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga.' },
+      { from: 'dinda', act: 'bounce',  emote: '😉', text: 'Lu belum tau aja, ada lagi loh tusi lain!' },
+      // Kolom terpisah: layar chat dibersihkan, lalu kartu daftar tusi muncul poin demi poin
+      { from: 'dinda', act: 'explain', fresh: true, text: 'Tusi BHP lainnya 👇',
+        list: [
+          { icon: '📜', text: 'Pendaftaran & pembukaan surat wasiat' },
+          { icon: '💰', text: 'Pengelolaan uang pihak ketiga' },
+          { icon: '🤝', text: 'Pengampuan: BHP sebagai pengampu pengawas' },
+        ] },
     ],
     overlay: { title: 'Harta orang tak hadir & harta tak terurus 🗂️', sub: '', icon: 'folder' },
   },
@@ -492,6 +526,7 @@ const T = {
   typingBase: 400, typingPerChar: 7,  typingMin: 700,  typingMax: 1400,
   readBase: 800,   readPerChar: 22,   readMin: 2000,   readMax: 4600,
   talkPerChar: 45, // lama mulut bergerak per karakter
+  listItemGap: 900, listHold: 1800, // kartu daftar tusi
   overlayIn: 600, overlayHold: 2400,
   silence: 2000, bossIn: 1300, wordGap: 250, afterWords: 900,
   taglineHold: 2800, freeze: 1600, closing: 5000, replayAfter: 2000,
@@ -672,7 +707,7 @@ const rmQuery = matchMedia('(prefers-reduced-motion: reduce)');
 const reduced = () => rmQuery.matches;
 
 const typingDur = (m) => m.typing ?? clamp(T.typingBase + m.text.length * T.typingPerChar, T.typingMin, T.typingMax);
-const holdDur   = (m) => m.hold   ?? clamp(T.readBase   + m.text.length * T.readPerChar,   T.readMin,   T.readMax);
+const holdDur   = (m) => m.hold   ?? (m.list ? m.list.length * T.listItemGap + T.listHold : null) ?? clamp(T.readBase   + m.text.length * T.readPerChar,   T.readMin,   T.readMax);
 
 function estimateScene(sc) {
   let d = T.wipe * 2 + T.wipeHold + T.sceneIntro;
@@ -763,6 +798,7 @@ async function wipe(label, swap) {
 
 async function sendMessage(m) {
   const c = CHARACTERS[m.from], ch = cast[m.from];
+  if (m.fresh) talk.innerHTML = '';
   talk.querySelectorAll('.line').forEach((l) => l.classList.add('old'));
 
   // 1) Tokoh "mikir" + balon titik-titik
@@ -779,9 +815,20 @@ async function sendMessage(m) {
 
   // 2) Balon teks pop-in + tokoh bicara dengan ekspresi
   const b = document.createElement('div');
-  b.className = 'bubble';
+  b.className = m.list ? 'bubble listcard' : 'bubble';
   b.innerHTML = `<div class="name">${c.name}<span class="tag">${c.tag}</span></div><div class="text"></div>`;
   b.querySelector('.text').textContent = m.text;
+  if (m.list) {
+    b.querySelector('.text').className = 'ltitle';
+    const ul = document.createElement('ul');
+    for (const it of m.list) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span aria-hidden="true">${it.icon}</span><b></b>`;
+      li.querySelector('b').textContent = it.text;
+      ul.appendChild(li);
+    }
+    b.appendChild(ul);
+  }
   typing.replaceWith(b);
   ch.classList.remove('thinking');
   if (m.act) ch.classList.add(`act-${m.act}`);
@@ -789,6 +836,15 @@ async function sendMessage(m) {
   ch.classList.add('talking');
 
   const hold = holdDur(m);
+  if (m.list) {
+    // Poin tusi muncul satu per satu sambil Dinda menjelaskan
+    ch.classList.add('talking');
+    for (const li of b.querySelectorAll('li')) { await sleep(T.listItemGap); li.classList.add('in'); }
+    ch.classList.remove('talking');
+    await sleep(T.listHold);
+    clearChar(ch);
+    return;
+  }
   const talkMs = clamp(m.text.length * T.talkPerChar, 600, hold - 300);
   await sleep(talkMs);
   ch.classList.remove('talking');
@@ -796,8 +852,9 @@ async function sendMessage(m) {
   clearChar(ch);
 }
 
-async function showOverlay(o) {
-  overlay.querySelector('.oico').innerHTML = svg(o.icon, 1.8);
+async function showOverlay(o, num) {
+  overlay.querySelector('.oi').innerHTML = svg(o.icon, 1.8);
+  overlay.querySelector('.onum b').textContent = num;
   overlay.querySelector('.otitle').textContent = o.title;
   overlay.querySelector('.osub').textContent = o.sub || '';
   overlay.classList.add('show');
@@ -865,7 +922,7 @@ async function play(from = 0) {
       });
       await sleep(T.sceneIntro);
       for (const m of sc.messages) await sendMessage(m);
-      if (sc.overlay) await showOverlay(sc.overlay);
+      if (sc.overlay) await showOverlay(sc.overlay, SCENES.slice(0, i + 1).filter((s) => s.overlay).length);
       if (sc.climax) await climax(sc.climax);
     }
     await showClosing();
