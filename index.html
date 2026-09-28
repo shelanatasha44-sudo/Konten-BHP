@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BHP · Pasti Selalu Ada Solusinya!</title>
-<meta name="description" content="Animasi pendek gaya TikTok/Reels: Tasya dan Dinda ngobrol soal layanan Balai Harta Peninggalan.">
+<meta name="description" content="Animasi kartun pendek gaya TikTok/Reels: Tasya dan Dinda ngobrol soal layanan Balai Harta Peninggalan.">
 <meta name="theme-color" content="#0B2A5B">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,6 @@
     --gold: #F2B705;
     --gold-deep: #B98A00;
     --paper: #F7F5F0;
-    --chat-bg: #EFEBE3;
     --ink: #0F172A;
     --ink-soft: #475569;
     --grey-bubble: #E4E7EC;
@@ -25,13 +24,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
-  body {
-    background: var(--navy-deep);
-    font-family: var(--font);
-    color: var(--ink);
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-  }
+  body { background: var(--navy-deep); font-family: var(--font); color: var(--ink); overflow: hidden; -webkit-font-smoothing: antialiased; }
 
   /* ====== Kanvas 1080x1920, diskalakan agar muat layar ====== */
   #stage {
@@ -39,125 +32,156 @@
     width: 1080px; height: 1920px;
     transform-origin: 50% 50%;
     transform: translate(-50%, -50%) scale(var(--s, .4));
-    overflow: hidden;
-    background: var(--paper);
-    border-radius: 0;
+    overflow: hidden; background: var(--paper);
     box-shadow: 0 30px 120px rgba(0,0,0,.5);
   }
-  #app { position: absolute; inset: 0; overflow: hidden;
-    background:
-      radial-gradient(900px 600px at 110% -10%, rgba(11,42,91,.10), transparent 60%),
-      radial-gradient(700px 500px at -20% 110%, rgba(242,183,5,.14), transparent 60%),
-      var(--paper);
-  }
+  #app { position: absolute; inset: 0; overflow: hidden; background: var(--paper); }
 
-  /* ====== Progress ala story ====== */
+  /* ====== Latar & properti ====== */
+  #bg, #bg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #world { position: absolute; inset: 0; transform-origin: 50% 60%; transition: transform 7s linear; }
+  #world.zoom { transform: scale(1.07); }
+  .swing { transform-box: fill-box; transform-origin: 50% 0; animation: swing 4s ease-in-out infinite; }
+  .swing.b { animation-duration: 4.6s; animation-direction: reverse; }
+  @keyframes swing { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+  .drift { animation: drift 26s linear infinite; }
+  .drift.b { animation-duration: 38s; animation-delay: -12s; }
+  @keyframes drift { from { transform: translateX(-300px); } to { transform: translateX(1200px); } }
+  .spin { transform-box: fill-box; transform-origin: center; animation: spin 30s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .twinkle { animation: twinkle 1.6s ease-in-out infinite; }
+  .twinkle:nth-child(2n) { animation-delay: .5s; } .twinkle:nth-child(3n) { animation-delay: 1s; }
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+  #table { position: absolute; left: 0; right: 0; top: 1435px; bottom: 0; z-index: 3; }
+  #table svg, #props svg { width: 100%; height: 100%; display: block; }
+  #props { position: absolute; left: 0; right: 0; top: 1275px; height: 180px; z-index: 3; }
+  .steam { animation: steam 2.4s ease-in infinite; }
+  .steam.b { animation-delay: 1.2s; }
+  @keyframes steam { 0% { transform: translateY(10px); opacity: 0; } 30% { opacity: .8; } 100% { transform: translateY(-40px); opacity: 0; } }
+
+  /* ====== Progress & chip ====== */
   #progress { position: absolute; top: 36px; left: 40px; right: 40px; height: 10px; display: flex; gap: 10px; z-index: 5; }
-  #progress i { flex: 1; background: rgba(11,42,91,.15); border-radius: 10px; overflow: hidden; position: relative; }
+  #progress i { flex: 1; background: rgba(255,255,255,.55); box-shadow: 0 0 0 1px rgba(11,42,91,.12); border-radius: 10px; overflow: hidden; position: relative; }
   #progress i b { position: absolute; inset: 0; width: 0%; background: var(--navy); border-radius: 10px; }
-
-  /* ====== Chip scene ====== */
   #chip {
-    position: absolute; top: 76px; left: 40px; height: 80px;
+    position: absolute; top: 76px; left: 40px; height: 80px; z-index: 5;
     display: flex; align-items: center; gap: 18px;
     padding: 0 34px 0 12px; border-radius: 80px;
-    background: #fff; box-shadow: 0 8px 24px rgba(11,42,91,.12);
-    font-weight: 800; font-size: 34px; color: var(--navy); letter-spacing: .01em;
+    background: #fff; box-shadow: 0 8px 24px rgba(11,42,91,.18);
+    font-weight: 800; font-size: 34px; color: var(--navy);
   }
   #chip .ico { width: 58px; height: 58px; border-radius: 50%; background: var(--navy); display: grid; place-items: center; }
   #chip .ico svg { width: 34px; height: 34px; stroke: var(--gold); }
   #chip small { font-weight: 600; color: var(--ink-soft); font-size: 28px; }
   #brand {
-    position: absolute; top: 90px; right: 40px; height: 52px; padding: 0 22px;
+    position: absolute; top: 90px; right: 40px; height: 52px; padding: 0 22px; z-index: 5;
     display: flex; align-items: center; border-radius: 50px;
     background: var(--gold); color: var(--navy); font-weight: 800; font-size: 26px; letter-spacing: .08em;
+    box-shadow: 0 8px 24px rgba(11,42,91,.18);
   }
 
-  /* ====== Kartu chat ala WhatsApp ====== */
-  #phone {
-    position: absolute; top: 184px; left: 40px; right: 40px; bottom: 40px;
-    border-radius: 52px; overflow: hidden; background: var(--chat-bg);
-    box-shadow: 0 24px 60px rgba(11,42,91,.18), 0 0 0 1px rgba(11,42,91,.06);
-    transform-origin: 50% 70%;
-    transition: transform 7s linear;
-  }
-  #phone.zoom { transform: scale(1.07); }
-  #head {
-    position: absolute; top: 0; left: 0; right: 0; height: 150px; z-index: 2;
-    background: var(--navy); color: #fff;
-    display: flex; align-items: center; gap: 22px; padding: 0 36px;
-  }
-  #head .back { width: 40px; height: 40px; stroke: #fff; opacity: .9; }
-  .pair { position: relative; width: 132px; height: 84px; flex: none; }
-  .pair .av { position: absolute; top: 0; width: 84px; height: 84px; font-size: 38px; border: 4px solid var(--navy); }
-  .pair .av:first-child { left: 0; }
-  .pair .av:last-child { left: 48px; }
-  #head .who { line-height: 1.15; }
-  #head .who b { display: block; font-size: 40px; font-weight: 800; }
-  #head .who span { font-size: 28px; color: #BFD2F2; font-weight: 500; }
-  #head .who span.typing { color: var(--gold); }
-  #head .icons { margin-left: auto; display: flex; gap: 34px; }
-  #head .icons svg { width: 42px; height: 42px; stroke: #fff; opacity: .85; }
+  /* ====== Tokoh kartun ====== */
+  .char { position: absolute; top: 880px; width: 520px; height: 756px; z-index: 2; }
+  .char.tasya { left: 20px; }
+  .char.dinda { right: 20px; }
+  .char > svg { width: 100%; height: 100%; overflow: visible; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; }
+  .char.dinda > svg { animation-delay: -1.4s; }
+  @keyframes breathe { 0%, 100% { transform: none; } 50% { transform: scaleY(1.015) translateY(-3px); } }
+  .tilt, .head, .eyes, .brows, .arm { transform-box: fill-box; }
+  .tilt { transform-origin: 50% 100%; transition: transform .45s cubic-bezier(.2,1.3,.4,1); }
+  .head { transform-origin: 50% 90%; }
+  .eyes { transform-origin: center; animation: blink 4.2s infinite; }
+  .dinda .eyes { animation-delay: -2s; }
+  @keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+  .brows { transition: transform .3s; }
+  .m-open { opacity: 0; }
+  .arm { transform-origin: 50% 100%; transform: translateY(330px) rotate(18deg); transition: transform .5s cubic-bezier(.2,1.3,.4,1); }
+  .dinda .arm { transform: translateY(330px) rotate(-18deg); }
 
-  #body {
-    position: absolute; top: 150px; left: 0; right: 0; bottom: 116px;
-    background-image:
-      radial-gradient(rgba(11,42,91,.06) 2.5px, transparent 3px),
-      radial-gradient(rgba(242,183,5,.10) 2.5px, transparent 3px);
-    background-size: 64px 64px, 64px 64px;
-    background-position: 0 0, 32px 32px;
-  }
-  #watermark { position: absolute; left: 50%; top: 42%; width: 520px; height: 520px; transform: translate(-50%,-50%); opacity: .06; pointer-events: none; }
-  #watermark svg { width: 100%; height: 100%; stroke: var(--navy); }
-  #msgs {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; justify-content: flex-end; gap: 26px;
-    padding: 40px 30px 290px;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 90px);
-            mask-image: linear-gradient(to bottom, transparent 0, #000 90px);
-  }
-  #inputbar {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 116px; background: #F2EFE9;
-    display: flex; align-items: center; gap: 20px; padding: 0 26px;
-  }
-  #inputbar .field { flex: 1; height: 76px; border-radius: 40px; background: #fff; display: flex; align-items: center; padding: 0 32px; color: #94A3B8; font-size: 30px; }
-  #inputbar .mic { width: 76px; height: 76px; border-radius: 50%; background: var(--navy); display: grid; place-items: center; }
-  #inputbar .mic svg { width: 36px; height: 36px; stroke: var(--gold); }
+  /* Bicara: mulut buka-tutup + kepala mengangguk kecil */
+  .char.talking .m-open { animation: yap .24s steps(1) infinite; }
+  .char.talking .m-closed { animation: yap .24s steps(1) infinite reverse; }
+  .char.talking .head { animation: bob .6s ease-in-out infinite; }
+  @keyframes yap { 0% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes bob { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(2deg) translateY(-3px); } }
+  .char.thinking .tilt { transform: rotate(-5deg); }
+  .dinda.thinking .tilt { transform: rotate(5deg); }
 
-  .row { display: flex; align-items: flex-end; gap: 16px; flex: none; }
-  .row.right { flex-direction: row-reverse; }
-  .av {
-    width: 72px; height: 72px; border-radius: 50%; flex: none;
-    display: grid; place-items: center; font-weight: 800; font-size: 32px;
+  /* Aksi / ekspresi (diatur lewat field "act" di data scene) */
+  .act-shock { animation: jump .6s cubic-bezier(.3,1.6,.5,1); }
+  .act-shock .eyes { animation: none; transform: scale(1.3); }
+  .act-shock .brows, .act-wow .brows { transform: translateY(-14px); }
+  .act-shock .arm, .act-explain .arm, .act-phone .arm, .act-wow .arm { transform: none; }
+  .act-explain .arm { animation: wag .5s ease-in-out .5s 3; }
+  @keyframes wag { 0%, 100% { transform: none; } 50% { transform: rotate(-10deg); } }
+  .act-tilt .tilt { transform: rotate(-9deg); }
+  .dinda.act-tilt .tilt { transform: rotate(9deg); }
+  .act-sad .tilt { transform: rotate(5deg) translateY(10px); }
+  .dinda.act-sad .tilt { transform: rotate(-5deg) translateY(10px); }
+  .act-sad .brows { transform: rotate(6deg); }
+  .act-nod .tilt { animation: nod .45s ease-in-out 3; }
+  @keyframes nod { 0%, 100% { transform: none; } 50% { transform: translateY(10px) rotate(2deg); } }
+  .act-bounce, .act-wow { animation: jump .55s cubic-bezier(.3,1.6,.5,1) 2; }
+  @keyframes jump { 0%, 100% { transform: none; } 40% { transform: translateY(-50px); } }
+  .act-laugh { animation: giggle .2s ease-in-out 8; }
+  @keyframes giggle { 0%, 100% { transform: none; } 50% { transform: translateY(-10px) rotate(1deg); } }
+  .char.act-laugh .eyes { animation: none; transform: scaleY(.25); }
+  .char.act-laugh .m-open { opacity: 1; animation: none; }
+  .char.act-laugh .m-closed { opacity: 0; animation: none; }
+  .act-phone .tilt { transform: rotate(4deg); }
+
+  .emote {
+    position: absolute; top: 120px; font-size: 100px; line-height: 1; z-index: 3;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
+    animation: emote .5s cubic-bezier(.2,1.6,.4,1) both, float 1.6s ease-in-out .5s infinite;
   }
-  .av.tasya { background: var(--gold); color: var(--navy); }
-  .av.dinda { background: var(--navy-soft); color: var(--gold); }
+  .tasya .emote { left: 410px; }
+  .dinda .emote { left: 0; }
+  @keyframes emote { from { transform: scale(0) rotate(-30deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes float { 0%, 100% { transform: none; } 50% { transform: translateY(-14px); } }
+
+  /* ====== Balon bicara ====== */
+  #talk {
+    position: absolute; left: 40px; right: 40px; top: 190px; height: 800px; z-index: 4;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 22px;
+    padding-bottom: 34px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 80px);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 80px);
+  }
+  .line { display: flex; flex: none; }
+  .line.right { justify-content: flex-end; }
   .bubble {
-    position: relative; max-width: 780px; padding: 20px 28px 14px;
-    border-radius: 34px; font-size: 42px; line-height: 1.38; font-weight: 500;
-    box-shadow: 0 3px 0 rgba(15,23,42,.06), 0 8px 18px rgba(15,23,42,.06);
-    transform-origin: bottom left;
-    animation: pop .42s cubic-bezier(.2,1.4,.4,1) both;
+    position: relative; max-width: 860px; padding: 22px 32px 24px;
+    border-radius: 40px; font-size: 42px; line-height: 1.36; font-weight: 600;
+    box-shadow: 0 10px 0 rgba(11,42,91,.10), 0 16px 30px rgba(15,23,42,.14);
+    transform-origin: 25% 100%;
+    animation: pop .42s cubic-bezier(.2,1.4,.4,1) backwards;
+    transition: opacity .4s, transform .4s;
   }
-  .left .bubble { background: var(--grey-bubble); color: var(--ink); border-bottom-left-radius: 8px; }
-  .right .bubble { background: var(--navy); color: #fff; border-bottom-right-radius: 8px; transform-origin: bottom right; }
+  .left .bubble { background: var(--grey-bubble); color: var(--ink); border: 4px solid #fff; }
+  .right .bubble { background: var(--navy); color: #fff; border: 4px solid #fff; transform-origin: 75% 100%; }
+  .bubble::after {
+    content: ""; position: absolute; bottom: -34px; width: 0; height: 0;
+    border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 34px solid;
+  }
+  .left .bubble::after { left: 190px; border-top-color: var(--grey-bubble); transform: skewX(20deg); }
+  .right .bubble::after { right: 190px; border-top-color: var(--navy); transform: skewX(-20deg); }
+  .line.old .bubble { opacity: .72; transform: scale(.92); }
+  .line.old .bubble::after { display: none; }
   .bubble .name { font-size: 28px; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 12px; }
   .left .bubble .name { color: var(--gold-deep); }
   .right .bubble .name { color: var(--gold); }
   .bubble .tag { font-size: 20px; font-weight: 700; padding: 3px 12px; border-radius: 20px; letter-spacing: .04em; }
   .left .tag { background: rgba(185,138,0,.14); color: var(--gold-deep); }
   .right .tag { background: var(--gold); color: var(--navy); }
-  .bubble .meta { text-align: right; font-size: 24px; margin-top: 6px; opacity: .6; font-weight: 600; }
-  .right .bubble .meta { color: #BFD2F2; opacity: 1; }
-  .right .bubble .meta .ticks { color: #7CC4FF; }
-  .bubble.typing { padding: 30px 34px; display: flex; gap: 12px; animation-duration: .3s; }
-  .bubble.typing i { width: 18px; height: 18px; border-radius: 50%; background: currentColor; opacity: .45; animation: dot 1s infinite ease-in-out; }
+  .bubble.typing { padding: 30px 38px; display: flex; gap: 14px; }
+  .bubble.typing i { width: 20px; height: 20px; border-radius: 50%; background: currentColor; opacity: .45; animation: dot 1s infinite ease-in-out; }
   .bubble.typing i:nth-child(2) { animation-delay: .15s; }
   .bubble.typing i:nth-child(3) { animation-delay: .3s; }
   @keyframes dot { 0%, 60%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-14px); opacity: .9; } }
   @keyframes pop {
-    0% { transform: scale(.55) translateY(24px); opacity: 0; }
+    0% { transform: scale(.5) translateY(30px); opacity: 0; }
     70% { transform: scale(1.04); opacity: 1; }
     100% { transform: scale(1); opacity: 1; }
   }
@@ -184,8 +208,7 @@
   /* ====== Klimaks ====== */
   #vignette {
     position: absolute; inset: 0; z-index: 7; pointer-events: none; opacity: 0;
-    background:
-      radial-gradient(ellipse 70% 55% at 50% 58%, rgba(6,21,46,.25) 0%, rgba(6,21,46,.78) 65%, rgba(0,0,0,.95) 100%);
+    background: radial-gradient(ellipse 70% 55% at 50% 58%, rgba(6,21,46,.3) 0%, rgba(6,21,46,.8) 65%, rgba(0,0,0,.95) 100%);
     transition: opacity 1.8s ease;
   }
   #app.dim #vignette { opacity: 1; }
@@ -221,10 +244,7 @@
   #boss .speech span.in { opacity: 1; transform: none; }
   #boss .speech span.em { color: var(--navy); background: linear-gradient(transparent 62%, rgba(242,183,5,.55) 62%); }
 
-  #tagline {
-    position: absolute; left: 40px; right: 40px; top: 250px; z-index: 9;
-    text-align: center; pointer-events: none; opacity: 0;
-  }
+  #tagline { position: absolute; left: 40px; right: 40px; top: 250px; z-index: 9; text-align: center; pointer-events: none; opacity: 0; }
   #tagline .rays {
     position: absolute; left: 50%; top: 50%; width: 1300px; height: 1300px; transform: translate(-50%,-50%) scale(.2); opacity: 0;
     background: repeating-conic-gradient(from 0deg, rgba(242,183,5,.28) 0 6deg, transparent 6deg 18deg);
@@ -249,27 +269,19 @@
     30%, 50%, 70% { transform: translate(-14px, 6px) rotate(-.4deg); }
     40%, 60% { transform: translate(14px, -6px) rotate(.4deg); }
   }
-  /* Freeze frame: semua berhenti, warna dikeraskan, bingkai putih */
   #app.resetting, #app.resetting * { transition: none !important; }
+  /* Freeze frame: semua berhenti, warna dikeraskan, bingkai putih */
   #app.frozen, #app.frozen * { animation-play-state: paused !important; }
   #app.frozen { filter: contrast(1.12) saturate(.75); }
-  #app.frozen::after {
-    content: ""; position: absolute; inset: 0; z-index: 11; pointer-events: none;
-    box-shadow: inset 0 0 0 18px #fff, inset 0 0 0 22px rgba(11,42,91,.6);
-  }
-  #freezetag {
-    position: absolute; top: 60px; right: 60px; z-index: 12; display: none;
-    background: #fff; color: var(--navy); font-weight: 800; font-size: 30px; padding: 10px 24px; border-radius: 12px;
-    letter-spacing: .1em;
-  }
+  #app.frozen::after { content: ""; position: absolute; inset: 0; z-index: 11; pointer-events: none; box-shadow: inset 0 0 0 18px #fff, inset 0 0 0 22px rgba(11,42,91,.6); }
+  #freezetag { position: absolute; top: 60px; right: 60px; z-index: 12; display: none; background: #fff; color: var(--navy); font-weight: 800; font-size: 30px; padding: 10px 24px; border-radius: 12px; letter-spacing: .1em; }
   #app.frozen #freezetag { display: block; }
 
   /* ====== Wipe transisi ====== */
   #wipe {
     position: absolute; inset: 0; z-index: 30; pointer-events: none;
     background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
-    transform: translateX(-104%);
-    display: grid; place-items: center;
+    transform: translateX(-104%); display: grid; place-items: center;
   }
   #wipe::before, #wipe::after { content: ""; position: absolute; top: 0; bottom: 0; width: 26px; background: var(--gold); }
   #wipe::before { left: 0; } #wipe::after { right: 0; }
@@ -288,14 +300,17 @@
       linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
   }
   .screen[hidden] { display: none; }
-  .emblem { width: 260px; height: 260px; border-radius: 50%; display: grid; place-items: center;
-    border: 8px solid var(--gold); background: rgba(255,255,255,.05); box-shadow: 0 0 0 18px rgba(242,183,5,.12); }
+  .emblem { width: 260px; height: 260px; border-radius: 50%; display: grid; place-items: center; border: 8px solid var(--gold); background: rgba(255,255,255,.05); box-shadow: 0 0 0 18px rgba(242,183,5,.12); }
   .emblem svg { width: 140px; height: 140px; stroke: var(--gold); }
-  #start h1 { margin-top: 70px; font-size: 92px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; }
+  .duo { display: flex; gap: 10px; align-items: flex-end; height: 470px; border-bottom: 10px solid var(--gold); }
+  .duo .char { position: relative; top: auto; left: auto; right: auto; width: 360px; height: 470px; }
+  .duo .char > svg { height: 523px; }
+  .duo .char { overflow: hidden; }
+  #start h1 { margin-top: 60px; font-size: 92px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; }
   #start h1 em { font-style: normal; color: var(--gold); }
-  #start p { margin-top: 30px; font-size: 38px; color: #BFD2F2; font-weight: 500; line-height: 1.4; }
+  #start p { margin-top: 26px; font-size: 38px; color: #BFD2F2; font-weight: 500; line-height: 1.4; }
   .btn {
-    margin-top: 80px; display: inline-flex; align-items: center; gap: 24px;
+    margin-top: 70px; display: inline-flex; align-items: center; gap: 24px;
     font: 800 52px/1 var(--font); color: var(--navy); background: var(--gold);
     border: 0; border-radius: 100px; padding: 36px 76px 36px 56px; cursor: pointer;
     box-shadow: 0 16px 0 var(--gold-deep), 0 30px 60px rgba(0,0,0,.4);
@@ -305,7 +320,7 @@
   .btn:active { transform: translateY(10px); box-shadow: 0 6px 0 var(--gold-deep), 0 16px 30px rgba(0,0,0,.4); }
   .btn:focus-visible { outline: 6px solid #fff; outline-offset: 10px; }
   .btn svg { width: 56px; height: 56px; fill: var(--navy); }
-  #start .note { margin-top: 70px; font-size: 28px; color: rgba(255,255,255,.5); }
+  #start .note { margin-top: 60px; font-size: 28px; color: rgba(255,255,255,.5); }
 
   #closing .l1 { margin-top: 80px; font-size: 64px; line-height: 1.12; font-weight: 800; letter-spacing: .02em; }
   #closing .l2 { margin-top: 26px; font-size: 44px; color: #BFD2F2; font-weight: 600; }
@@ -332,31 +347,20 @@
 </style>
 </head>
 <body>
-<div id="stage" aria-label="Animasi obrolan Tasya dan Dinda tentang Balai Harta Peninggalan">
+<div id="stage" aria-label="Animasi kartun Tasya dan Dinda ngobrol tentang Balai Harta Peninggalan">
   <div id="app">
+    <div id="world">
+      <div id="bg"></div>
+      <div class="char tasya" id="tasya"></div>
+      <div class="char dinda" id="dinda"></div>
+      <div id="props"></div>
+      <div id="table"></div>
+    </div>
+    <div id="talk" role="log" aria-live="polite"></div>
+
     <div id="progress" aria-hidden="true"></div>
     <div id="chip"><span class="ico"></span><span class="txt"></span></div>
     <div id="brand">BHP</div>
-
-    <div id="phone">
-      <header id="head">
-        <svg class="back" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
-        <div class="pair"><div class="av tasya">T</div><div class="av dinda">D</div></div>
-        <div class="who"><b>Tasya &amp; Dinda</b><span id="status">online</span></div>
-        <div class="icons">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/></svg>
-        </div>
-      </header>
-      <div id="body">
-        <div id="watermark"></div>
-        <div id="msgs" role="log" aria-live="polite"></div>
-      </div>
-      <div id="inputbar">
-        <div class="field">Ketik pesan…</div>
-        <div class="mic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></div>
-      </div>
-    </div>
 
     <div id="overlay" aria-live="polite">
       <div class="oico"></div>
@@ -395,15 +399,15 @@
   </div>
 
   <section id="start" class="screen">
-    <div class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12M4 7h16M12 3l-1 1M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0z"/></svg></div>
+    <div class="duo"><div class="char tasya"></div><div class="char dinda"></div></div>
     <h1>Semua Masalah<br>Ke <em>BHP</em>? 🤔</h1>
-    <p>Obrolan Tasya &amp; Dinda soal<br>Balai Harta Peninggalan</p>
+    <p>Tasya &amp; Dinda ngobrolin<br>Balai Harta Peninggalan</p>
     <button class="btn" id="playBtn" type="button"><svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 001.5.87l12-7.5a1 1 0 000-1.74l-12-7.5A1 1 0 007 4.5z"/></svg>Putar</button>
-    <div class="note">±90 detik · nyalakan suara imajinasimu 😄</div>
+    <div class="note">±90 detik</div>
   </section>
 
   <section id="closing" class="screen" hidden>
-    <div class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12M4 7h16M12 3l-1 1M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0z"/></svg></div>
+    <div class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12M4 7h16M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0z"/></svg></div>
     <div class="l1">BALAI HARTA PENINGGALAN<br>MEDAN</div>
     <div class="l2">Kementerian Hukum RI</div>
     <div class="l3">#PastiSelaluAdaSolusinya</div>
@@ -415,59 +419,63 @@
 
 <script>
 /* =====================================================================
-   DATA SCENE — ubah naskah, urutan, ikon & timing di sini saja.
-   Tiap pesan: { from: 'tasya' | 'dinda', text: '...' }
+   DATA SCENE — ubah naskah, urutan, latar, ekspresi & timing di sini saja.
+   Tiap pesan: { from: 'tasya' | 'dinda', text: '...', act, emote }
+     act   : ekspresi/gerak tokoh saat bicara —
+             'explain' | 'shock' | 'tilt' | 'sad' | 'nod' | 'laugh' | 'bounce' | 'phone'
+     emote : emoji kecil yang muncul di dekat kepala tokoh
    Opsional per pesan: typing (ms), hold (ms) untuk menimpa timing otomatis.
+   Latar (bg): 'kafe' | 'teras' | 'kedai' | 'malam'. Gelas di meja (cups): 'kopi' | 'esteh' | 'boba'.
    ===================================================================== */
 const CHARACTERS = {
-  tasya: { name: 'Tasya', tag: 'Gen Z',  side: 'left',  initial: 'T' },
-  dinda: { name: 'Dinda', tag: 'BHP',    side: 'right', initial: 'D' },
+  tasya: { name: 'Tasya', tag: 'Gen Z', side: 'left' },
+  dinda: { name: 'Dinda', tag: 'BHP',   side: 'right' },
 };
 
 const SCENES = [
   {
-    label: 'SCENE 1', title: 'Di Kafe ☕', icon: 'coffee',
+    label: 'SCENE 1', title: 'Di Kafe ☕', icon: 'coffee', bg: 'kafe', cups: ['kopi', 'kopi'],
     messages: [
-      { from: 'tasya', text: 'Din, gue pusing. Tanah Papa mau gue balik nama, tapi Papa kan udah nggak ada. Ke mana dulu sih?' },
-      { from: 'dinda', text: 'Lo butuh Surat Keterangan Hak Waris. Di BHP aja. Bisa online.' },
-      { from: 'tasya', text: 'Hah? Segampang itu?' },
+      { from: 'tasya', act: 'sad',     emote: '😵‍💫', text: 'Din, gue pusing. Tanah Papa mau gue balik nama, tapi Papa kan udah nggak ada. Ke mana dulu sih?' },
+      { from: 'dinda', act: 'explain', emote: '💡', text: 'Lo butuh Surat Keterangan Hak Waris. Di BHP aja. Bisa online.' },
+      { from: 'tasya', act: 'shock',   emote: '❗', text: 'Hah? Segampang itu?' },
     ],
     overlay: { title: 'Surat Keterangan Hak Waris', sub: 'bisa online 📲', icon: 'doc' },
   },
   {
-    label: 'SCENE 2', title: 'Perwalian', icon: 'shield',
+    label: 'SCENE 2', title: 'Perwalian', icon: 'shield', bg: 'teras', cups: ['esteh', 'esteh'],
     messages: [
-      { from: 'tasya', text: 'Terus tetangga gue, anaknya masih kecil, ibunya mau jual rumah. Boleh?' },
-      { from: 'dinda', text: 'Itu perwalian. Ada anak di bawah umur, walinya didampingi BHP. Hartanya aman, ibunya juga bebas dari prasangka negatif keluarga lain.' },
-      { from: 'tasya', text: 'Jadi BHP itu bodyguard-nya wali sekaligus harta anak?' },
-      { from: 'dinda', text: 'Tepat.' },
+      { from: 'tasya', act: 'tilt',    emote: '🤔', text: 'Terus tetangga gue, anaknya masih kecil, ibunya mau jual rumah. Boleh?' },
+      { from: 'dinda', act: 'explain', emote: '🛡️', text: 'Itu perwalian. Ada anak di bawah umur, walinya didampingi BHP. Hartanya aman, ibunya juga bebas dari prasangka negatif keluarga lain.' },
+      { from: 'tasya', act: 'bounce',  emote: '😎', text: 'Jadi BHP itu bodyguard-nya wali sekaligus harta anak?' },
+      { from: 'dinda', act: 'nod',     emote: '👍', text: 'Tepat.' },
     ],
     overlay: { title: 'Perwalian', sub: 'BHP wali pengawas 🛡️', icon: 'shield' },
   },
   {
-    label: 'SCENE 3', title: 'Kepailitan', icon: 'scale',
+    label: 'SCENE 3', title: 'Kepailitan', icon: 'scale', bg: 'kedai', cups: ['esteh', 'kopi'],
     messages: [
-      { from: 'tasya', text: 'Tetangga gue satu lagi, usahanya bangkrut, hutang di mana-mana.' },
-      { from: 'dinda', text: 'Itu pailit. BHP bisa jadi kurator-nya.' },
-      { from: 'tasya', text: 'Mahal dong?' },
-      { from: 'dinda', text: 'Justru lebih hemat. Nggak ada fee ini itu. Kita kan perwakilan negara.' },
+      { from: 'tasya', act: 'sad',     emote: '😰', text: 'Tetangga gue satu lagi, usahanya bangkrut, hutang di mana-mana.' },
+      { from: 'dinda', act: 'explain', emote: '⚖️', text: 'Itu pailit. BHP bisa jadi kurator-nya.' },
+      { from: 'tasya', act: 'tilt',    emote: '💸', text: 'Mahal dong?' },
+      { from: 'dinda', act: 'nod',     emote: '😌', text: 'Justru lebih hemat. Nggak ada fee ini itu. Kita kan perwakilan negara.' },
     ],
     overlay: { title: 'Kepailitan', sub: 'BHP kurator negara ⚖️', icon: 'scale' },
   },
   {
-    label: 'SCENE 4', title: 'Orang Hilang?', icon: 'folder',
+    label: 'SCENE 4', title: 'Orang Hilang?', icon: 'folder', bg: 'malam', cups: ['boba', 'boba'],
     messages: [
-      { from: 'tasya', text: 'Bentar... orang hilang nggak ada kabar, kayak mantan gue yang ghosting, harta nggak ada yang urus, juga ke BHP?' },
-      { from: 'dinda', text: 'Mantan lo nggak masuk, Sya. Nggak ada hartanya.' },
-      { from: 'tasya', text: 'Eh!' },
-      { from: 'dinda', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga. Belum lagi uang pihak ketiga, surat wasiat...' },
+      { from: 'tasya', act: 'phone',   emote: '👻', text: 'Bentar... orang hilang nggak ada kabar, kayak mantan gue yang ghosting, harta nggak ada yang urus, juga ke BHP?' },
+      { from: 'dinda', act: 'laugh',   emote: '😏', text: 'Mantan lo nggak masuk, Sya. Nggak ada hartanya.' },
+      { from: 'tasya', act: 'shock',   emote: '😤', text: 'Eh!' },
+      { from: 'dinda', act: 'explain', emote: '📚', text: 'Tapi kalau beneran orang hilang, hartanya nggak terurus, namanya afwezigheid. Kalau nggak ada pemiliknya sama sekali, onbeheerde nalatenschap. BHP yang jaga. Belum lagi uang pihak ketiga, surat wasiat...' },
     ],
     overlay: { title: 'Harta orang tak hadir & harta tak terurus 🗂️', sub: '', icon: 'folder' },
   },
   {
-    label: 'SCENE 5', title: 'Klimaks 🔥', icon: 'building',
+    label: 'SCENE 5', title: 'Klimaks 🔥', icon: 'building', bg: 'malam', cups: ['kopi', 'boba'],
     messages: [
-      { from: 'tasya', text: 'Din, kok kayaknya semua masalah bisa selesai di BHP?! Ini kantor apa dukun?!' },
+      { from: 'tasya', act: 'shock', emote: '🔮', text: 'Din, kok kayaknya semua masalah bisa selesai di BHP?! Ini kantor apa dukun?!' },
     ],
     climax: {
       speaker: 'Kepala Kantor BHP',
@@ -480,9 +488,10 @@ const SCENES = [
 
 /* Timing (ms). Durasi bubble dihitung dari panjang teks lalu dibatasi min/max. */
 const T = {
-  wipe: 450, wipeHold: 250, sceneIntro: 300,
+  wipe: 450, wipeHold: 250, sceneIntro: 400,
   typingBase: 400, typingPerChar: 7,  typingMin: 700,  typingMax: 1400,
   readBase: 800,   readPerChar: 22,   readMin: 2000,   readMax: 4600,
+  talkPerChar: 45, // lama mulut bergerak per karakter
   overlayIn: 600, overlayHold: 2400,
   silence: 2000, bossIn: 1300, wordGap: 250, afterWords: 900,
   taglineHold: 2800, freeze: 1600, closing: 5000, replayAfter: 2000,
@@ -499,6 +508,159 @@ const ICONS = {
 };
 const svg = (name, sw = 2) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+
+/* ===================== Tokoh kartun (SVG) ===================== */
+const FACE = (skin, lx, rx, ey) => `
+  <g class="eyes">
+    <ellipse cx="${lx}" cy="${ey}" rx="13" ry="17" fill="#1E1B2E"/><ellipse cx="${rx}" cy="${ey}" rx="13" ry="17" fill="#1E1B2E"/>
+    <circle cx="${lx + 4}" cy="${ey - 7}" r="4.5" fill="#fff"/><circle cx="${rx + 4}" cy="${ey - 7}" r="4.5" fill="#fff"/>
+  </g>
+  <ellipse cx="160" cy="${ey + 42}" rx="20" ry="11" fill="#F58FA8" opacity=".55"/>
+  <ellipse cx="280" cy="${ey + 42}" rx="20" ry="11" fill="#F58FA8" opacity=".55"/>
+  <path d="M220 ${ey + 18} q7 14 -3 18" fill="none" stroke="${skin}" stroke-width="5" stroke-linecap="round"/>
+  <path class="m-closed" d="M198 ${ey + 64} Q220 ${ey + 82} 242 ${ey + 64}" fill="none" stroke="#9B3A4A" stroke-width="7" stroke-linecap="round"/>
+  <g class="m-open"><path d="M196 ${ey + 58} Q220 ${ey + 108} 244 ${ey + 58} Z" fill="#7A2233"/><ellipse cx="220" cy="${ey + 84}" rx="12" ry="7" fill="#F27C8E"/></g>`;
+
+const TASYA_SVG = `
+<svg viewBox="0 0 440 640" aria-hidden="true">
+  <path d="M92 230 C88 110 150 58 220 58 C292 58 354 110 350 230 L366 470 C320 500 120 500 76 470 Z" fill="#2A1A14"/>
+  <path d="M36 640 C36 500 108 418 220 418 C332 418 404 500 404 640 Z" fill="#F4A6BC"/>
+  <path d="M146 424 C168 478 272 478 294 424 C262 410 178 410 146 424 Z" fill="#E88AA6"/>
+  <path d="M196 452 L190 540 M244 452 L250 540" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="190" cy="546" r="7" fill="#fff"/><circle cx="250" cy="546" r="7" fill="#fff"/>
+  <rect x="192" y="318" width="56" height="112" rx="22" fill="#EDBE98"/>
+  <g class="tilt"><g class="head">
+    <ellipse cx="112" cy="228" rx="17" ry="25" fill="#F2C29F"/><ellipse cx="328" cy="228" rx="17" ry="25" fill="#F2C29F"/>
+    <circle cx="112" cy="258" r="7" fill="#F2B705"/><circle cx="328" cy="258" r="7" fill="#F2B705"/>
+    <ellipse cx="220" cy="215" rx="108" ry="118" fill="#F6CFAE"/>
+    <path d="M108 206 C100 118 158 84 222 84 C290 84 342 120 334 206 C312 160 270 142 236 140 C214 176 160 196 108 206 Z" fill="#2A1A14"/>
+    <rect x="276" y="112" width="46" height="16" rx="8" fill="#F2B705" transform="rotate(28 299 120)"/>
+    <g class="brows"><path d="M158 176 Q180 164 204 174 M238 174 Q262 164 284 176" fill="none" stroke="#2A1A14" stroke-width="8" stroke-linecap="round"/></g>
+    ${FACE('#D9A07F', 186, 266, 218)}
+  </g></g>
+  <g class="arm">
+    <path d="M350 640 L372 430" stroke="#F4A6BC" stroke-width="60" stroke-linecap="round"/>
+    <rect x="344" y="300" width="62" height="108" rx="14" fill="#1F2937"/>
+    <rect x="352" y="310" width="46" height="84" rx="8" fill="#7DD3FC"/>
+    <circle cx="374" cy="408" r="30" fill="#F6CFAE"/>
+  </g>
+</svg>`;
+
+const DINDA_SVG = `
+<svg viewBox="0 0 440 640" aria-hidden="true">
+  <path d="M36 640 C36 500 108 418 220 418 C332 418 404 500 404 640 Z" fill="#0B2A5B"/>
+  <path d="M170 424 L220 540 L270 424 Z" fill="#fff"/>
+  <path d="M96 232 C92 116 150 70 220 70 C290 70 348 116 344 232 C350 340 318 420 290 450 C250 490 190 490 150 450 C122 420 90 340 96 232 Z" fill="#2F5DA8"/>
+  <path d="M178 452 L220 520 L262 452" fill="none" stroke="#F2B705" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="196" y="516" width="48" height="62" rx="8" fill="#fff" stroke="#F2B705" stroke-width="5"/>
+  <rect x="206" y="528" width="28" height="18" rx="3" fill="#0B2A5B"/>
+  <path d="M206 556 H234 M206 566 H226" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+  <g class="tilt"><g class="head">
+    <path d="M100 236 C96 120 152 76 220 76 C288 76 344 120 340 236 C342 300 320 350 300 372 L140 372 C120 350 98 300 100 236 Z" fill="#2F5DA8"/>
+    <ellipse cx="220" cy="232" rx="92" ry="104" fill="#E9B58E"/>
+    <path d="M124 214 C128 136 180 112 220 112 C262 112 312 136 316 214 C292 170 256 156 220 156 C184 156 148 170 124 214 Z" fill="#2F5DA8"/>
+    <path d="M132 196 C160 162 280 162 308 196" fill="none" stroke="#244C8F" stroke-width="6"/>
+    <circle cx="316" cy="318" r="10" fill="#F2B705"/>
+    <g class="brows"><path d="M156 190 Q178 180 202 188 M238 188 Q262 180 284 190" fill="none" stroke="#3B2A22" stroke-width="7" stroke-linecap="round"/></g>
+    ${FACE('#C98F68', 178, 256, 230)}
+  </g></g>
+  <g class="arm">
+    <path d="M92 640 L68 432" stroke="#0B2A5B" stroke-width="60" stroke-linecap="round"/>
+    <rect x="58" y="330" width="20" height="70" rx="10" fill="#E9B58E"/>
+    <circle cx="68" cy="408" r="30" fill="#E9B58E"/>
+  </g>
+</svg>`;
+
+/* ===================== Latar per scene (SVG 1080x1920) ===================== */
+const lamp = (x, cls = '') => `<g class="swing ${cls}"><path d="M${x} 170 V330" stroke="#3B2A22" stroke-width="5"/>
+  <path d="M${x - 60} 390 Q${x} 300 ${x + 60} 390 Z" fill="#0B2A5B"/><ellipse cx="${x}" cy="398" rx="26" ry="14" fill="#FFE08A"/>
+  <ellipse cx="${x}" cy="470" rx="110" ry="60" fill="#FFE08A" opacity=".18"/></g>`;
+const BACKDROPS = {
+  kafe: `
+    <rect width="1080" height="1920" fill="#F2E3CB"/>
+    <rect y="1000" width="1080" height="920" fill="#E0C49D"/><rect y="990" width="1080" height="16" fill="#B98A5E"/>
+    <rect x="80" y="330" width="560" height="580" rx="26" fill="#BFE3F5"/>
+    <g fill="#8FC3DE"><rect x="100" y="640" width="90" height="270"/><rect x="200" y="560" width="120" height="350"/><rect x="330" y="680" width="80" height="230"/><rect x="420" y="600" width="130" height="310"/><rect x="560" y="700" width="70" height="210"/></g>
+    <g fill="#fff" opacity=".9" class="drift"><ellipse cx="0" cy="420" rx="70" ry="26"/><ellipse cx="50" cy="405" rx="50" ry="26"/></g>
+    <rect x="80" y="330" width="560" height="580" rx="26" fill="none" stroke="#8A5A3B" stroke-width="20"/>
+    <path d="M360 330 V910 M80 620 H640" stroke="#8A5A3B" stroke-width="12"/>
+    <rect x="720" y="330" width="280" height="230" rx="16" fill="#2E3B32" stroke="#8A5A3B" stroke-width="12"/>
+    <text x="860" y="395" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="44" fill="#fff">MENU</text>
+    <text x="760" y="455" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" font-size="28" fill="#E5E7EB">Kopi Susu ....18</text>
+    <text x="760" y="500" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" font-size="28" fill="#E5E7EB">Es Teh .........8</text>
+    <rect x="710" y="760" width="310" height="18" rx="6" fill="#8A5A3B"/>
+    <path d="M760 760 h60 l-8 -70 h-44z" fill="#C0504D"/><path d="M790 690 c-40 -60 -10 -100 0 -120 c10 20 40 60 0 120 M790 690 c-60 -30 -70 -60 -60 -80 c30 10 60 40 60 80 M790 690 c50 -30 70 -60 60 -80 c-30 10 -60 40 -60 80" fill="#4E9F5B"/>
+    <rect x="860" y="680" width="50" height="80" rx="10" fill="#F2B705" opacity=".85"/><rect x="930" y="700" width="50" height="60" rx="10" fill="#fff" opacity=".85"/>
+    ${lamp(250)}${lamp(560, 'b')}`,
+  teras: `
+    <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ED8FF"/><stop offset="1" stop-color="#E8F7FF"/></linearGradient></defs>
+    <rect width="1080" height="1920" fill="url(#sky)"/>
+    <g class="spin"><circle cx="880" cy="360" r="140" fill="#FFE08A" opacity=".35"/><path d="M880 180 v40 M880 500 v40 M700 360 h40 M1020 360 h40 M752 232 l28 28 M980 460 l28 28 M752 488 l28 -28 M980 260 l28 -28" stroke="#FFC933" stroke-width="10" stroke-linecap="round"/></g>
+    <circle cx="880" cy="360" r="80" fill="#FFC933"/>
+    <g fill="#fff" class="drift"><ellipse cx="0" cy="300" rx="90" ry="32"/><ellipse cx="60" cy="280" rx="60" ry="34"/></g>
+    <g fill="#fff" class="drift b"><ellipse cx="0" cy="480" rx="70" ry="26"/><ellipse cx="45" cy="465" rx="46" ry="26"/></g>
+    <path d="M40 700 L250 540 L460 700 Z" fill="#C0504D"/><rect x="70" y="700" width="360" height="420" fill="#F6D7A7"/>
+    <rect x="120" y="770" width="100" height="100" rx="8" fill="#9ED8FF" stroke="#fff" stroke-width="10"/><rect x="280" y="900" width="100" height="220" rx="8" fill="#8A5A3B"/>
+    <path d="M600 720 L810 560 L1020 720 Z" fill="#3B6EA5"/><rect x="630" y="720" width="360" height="400" fill="#CFE3D0"/>
+    <rect x="680" y="790" width="100" height="100" rx="8" fill="#9ED8FF" stroke="#fff" stroke-width="10"/><rect x="840" y="790" width="100" height="100" rx="8" fill="#9ED8FF" stroke="#fff" stroke-width="10"/>
+    <rect x="515" y="820" width="30" height="300" fill="#8A5A3B"/><circle cx="530" cy="760" r="110" fill="#4E9F5B"/><circle cx="470" cy="820" r="70" fill="#5DB36B"/><circle cx="600" cy="810" r="75" fill="#5DB36B"/>
+    <rect y="1100" width="1080" height="820" fill="#A7D58A"/>
+    <g fill="#fff" stroke="#D6D3D1" stroke-width="3">${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 80 + 10} 1330 V1080 l20 -26 l20 26 V1330 Z"/>`).join('')}</g>
+    <rect y="1130" width="1080" height="20" fill="#fff" stroke="#D6D3D1" stroke-width="3"/>`,
+  kedai: `
+    <rect width="1080" height="1920" fill="#FFE2B8"/>
+    <rect y="1040" width="1080" height="900" fill="#F4C98A"/>
+    <g>${Array.from({ length: 9 }, (_, i) => `<rect x="${i * 120}" y="170" width="120" height="170" fill="${i % 2 ? '#fff' : '#E4572E'}"/><circle cx="${i * 120 + 60}" cy="340" r="60" fill="${i % 2 ? '#fff' : '#E4572E'}"/>`).join('')}</g>
+    <g class="swing"><path d="M540 390 V440" stroke="#3B2A22" stroke-width="5"/><rect x="380" y="440" width="320" height="110" rx="18" fill="#F2B705" stroke="#0B2A5B" stroke-width="8"/>
+    <text x="540" y="513" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="50" fill="#0B2A5B">ES TEH 🧊</text></g>
+    <rect x="70" y="620" width="300" height="16" rx="6" fill="#8A5A3B"/><rect x="70" y="820" width="300" height="16" rx="6" fill="#8A5A3B"/>
+    <g>${['#E4572E', '#4E9F5B', '#3B6EA5', '#F2B705', '#9B59B6'].map((c, i) => `<rect x="${90 + i * 55}" y="540" width="38" height="80" rx="10" fill="${c}"/><rect x="${90 + i * 55}" y="745" width="38" height="75" rx="10" fill="${['#F2B705', '#E4572E', '#9B59B6', '#4E9F5B', '#3B6EA5'][i]}"/>`).join('')}</g>
+    <path d="M700 600 H1030" stroke="#8A5A3B" stroke-width="6"/>
+    <g class="swing b">${Array.from({ length: 6 }, (_, i) => `<rect x="${720 + i * 52}" y="600" width="44" height="${200 - (i % 3) * 30}" rx="6" fill="${['#E4572E', '#F2B705', '#3B6EA5'][i % 3]}"/><rect x="${726 + i * 52}" y="640" width="32" height="40" rx="4" fill="#fff" opacity=".7"/>`).join('')}</g>`,
+  malam: `
+    <rect width="1080" height="1920" fill="#1D2748"/>
+    <rect y="1020" width="1080" height="900" fill="#172039"/>
+    <rect x="560" y="330" width="440" height="520" rx="24" fill="#0E1530" stroke="#5B4636" stroke-width="18"/>
+    <circle cx="880" cy="450" r="60" fill="#FFF3C4"/><circle cx="905" cy="435" r="55" fill="#0E1530"/>
+    <g fill="#fff"><circle class="twinkle" cx="630" cy="420" r="5"/><circle class="twinkle" cx="700" cy="560" r="4"/><circle class="twinkle" cx="820" cy="640" r="5"/><circle class="twinkle" cx="950" cy="700" r="4"/><circle class="twinkle" cx="660" cy="760" r="5"/><circle class="twinkle" cx="760" cy="400" r="4"/></g>
+    <path d="M780 330 V850 M560 590 H1000" stroke="#5B4636" stroke-width="10"/>
+    <path d="M0 250 Q270 360 540 260 T1080 260" fill="none" stroke="#3B2A22" stroke-width="4"/>
+    <g>${Array.from({ length: 12 }, (_, i) => { const x = 40 + i * 90; const y = 250 + Math.sin((x / 1080) * Math.PI * 2) * -40 + 50; return `<circle class="twinkle" cx="${x}" cy="${y}" r="14" fill="${i % 2 ? '#F2B705' : '#FFE08A'}"/>`; }).join('')}</g>
+    <rect x="100" y="400" width="320" height="400" rx="14" fill="#2B3A6B" stroke="#F2B705" stroke-width="8"/>
+    <circle cx="260" cy="560" r="90" fill="#F2B705" opacity=".8"/><path d="M130 760 L230 620 L300 700 L350 650 L400 760 Z" fill="#6D83C4"/>
+    <text x="260" y="455" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="34" fill="#fff">NGOPI MALAM</text>`,
+};
+const bgSvg = (name) => `<svg viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${BACKDROPS[name]}</svg>`;
+
+const TABLE_COLORS = { kafe: ['#B07A4E', '#8A5A3B'], teras: ['#D8B98A', '#B8946A'], kedai: ['#3B6EA5', '#2C5585'], malam: ['#6B4B3A', '#4E3629'] };
+function tableSvg(name) {
+  const [top, front] = TABLE_COLORS[name] || TABLE_COLORS.kafe;
+  return `<svg viewBox="0 0 1080 590" preserveAspectRatio="none" aria-hidden="true">
+    <rect width="1080" height="590" fill="${front}"/><rect width="1080" height="46" fill="${top}"/>
+    <rect y="46" width="1080" height="10" fill="#000" opacity=".15"/>
+    <path d="M0 140 H1080 M0 260 H1080 M0 380 H1080" stroke="#000" stroke-width="3" opacity=".07"/>
+    <path d="M330 0 H750 V250 L540 300 L330 250 Z" fill="#0B2A5B"/>
+    <path d="M350 0 V240 L540 284 L730 240 V0" fill="none" stroke="#F2B705" stroke-width="8"/>
+    <text x="540" y="160" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="64" letter-spacing="8" fill="#F2B705">BHP</text></svg>`;
+}
+const CUPS = {
+  kopi: (x) => `<g transform="translate(${x} 0)">
+    <path class="steam" d="M45 60 q-14 -20 0 -40 q14 -20 0 -40" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+    <path class="steam b" d="M80 60 q-14 -20 0 -40 q14 -20 0 -40" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+    <path d="M118 100 a26 26 0 010 52" fill="none" stroke="#fff" stroke-width="12"/>
+    <rect x="10" y="74" width="112" height="100" rx="18" fill="#fff" stroke="#0B2A5B" stroke-width="5"/>
+    <ellipse cx="66" cy="80" rx="52" ry="10" fill="#6B3E26"/><rect x="10" y="118" width="112" height="16" fill="#F2B705"/></g>`,
+  esteh: (x) => `<g transform="translate(${x} 0)">
+    <path d="M88 0 L70 110" stroke="#E4572E" stroke-width="10" stroke-linecap="round"/>
+    <path d="M18 40 H118 L106 176 H30 Z" fill="#F6A04D" opacity=".85" stroke="#fff" stroke-width="5"/>
+    <rect x="36" y="60" width="26" height="26" rx="5" fill="#fff" opacity=".7" transform="rotate(12 49 73)"/><rect x="70" y="84" width="24" height="24" rx="5" fill="#fff" opacity=".7"/></g>`,
+  boba: (x) => `<g transform="translate(${x} 0)">
+    <path d="M72 0 L66 60" stroke="#0B2A5B" stroke-width="12" stroke-linecap="round"/>
+    <path d="M14 60 Q68 20 122 60 Z" fill="#fff" opacity=".9"/>
+    <path d="M16 60 H120 L108 176 H28 Z" fill="#E8C9A8" stroke="#fff" stroke-width="5"/>
+    <g fill="#3B2A22">${Array.from({ length: 8 }, (_, i) => `<circle cx="${38 + (i % 4) * 20}" cy="${150 + Math.floor(i / 4) * 16}" r="8"/>`).join('')}</g></g>`,
+};
+const propsSvg = (cups) => `<svg viewBox="0 0 1080 180" aria-hidden="true">${CUPS[cups[0]](380)}${CUPS[cups[1]](570)}</svg>`;
 
 /* ===================== Utilitas ===================== */
 const $ = (s) => document.querySelector(s);
@@ -531,10 +693,7 @@ function sleep(ms) {
 }
 
 /* ===================== Skala responsif ===================== */
-function fit() {
-  const s = Math.min(innerWidth / 1080, innerHeight / 1920);
-  $('#stage').style.setProperty('--s', s);
-}
+function fit() { $('#stage').style.setProperty('--s', Math.min(innerWidth / 1080, innerHeight / 1920)); }
 addEventListener('resize', fit); fit();
 
 /* ===================== Progress bar ===================== */
@@ -552,27 +711,32 @@ function setSegment(i) {
 })();
 
 /* ===================== Elemen ===================== */
-const app = $('#app'), phone = $('#phone'), msgs = $('#msgs'), statusEl = $('#status');
+const app = $('#app'), world = $('#world'), talk = $('#talk');
 const overlay = $('#overlay'), boss = $('#boss'), tagline = $('#tagline'), flash = $('#flash');
 const wipeEl = $('#wipe'), startEl = $('#start'), closingEl = $('#closing'), replayBtn = $('#replayBtn');
+const cast = { tasya: $('#tasya'), dinda: $('#dinda') };
+cast.tasya.innerHTML = TASYA_SVG;
+cast.dinda.innerHTML = DINDA_SVG;
+document.querySelector('.duo .tasya').innerHTML = TASYA_SVG;
+document.querySelector('.duo .dinda').innerHTML = DINDA_SVG;
 
-let clock = 19 * 60 + 2;
-const stamp = () => { const t = clock++; return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}.${String(t % 60).padStart(2, '0')}`; };
-
-function setStatus(text, typing = false) { statusEl.textContent = text; statusEl.classList.toggle('typing', typing); }
+function clearChar(ch) {
+  ch.className = ch.className.split(' ').filter((c) => !/^act-|^talking$|^thinking$/.test(c)).join(' ');
+  ch.querySelectorAll('.emote').forEach((e) => e.remove());
+}
 
 function resetStage() {
   // Matikan transisi sementara supaya reset (vignette, zoom, boss) tidak terlihat "mundur pelan"
   app.classList.add('resetting');
-  msgs.innerHTML = '';
+  talk.innerHTML = '';
   overlay.classList.remove('show');
   app.classList.remove('dim', 'shake', 'frozen');
-  phone.classList.remove('zoom');
+  world.classList.remove('zoom');
   boss.classList.remove('in');
   boss.querySelector('.speech').innerHTML = '';
   tagline.classList.remove('show');
   flash.classList.remove('go');
-  setStatus('online');
+  Object.values(cast).forEach(clearChar);
   void app.offsetWidth;
   app.classList.remove('resetting');
 }
@@ -581,7 +745,9 @@ function setScene(sc) {
   resetStage();
   $('#chip .ico').innerHTML = svg(sc.icon, 2.2);
   $('#chip .txt').innerHTML = `${sc.label.replace('SCENE', 'Scene')} <small>· ${sc.title}</small>`;
-  $('#watermark').innerHTML = svg(sc.icon, 1.2);
+  $('#bg').innerHTML = bgSvg(sc.bg);
+  $('#table').innerHTML = tableSvg(sc.bg);
+  $('#props').innerHTML = propsSvg(sc.cups || ['kopi', 'kopi']);
 }
 
 async function wipe(label, swap) {
@@ -595,35 +761,39 @@ async function wipe(label, swap) {
   wipeEl.className = '';
 }
 
-function makeRow(who) {
-  const c = CHARACTERS[who];
-  const row = document.createElement('div');
-  row.className = `row ${c.side}`;
-  row.innerHTML = `<div class="av ${who}" aria-hidden="true">${c.initial}</div>`;
-  return row;
-}
-
 async function sendMessage(m) {
-  const c = CHARACTERS[m.from];
-  const row = makeRow(m.from);
+  const c = CHARACTERS[m.from], ch = cast[m.from];
+  talk.querySelectorAll('.line').forEach((l) => l.classList.add('old'));
+
+  // 1) Tokoh "mikir" + balon titik-titik
+  const line = document.createElement('div');
+  line.className = `line ${c.side}`;
   const typing = document.createElement('div');
   typing.className = 'bubble typing';
   typing.setAttribute('aria-label', `${c.name} sedang mengetik`);
   typing.innerHTML = '<i></i><i></i><i></i>';
-  row.appendChild(typing);
-  msgs.appendChild(row);
-  setStatus(`${c.name} sedang mengetik…`, true);
+  line.appendChild(typing);
+  talk.appendChild(line);
+  ch.classList.add('thinking');
   await sleep(typingDur(m));
 
+  // 2) Balon teks pop-in + tokoh bicara dengan ekspresi
   const b = document.createElement('div');
   b.className = 'bubble';
-  b.innerHTML = `<div class="name">${c.name}<span class="tag">${c.tag}</span></div>
-    <div class="text"></div>
-    <div class="meta">${stamp()} ${c.side === 'right' ? '<span class="ticks">✓✓</span>' : ''}</div>`;
+  b.innerHTML = `<div class="name">${c.name}<span class="tag">${c.tag}</span></div><div class="text"></div>`;
   b.querySelector('.text').textContent = m.text;
   typing.replaceWith(b);
-  setStatus('online');
-  await sleep(holdDur(m));
+  ch.classList.remove('thinking');
+  if (m.act) ch.classList.add(`act-${m.act}`);
+  if (m.emote) { const e = document.createElement('div'); e.className = 'emote'; e.textContent = m.emote; ch.appendChild(e); }
+  ch.classList.add('talking');
+
+  const hold = holdDur(m);
+  const talkMs = clamp(m.text.length * T.talkPerChar, 600, hold - 300);
+  await sleep(talkMs);
+  ch.classList.remove('talking');
+  await sleep(hold - talkMs);
+  clearChar(ch);
 }
 
 async function showOverlay(o) {
@@ -636,9 +806,10 @@ async function showOverlay(o) {
 
 async function climax(c) {
   // Hening 2 detik: layar meredup + zoom pelan
-  setStatus('');
+  cast.tasya.classList.add('act-shock');
+  cast.dinda.classList.add('act-tilt');
   app.classList.add('dim');
-  if (!reduced()) phone.classList.add('zoom');
+  if (!reduced()) world.classList.add('zoom');
   await sleep(T.silence);
 
   // Kepala Kantor muncul dari bawah
@@ -653,9 +824,10 @@ async function climax(c) {
   for (const span of speech.children) { span.classList.add('in'); await sleep(T.wordGap); }
   await sleep(T.afterWords);
 
-  // Tagline besar + flash + shake
+  // Tagline besar + flash + shake, kedua tokoh melonjak
   tagline.querySelector('.t1').textContent = c.tagline[0];
   tagline.querySelector('.t2').textContent = c.tagline[1];
+  Object.values(cast).forEach((ch) => { clearChar(ch); ch.classList.add('act-wow'); });
   if (!reduced()) {
     flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     app.classList.remove('shake'); void app.offsetWidth; app.classList.add('shake');
@@ -681,13 +853,11 @@ async function showClosing() {
 
 async function play(from = 0) {
   runId++;
-  clock = 19 * 60 + 2;
   replayBtn.hidden = true;
   try {
     for (let i = from; i < SCENES.length; i++) {
       const sc = SCENES[i];
       setSegment(i);
-      bars.forEach((b, k) => { if (k < from) b.style.width = '100%'; });
       await wipe(sc.label, () => {
         startEl.hidden = true;
         closingEl.hidden = true;
