@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dokumen Penyumpahan BHP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="if(matchMedia('(min-width:901px)').matches)this.media='all'">
 <style>
 :root{--bg:#f4f5fb;--card:#fff;--ink:#1c1f2e;--mut:#6b7087;--line:#e3e5ef;--pri:#4f46e5;--pri2:#eef0ff;--ok:#0f9d6b;--warn:#c2410c;--rad:14px}
 :root[data-theme=dark]{--bg:#10121a;--card:#1a1d29;--ink:#e8eaf3;--mut:#9398ae;--line:#2a2e3e;--pri:#8b83ff;--pri2:#24264a}
@@ -176,22 +176,58 @@ html,body{max-width:100%;overflow-x:hidden}
 @media(max-width:900px){.top .uname{display:none}.top{gap:8px}.side{gap:0}.card{min-width:0}.wrap>*{min-width:0}#prev{padding:8px}.paper{transform-origin:top left}.wz{padding:16px 6px}.wz-h{flex-direction:column}.wz-h h2{font-size:19px}.top h2{font-size:17px}.side .brand small{display:none}}
 .wrap.wzmode{grid-template-columns:1fr}.wrap.wzmode>aside{display:none}
 .docs button.pri{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important}
+.nav i{font-style:normal}.more-m,.back-m{display:none!important}
+/* ===== Mode HP: bar atas ringkas + navigasi bawah (menu "Lainnya" jadi lembar dari bawah) ===== */
+@media(max-width:900px){
+  body{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .side{position:fixed!important;left:0;right:0;bottom:0;top:auto;width:auto;height:calc(64px + env(safe-area-inset-bottom));z-index:30;
+    flex-direction:row!important;flex-wrap:nowrap!important;align-items:stretch!important;justify-content:space-around;gap:2px!important;
+    padding:5px 6px calc(5px + env(safe-area-inset-bottom));overflow:hidden;box-shadow:0 -4px 16px #0002}
+  .side .brand,.side .sec,.side .foot,.side .nav{display:none!important}
+  .side .nav[data-v=berkas],.side .nav[data-v=baru],.side .nav[data-v=kalender],.side .more-m{display:flex!important;flex:1;flex-direction:column;gap:1px;
+    align-items:center;justify-content:center;margin:0!important;padding:4px 2px!important;font-size:10.5px!important;line-height:1.15;text-align:center;border-radius:14px;box-shadow:none!important}
+  .side .nav i{font-size:19px}
+  body.menu-m .side{height:auto;max-height:86vh;overflow:auto;flex-direction:column!important;border-radius:22px 22px 0 0;padding:8px 10px calc(12px + env(safe-area-inset-bottom))}
+  body.menu-m .side .nav:not([hidden]),body.menu-m .side .brand{display:flex!important;flex:none;flex-direction:row;gap:12px;font-size:15px!important;padding:13px 14px!important;justify-content:flex-start;text-align:left}
+  body.menu-m .side .sec:not([hidden]){display:block!important;padding:10px 14px 2px}
+  body.menu-m .side .foot{display:flex!important}
+  body.menu-m .side .nav i{font-size:17px;width:22px;text-align:center}
+  body.menu-m .side .nav:not([hidden]){margin:1px 0!important;min-height:0}
+  body.menu-m .side .more-m span{font-size:0}body.menu-m .side .more-m span::after{content:"Tutup menu";font-size:15px}
+  body.menu-m .side .more-m i{font-size:0}body.menu-m .side .more-m i::after{content:"✕";font-size:17px}
+  body.menu-m::after{content:"";position:fixed;inset:0;background:#0008;z-index:29}
+  .top{padding:10px 12px!important;gap:8px!important;flex-wrap:wrap}
+  .top .grow{flex:1;min-width:0}.top h2{font-size:17px!important;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #pgDate{display:none}
+  .top #q{order:5;width:100%;font-size:16px;padding:9px 12px}
+  #who{gap:6px}#who .uname{display:none}
+  .menubtn{font-size:0!important;padding:8px 11px!important}.menubtn::before{content:"👤";font-size:17px}
+  .wrap{padding:10px!important;gap:10px}
+  .card{padding:12px;border-radius:14px}
+  body.m-open .wrap>aside{display:none}
+  .back-m{display:inline-flex!important;align-items:center;gap:6px;margin:0 0 10px;padding:8px 12px;border-radius:10px;font-weight:700}
+  input,select,textarea{font-size:16px} /* iPhone tidak zoom otomatis */
+  .toast{bottom:calc(78px + env(safe-area-inset-bottom))!important}
+  .card,.item,.paper,.nav.on{box-shadow:none!important}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <nav class="side">
   <div class="brand"><img id="brandLogo" alt=""><div><b>BHP MEDAN</b><small>Dokumen Penyumpahan</small></div></div>
   <div class="sec">DASHBOARD</div>
-  <a class="nav on" data-v="berkas" onclick="goBerkas()">🏠 Daftar Berkas</a>
+  <a class="nav on" data-v="berkas" onclick="goBerkas()"><i>🏠</i> <span>Daftar Berkas</span></a>
   <div class="sec">PENYUMPAHAN</div>
-  <a class="nav" data-v="baru" onclick="wizard(1)">📑 Berkas Baru</a>
-  <a class="nav" data-v="kalender" onclick="bukaKalender()">📅 Jadwal Sumpah</a>
-  <a class="nav superOnly" onclick="imporSheetDlg()">📥 Impor dari Spreadsheet</a>
-  <label class="nav" data-v="csv">⬆ Impor CSV<input type="file" accept=".csv" hidden onchange="importCsv(this)"></label>
+  <a class="nav" data-v="baru" onclick="wizard(1)"><i>📑</i> <span>Berkas Baru</span></a>
+  <a class="nav" data-v="kalender" onclick="bukaKalender()"><i>📅</i> <span>Jadwal Sumpah</span></a>
+  <a class="nav superOnly" onclick="imporSheetDlg()"><i>📥</i> <span>Impor dari Spreadsheet</span></a>
+  <label class="nav" data-v="csv"><i>⬆</i> <span>Impor CSV</span><input type="file" accept=".csv" hidden onchange="importCsv(this)"></label>
   <div class="sec superOnly">ADMIN UTAMA</div>
-  <a class="nav superOnly" onclick="riwayatSemua()">🕘 Riwayat</a>
-  <a class="nav superOnly" onclick="kelolaPengguna()">👥 Pengguna</a>
-  <a class="nav superOnly" onclick="openSet()">⚙ Pengaturan</a>
+  <a class="nav superOnly" onclick="riwayatSemua()"><i>🕘</i> <span>Riwayat</span></a>
+  <a class="nav superOnly" onclick="kelolaPengguna()"><i>👥</i> <span>Pengguna</span></a>
+  <a class="nav superOnly" onclick="openSet()"><i>⚙</i> <span>Pengaturan</span></a>
+  <a class="nav more-m" onclick="menuM()"><i>☰</i> <span>Lainnya</span></a>
   <div class="foot"><span>© 2026 BHP Medan</span><button onclick="toggleTheme()" title="Tema">🌓</button></div>
 </nav>
 <div class="top"><div class="grow"><h2 id="pgTitle">Daftar Berkas</h2><small id="pgDate"></small></div><input id="q" placeholder="🔍 Cari nama…"><span id="who"></span></div>
@@ -1320,6 +1356,18 @@ try{document.documentElement.dataset.theme=localStorage.getItem('bhpTheme')||(ma
 $('#q').oninput=renderList;
 (async()=>{TOKEN=ss('bhpTok');if(!TOKEN){TOKEN=await tokenDariUrl();if(TOKEN)try{localStorage.setItem('bhpTok',TOKEN)}catch(e){}}
   if(TOKEN)$('#login').innerHTML='<div style="text-align:center;margin-top:30vh"><div class="spin"></div><b>Memuat data…</b></div>',$('#login').hidden=false;boot()})();
+
+/* ===== Mode HP ===== */
+function menuM(open){document.body.classList.toggle('menu-m',open===undefined?!document.body.classList.contains('menu-m'):open)}
+document.addEventListener('click',e=>{if(!document.body.classList.contains('menu-m'))return;const n=e.target.closest('.side .nav');
+  if(n&&!n.classList.contains('more-m'))menuM(false);else if(!e.target.closest('.side'))menuM(false)},true);
+// di HP, "Daftar Berkas" di navigasi bawah menutup berkas yang terbuka agar daftarnya terlihat
+document.addEventListener('click',e=>{if(cur&&matchMedia('(max-width:900px)').matches&&e.target.closest('.side .nav[data-v=berkas]')){clearTimeout(saveT);flush();cur=null}},true);
+function kembaliM(){if(cur){clearTimeout(saveT);flush()}cur=null;goBerkas();scrollTo(0,0)}
+(function(){const asli=renderMain;renderMain=function(){const r=asli.apply(this,arguments);
+  const buka=!!cur&&!WZ.on;document.body.classList.toggle('m-open',buka);
+  if(buka&&!document.querySelector('#main .back-m')){const b=document.createElement('button');b.className='back-m';b.textContent='← Daftar Berkas';b.onclick=kembaliM;$('#main').prepend(b)}
+  return r}})();
 </script>
 </body>
 </html>
