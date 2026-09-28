@@ -26,7 +26,7 @@ function runs(text, base = {}) {
 }
 const LS = { line: 276 };
 // paragraf pembuka / penutup: menjorok baris pertama 709
-const par = (t, after = 120) => new Paragraph({ children: runs(t), alignment: AlignmentType.JUSTIFIED, spacing: { ...LS, after }, indent: { firstLine: 709 } });
+const par = (t, after = 120, keepNext = false) => new Paragraph({ children: runs(t), alignment: AlignmentType.JUSTIFIED, spacing: { ...LS, after }, indent: { firstLine: 709 }, keepNext, keepLines: true });
 const plain = (t, o = {}) => new Paragraph({ children: runs(t, o.run || {}), alignment: o.align || AlignmentType.LEFT, spacing: { ...LS, after: o.after ?? 0, before: o.before ?? 0 }, indent: o.indent });
 const kutip = (t) => new Paragraph({ children: runs(t, { italics: false }), alignment: AlignmentType.JUSTIFIED, spacing: { after: 160 }, indent: { left: 1077, right: 849 } });
 const blank = () => new Paragraph({ children: [], spacing: { after: 0 } });
@@ -35,18 +35,20 @@ const blank = () => new Paragraph({ children: [], spacing: { after: 0 } });
 let inst = 0;
 const numbering = { config: [
   { reference: "butir", levels: [
-    { level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 453, hanging: 340 } } } },
-    { level: 1, format: LevelFormat.LOWER_LETTER, text: "%2.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 850, hanging: 340 } } } },
+    { level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 453, hanging: 340 } }, run: { font: FONT, size: SZ } } },
+    { level: 1, format: LevelFormat.LOWER_LETTER, text: "%2.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 850, hanging: 340 } }, run: { font: FONT, size: SZ } } },
   ] },
   { reference: "tembusan", levels: [
     { level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 453, hanging: 283 } }, run: { size: 16 } } },
   ] },
 ] };
-function butirList(items) {
-  const n = ++inst;
-  return items.map(it => {
+// cont: lanjutkan nomor dari daftar sebelumnya (setelah kutipan pasal); keepLast: butir terakhir ikut ke halaman penutup
+function butirList(items, { cont = false, keepLast = false } = {}) {
+  const n = cont ? inst : ++inst;
+  return items.map((it, i) => {
     const [lvl, t] = Array.isArray(it) ? it : [0, it];
-    return new Paragraph({ children: runs(t), numbering: { reference: "butir", level: lvl, instance: n }, alignment: AlignmentType.JUSTIFIED, spacing: { ...LS, after: 120 } });
+    return new Paragraph({ children: runs(t), numbering: { reference: "butir", level: lvl, instance: n }, alignment: AlignmentType.JUSTIFIED,
+      spacing: { ...LS, after: 120 }, keepLines: true, keepNext: keepLast && i === items.length - 1 });
   });
 }
 
@@ -55,8 +57,10 @@ const NOB = { top: NONE, bottom: NONE, left: NONE, right: NONE, insideHorizontal
 const LINE = { style: BorderStyle.SINGLE, size: 4, color: "000000" };
 const B = { top: LINE, bottom: LINE, left: LINE, right: LINE };
 
-function kop() {
-  const k = (t, o = {}) => new Paragraph({ children: t, alignment: AlignmentType.CENTER, indent: { left: 1418 } });
+// brk: kop dimulai di halaman baru (pengganti paragraf page break, agar tidak ada halaman kosong)
+function kop(brk = true) {
+  let first = brk;
+  const k = (t) => { const p = new Paragraph({ children: t, alignment: AlignmentType.CENTER, indent: { left: 1418 }, pageBreakBefore: first }); first = false; return p; };
   return [
     k([
       new TextRun({ text: "KEMENTERIAN HUKUM REPUBLIK INDONESIA", font: FONT, size: 24 }),
@@ -78,7 +82,7 @@ function kop() {
 function kepala(sifat, lampiran, hal) {
   const W = [1304, 236, 4139, 3402];
   const c = (t, i, right) => new TableCell({ borders: NOB, width: { size: W[i], type: WidthType.DXA },
-    children: [new Paragraph({ children: runs(t), alignment: right ? AlignmentType.RIGHT : AlignmentType.JUSTIFIED, spacing: { after: 40 } })] });
+    children: [new Paragraph({ children: runs(t), alignment: right ? AlignmentType.RIGHT : AlignmentType.LEFT, spacing: { after: 40 } })] });
   const row = (a, b, d = "") => new TableRow({ children: [c(a, 0), c(":", 1), c(b, 2), c(d, 3, true)] });
   return new Table({ width: { size: 9081, type: WidthType.DXA }, columnWidths: W, borders: NOB, rows: [
     row("Nomor", "W.2.AHU.AHU.1-AH.06.06-……", "Medan, ……………… 2026"),
@@ -90,12 +94,12 @@ function tujuan(lines) {
   return [blank(), ...lines.map(t => plain(t)), blank()];
 }
 
-function ttd(jabatan = "Kepala,", nama = "Syafriadi Lubis") {
+function ttd(jabatan = "Kepala,", nama = "Syafriadi Lubis", tanggal) {
   const W = [5896, 3061];
   const cell = (ps, i) => new TableCell({ borders: NOB, width: { size: W[i], type: WidthType.DXA }, children: ps });
-  return new Table({ width: { size: 8957, type: WidthType.DXA }, columnWidths: W, borders: NOB, rows: [new TableRow({ children: [
+  return new Table({ width: { size: 8957, type: WidthType.DXA }, columnWidths: W, borders: NOB, rows: [new TableRow({ cantSplit: true, children: [
     cell([blank()], 0),
-    cell([plain(jabatan), blank(), blank(), blank(), plain(nama)], 1),
+    cell([...(tanggal ? [plain(tanggal)] : []), plain(jabatan), blank(), blank(), blank(), plain(nama)], 1),
   ] })] });
 }
 
@@ -124,10 +128,9 @@ function grid(header, rows, widths, aligns) {
 // Satu surat lengkap
 function surat({ label, sifat = "Segera", lampiran = "-", hal, kepada, pembuka, butir = [], sisip = [], setelah = [], penutup, tembus, jabatan, nama }) {
   return [
-    new Paragraph({ children: [new TextRun({ text: label, font: FONT, size: 16, color: "808080" })], alignment: AlignmentType.RIGHT, spacing: { after: 60 } }),
     ...kop(), kepala(sifat, lampiran, hal), ...tujuan(kepada),
-    par(pembuka), ...butirList(butir), ...sisip, ...setelah,
-    par(penutup, 200), ttd(jabatan, nama), ...tembusan(tembus),
+    par(pembuka), ...butirList(butir), ...sisip, ...(typeof setelah === "function" ? setelah() : setelah),
+    par(penutup, 200, true), ttd(jabatan, nama), ...tembusan(tembus),
   ];
 }
 const pb = () => new Paragraph({ children: [new PageBreak()] });
@@ -152,7 +155,7 @@ const DAFTAR = [
   ["Lamp.", "Notaris", "Pokok-pokok akta jual beli bangunan dan benda serta akta cessie", "Fase 7"],
 ];
 const sampul = [
-  ...kop(),
+  ...kop(false),
   blank(),
   plain("**HIMPUNAN KONSEP SURAT**", { align: AlignmentType.CENTER, run: { size: 24 } }),
   plain("**DALAM RANGKA PENJUALAN DAN PENGALIHAN (CESSIE)**", { align: AlignmentType.CENTER }),
@@ -160,7 +163,7 @@ const sampul = [
   plain("**KEPAILITAN PT RATA MAKMUR (DALAM PAILIT)**", { align: AlignmentType.CENTER, after: 240 }),
   par("Himpunan ini memuat konsep surat yang perlu diterbitkan Balai Harta Peninggalan Medan selaku Kurator, sesuai urutan tahapan dalam Simulasi Kegiatan dan Kajian Yuridis Cessie tanggal 29 September 2026. Nomor dan tanggal surat dikosongkan untuk diisi pada saat surat diterbitkan. Isi yang ditandai titik-titik (……) diisi sesuai keadaan pada saat itu."),
   blank(),
-  grid(["No", "Tujuan", "Hal", "Tahap"], DAFTAR, [700, 2700, 4581, 1100], ["C", "L", "L", "C"]),
+  grid(["No", "Tujuan", "Hal", "Tahap"], DAFTAR, [850, 2650, 4481, 1100], ["C", "L", "L", "C"]),
 ];
 
 // ============================ SURAT-SURAT ============================
@@ -178,7 +181,7 @@ const S1 = surat({
     "Bahwa rencana Kurator sebelumnya untuk melelang tanah eks HGU melalui KPKNL Medan, sebagaimana dilaporkan dalam Laporan Perkembangan Kepailitan tanggal 10 Januari 2025, perlu dihentikan, karena penjualan atas benda yang bukan milik Debitor pailit berisiko dibatalkan dan menimbulkan kerugian bagi harta pailit;",
     "Bahwa Kurator merencanakan pemberesan melalui penjualan satu paket atas bangunan dan benda, pengalihan (cessie) hak atas ganti rugi dan hak menagih hasil kebun, serta pelepasan kedudukan prioritas bekas pemegang hak, yang ditawarkan secara terbuka kepada para peminat, termasuk calon pemohon Hak Guna Usaha baru. Rencana ini akan dimohonkan izin tersendiri kepada Hakim Pengawas setelah penilaian selesai dilakukan.",
   ],
-  sisip: [plain("Berdasarkan uraian tersebut, dengan hormat kami mohon arahan Hakim Pengawas atas hal-hal berikut:", { after: 120 }),
+  sisip: [par("Berdasarkan uraian tersebut, dengan hormat kami mohon arahan Hakim Pengawas atas hal-hal berikut:"),
     ...butirList([
       "penghentian rencana lelang tanah eks HGU Nomor 2/Sei Tampa dan koreksi daftar harta pailit sehingga hanya memuat bangunan, benda, dan hak tagih sebagaimana tersebut di atas;",
       "persetujuan atas arah pemberesan melalui penjualan satu paket sebagaimana diuraikan pada angka 7; dan",
@@ -197,18 +200,18 @@ const S2 = surat({
     `Bahwa di lokasi ${HGU} terdapat bangunan dan benda milik Debitor yang merupakan harta pailit, sedangkan kebun diketahui masih diusahakan dan diduga dipanen oleh pihak lain tanpa penyerahan hasil kepada Kurator;`,
     "Bahwa untuk mengamankan harta pailit tersebut dan mencegah pemindahan atau perusakan, Kurator memandang perlu dilakukan penyegelan. Pasal 99 ayat (1) Undang-Undang Nomor 37 Tahun 2004 menentukan sebagai berikut:",
   ],
-  setelah: [
+  setelah: () => [
     kutip("\"Kurator dapat meminta penyegelan harta pailit kepada Pengadilan, berdasarkan alasan untuk mengamankan harta pailit, melalui Hakim Pengawas.\""),
     ...butirList([
       "Bahwa sesuai Pasal 99 ayat (2) undang-undang dimaksud, penyegelan dilakukan oleh juru sita di tempat harta tersebut berada dengan dihadiri 2 (dua) orang saksi, salah satu di antaranya adalah wakil pemerintah daerah setempat. Kurator telah berkoordinasi dengan Camat Selesai dan Kepolisian Resor Langkat untuk kehadiran saksi dan pengamanan kegiatan;",
       "Bahwa guna menentukan nilai wajar atas bangunan, benda, hak ganti rugi atas tanaman, dan hak menagih hasil kebun sebagai dasar pemberesan, diperlukan penilaian oleh Kantor Jasa Penilai Publik. Kurator telah meminta penawaran kepada paling sedikit 3 (tiga) KJPP dan memilih KJPP …………………… sebagai penilai;",
       "Bahwa untuk efisiensi dan keamanan, Kurator merencanakan penyegelan, inventarisasi, pengukuran oleh Kantor Pertanahan Kabupaten Langkat, dan peninjauan oleh penilai dilaksanakan bersamaan pada hari …………, tanggal …………… 2026.",
-    ]),
-    plain("Berdasarkan uraian tersebut, dengan hormat kami mohon Hakim Pengawas berkenan:", { after: 120 }),
+    ], { cont: true }),
+    par("Berdasarkan uraian tersebut, dengan hormat kami mohon Hakim Pengawas berkenan:"),
     ...butirList([
       "meneruskan permintaan penyegelan atas bangunan dan benda milik PT Rata Makmur (Dalam Pailit) di lokasi eks HGU Nomor 2/Sei Tampa kepada Pengadilan, untuk dilaksanakan oleh juru sita pada tanggal tersebut; dan",
       "menerbitkan penetapan pengangkatan KJPP …………………… sebagai penilai harta pailit PT Rata Makmur (Dalam Pailit).",
-    ]),
+    ], { keepLast: true }),
   ],
   penutup: "Demikian permohonan ini kami sampaikan. Atas perhatian dan perkenan Hakim Pengawas, kami ucapkan terima kasih.",
   tembus: ["Ketua Pengadilan Negeri Medan (sebagai laporan)", "Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara"],
@@ -225,7 +228,7 @@ const S3 = surat({
     "Bahwa Pasal 18 Peraturan Pemerintah Nomor 40 Tahun 1996 mengatur kewajiban bekas pemegang hak atas bangunan, benda, dan tanaman, serta hak atas ganti rugi apabila bangunan, tanaman, dan benda tersebut masih diperlukan untuk melangsungkan atau memulihkan pengusahaan tanahnya. Pasal 4 ayat (4) peraturan pemerintah dimaksud membebankan ganti kerugian atas tanaman atau bangunan milik bekas pemegang hak kepada pemegang Hak Guna Usaha yang baru;",
     "Bahwa terdapat perbedaan luas bidang, yaitu 388,7463 Ha menurut surat Kantor Pertanahan Kabupaten Langkat dan 338,7463 Ha menurut data yang ada pada Kurator, sedangkan bidang tersebut belum terpetakan pada aplikasi KKP.",
   ],
-  sisip: [plain("Sehubungan dengan hal tersebut, dengan hormat kami mohon penegasan tertulis mengenai:", { after: 120 }),
+  sisip: [par("Sehubungan dengan hal tersebut, dengan hormat kami mohon penegasan tertulis mengenai:"),
     ...butirList([
       "status hukum tanah eks HGU Nomor 2/Sei Tampa pada saat ini, termasuk apakah terdapat rencana penataan kembali, pemberian Hak Pengelolaan, atau peruntukan lain atas tanah tersebut;",
       "apakah bangunan, benda, dan tanaman di atas tanah tersebut dinilai masih diperlukan untuk melangsungkan pengusahaan tanahnya;",
@@ -309,20 +312,19 @@ const S8 = surat({
     "Bahwa setiap perjanjian pengusahaan atau panen yang dibuat Debitor setelah tanggal 10 April 2023 tidak mengikat harta pailit;",
     "Bahwa sampai dengan saat ini belum ada hasil kebun yang diserahkan kepada Kurator.",
   ],
-  setelah: [plain("Sehubungan dengan hal tersebut, dengan ini Kurator memerintahkan Saudara untuk, dalam waktu 14 (empat belas) hari kalender sejak surat ini diterima:", { after: 120 }),
+  setelah: [par("Sehubungan dengan hal tersebut, dengan ini Kurator memerintahkan Saudara untuk, dalam waktu 14 (empat belas) hari kalender sejak surat ini diterima:"),
     ...butirList([
       "menyerahkan kepada Kurator rincian seluruh hasil panen dan uang kontrak yang diterima sejak tanggal 10 April 2023, berikut salinan perjanjian dan bukti penerimaannya;",
       "menyetorkan jumlah tersebut ke rekening harta pailit PT Rata Makmur (Dalam Pailit) Nomor …………………… pada Bank ……………………; dan",
       "menyerahkan kunci serta dokumen bangunan milik PT Rata Makmur di lokasi kebun kepada Kurator.",
     ]),
-    par("Apabila perintah ini tidak dipenuhi, Kurator akan menempuh upaya hukum, termasuk mengajukan gugatan kepada Pengadilan Niaga pada Pengadilan Negeri Medan dan memohon kepada Hakim Pengawas agar mengusulkan tindakan terhadap Debitor sebagaimana dimaksud Pasal 93 Undang-Undang Nomor 37 Tahun 2004."),
+    par("Apabila perintah ini tidak dipenuhi, Kurator akan menempuh upaya hukum, termasuk mengajukan gugatan kepada Pengadilan Niaga pada Pengadilan Negeri Medan dan memohon kepada Hakim Pengawas agar mengusulkan tindakan terhadap Debitor sebagaimana dimaksud Pasal 93 Undang-Undang Nomor 37 Tahun 2004.", 120, true),
   ],
   penutup: "Demikian untuk menjadi perhatian dan dilaksanakan.",
   tembus: ["Hakim Pengawas Kepailitan PT Rata Makmur (Dalam Pailit)", "Kepala Kepolisian Sektor Selesai"],
 });
 
 const S9 = [
-  new Paragraph({ children: [new TextRun({ text: "Konsep Surat 9 (Pengumuman)", font: FONT, size: 16, color: "808080" })], alignment: AlignmentType.RIGHT, spacing: { after: 60 } }),
   ...kop(),
   plain("**PENGUMUMAN**", { align: AlignmentType.CENTER }),
   plain("Nomor W.2.AHU.AHU.1-AH.06.06-……", { align: AlignmentType.CENTER }),
@@ -339,10 +341,8 @@ const S9 = [
     "Informasi lebih lanjut: Seksi Harta Peninggalan Wilayah II, Balai Harta Peninggalan Medan, telepon (061) 451 7830.",
   ]),
   blank(),
-  plain("Medan, ……………… 20…", { align: AlignmentType.LEFT, indent: { left: 5896 } }),
-  ttd(),
-  blank(),
-  plain("**Catatan untuk surat undangan kepada peminat.** Pengumuman ini dikirim dengan surat pengantar kepada peminat yang telah diketahui, antara lain PT Raya Padang Langkat (surat minat tanggal 22 Agustus 2024), dengan hal \"Undangan Mengikuti Penawaran Terbuka Hak Keperdataan Harta Pailit PT Rata Makmur (Dalam Pailit)\". Isi surat pengantar cukup merujuk pengumuman ini dan melampirkannya.", { after: 0, run: { size: 18 } }),
+  ttd("Kepala,", "Syafriadi Lubis", "Medan, ……………… 20…"),
+  //plain("**Catatan untuk surat undangan kepada peminat.** Pengumuman ini dikirim dengan surat pengantar kepada peminat yang telah diketahui, antara lain PT Raya Padang Langkat (surat minat tanggal 22 Agustus 2024), dengan hal \"Undangan Mengikuti Penawaran Terbuka Hak Keperdataan Harta Pailit PT Rata Makmur (Dalam Pailit)\". Isi surat pengantar cukup merujuk pengumuman ini dan melampirkannya.", { after: 0, run: { size: 18 } }),
 ];
 
 const S10 = surat({
@@ -357,25 +357,24 @@ const S10 = surat({
     "Bahwa objek yang ditawarkan berupa hak atas ganti rugi, hak menagih hasil kebun, serta bangunan dan benda yang berdiri di atas tanah negara, tidak dapat dijual secara terpisah melalui lelang tanpa kehilangan nilainya, karena nilai hak-hak tersebut hanya dapat direalisasikan oleh pihak yang akan mengusahakan tanah tersebut;",
     "Bahwa Pasal 185 ayat (3) Undang-Undang Nomor 37 Tahun 2004 menentukan sebagai berikut:",
   ],
-  setelah: [
+  setelah: () => [
     kutip("\"Semua benda yang tidak segera atau sama sekali tidak dapat dibereskan maka Kurator yang memutuskan tindakan yang harus dilakukan terhadap benda tersebut dengan izin Hakim Pengawas.\""),
     ...butirList([
       "Bahwa pengalihan hak atas ganti rugi dan hak menagih hasil kebun akan dilakukan dengan akta cessie sebagaimana dimaksud Pasal 613 Kitab Undang-Undang Hukum Perdata, sedangkan bangunan dan benda dialihkan dengan akta jual beli, seluruhnya dibuat di hadapan notaris dalam kondisi apa adanya (as is), dengan pembayaran lunas ke rekening harta pailit sebelum atau pada saat penandatanganan akta;",
       "Bahwa agar pembeli tidak terhalang dalam memohon hak atas tanah, Kurator perlu menyatakan pelepasan kedudukan prioritas bekas pemegang hak sebagaimana dimaksud Pasal 22 Peraturan Pemerintah Nomor 18 Tahun 2021. Kedudukan tersebut bukan merupakan benda yang dapat dijual, namun pelepasannya merupakan bagian dari nilai paket.",
-    ]),
-    plain("Berdasarkan uraian tersebut, dengan hormat kami mohon Hakim Pengawas berkenan menerbitkan penetapan yang:", { after: 120 }),
+    ], { cont: true }),
+    par("Berdasarkan uraian tersebut, dengan hormat kami mohon Hakim Pengawas berkenan menerbitkan penetapan yang:"),
     ...butirList([
       "memberikan izin kepada Kurator untuk menjual bangunan dan benda serta mengalihkan dengan cessie hak atas ganti rugi dan hak menagih hasil kebun milik PT Rata Makmur (Dalam Pailit) secara di bawah tangan kepada …………………… dengan harga paling sedikit Rp……………………;",
       "memberikan izin kepada Kurator untuk menandatangani surat pernyataan pelepasan kedudukan prioritas bekas pemegang hak atas eks HGU Nomor 2/Sei Tampa; dan",
       "memerintahkan agar hasil penjualan disetor ke rekening harta pailit dan dibagikan sesuai daftar pembagian yang akan disusun Kurator.",
-    ]),
+    ], { keepLast: true }),
   ],
   penutup: "Demikian permohonan ini kami sampaikan. Atas perhatian dan perkenan Hakim Pengawas, kami ucapkan terima kasih.",
   tembus: ["Ketua Pengadilan Negeri Medan (sebagai laporan)", ...TEMBUS_HP],
 });
 
 const S11 = [
-  new Paragraph({ children: [new TextRun({ text: "Konsep Surat 11 (Surat Pernyataan)", font: FONT, size: 16, color: "808080" })], alignment: AlignmentType.RIGHT, spacing: { after: 60 } }),
   ...kop(),
   plain("**SURAT PERNYATAAN**", { align: AlignmentType.CENTER }),
   plain("**PELEPASAN KEDUDUKAN PRIORITAS BEKAS PEMEGANG HAK**", { align: AlignmentType.CENTER }),
@@ -399,8 +398,7 @@ const S11 = [
     "bahwa pernyataan ini dibuat untuk dipergunakan dalam proses penataan dan pemberian hak atas tanah eks HGU Nomor 2/Sei Tampa oleh Kementerian Agraria dan Tata Ruang/Badan Pertanahan Nasional.",
   ]),
   par("Demikian surat pernyataan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.", 200),
-  plain("Medan, ……………… 20…", { indent: { left: 5896 } }),
-  ttd(),
+  ttd("Kepala,", "Syafriadi Lubis", "Medan, ……………… 20…"),
   ...tembusan(["Menteri Agraria dan Tata Ruang/Kepala Badan Pertanahan Nasional", "Kepala Kantor Wilayah Badan Pertanahan Nasional Provinsi Sumatera Utara", "Kepala Kantor Pertanahan Kabupaten Langkat", "Hakim Pengawas Kepailitan PT Rata Makmur (Dalam Pailit)"]),
 ];
 
@@ -443,8 +441,7 @@ const S13 = surat({
 
 // Lampiran: pokok-pokok akta untuk notaris
 const LAMP = [
-  new Paragraph({ children: [new TextRun({ text: "Lampiran untuk Notaris", font: FONT, size: 16, color: "808080" })], alignment: AlignmentType.RIGHT, spacing: { after: 60 } }),
-  plain("**POKOK-POKOK AKTA JUAL BELI BANGUNAN DAN BENDA SERTA AKTA CESSIE**", { align: AlignmentType.CENTER }),
+  new Paragraph({ children: runs("**POKOK-POKOK AKTA JUAL BELI BANGUNAN DAN BENDA SERTA AKTA CESSIE**"), alignment: AlignmentType.CENTER, spacing: LS, pageBreakBefore: true }),
   plain("**HAK KEPERDATAAN EKS HGU NOMOR 2/SEI TAMPA**", { align: AlignmentType.CENTER, after: 200 }),
   par("Pokok-pokok ini disampaikan kepada notaris sebagai bahan penyusunan akta, dan bukan merupakan akta."),
   grid(["No", "Pokok", "Isi"], [
@@ -465,7 +462,7 @@ const LAMP = [
 ];
 
 const children = [...sampul];
-for (const s of [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, LAMP]) children.push(pb(), ...s);
+for (const s of [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, LAMP]) children.push(...s);
 
 const doc = new Document({
   creator: "Balai Harta Peninggalan Medan",
