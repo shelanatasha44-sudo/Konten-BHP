@@ -140,7 +140,7 @@ body{padding-left:250px}
 .paket{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;background:linear-gradient(180deg,var(--pri2),var(--card) 60%)}
 .paket-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}.paket-h>div:first-child{margin-right:auto}
 .prog{width:140px;height:8px;border-radius:9px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;background:var(--gold)}
-.paket-g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.paket-c h5{margin:0 0 8px;font-size:11.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+.paket-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.paket-c h5{margin:0 0 8px;font-size:11.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
 .pk{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;font-weight:400}
 .pk:hover{border-color:var(--navy)}.pk input{width:auto;margin-top:3px}.pk b{display:block;font-size:13.5px}.pk small{color:var(--mut);font-size:11.5px}
 .pk.ok{border-color:#b5e5cf;background:#f1fbf6}
@@ -388,24 +388,7 @@ const DOCS_EXTRA={
       'Membawa meterai senilai Rp 10.000,- (Sepuluh Ribu Rupiah) sebanyak 4 (empat) lembar;',
       `Melakukan pembayaran Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt};`,
       'Mengenakan pakaian formal, rapi, dan sopan.'],[PNBP,BILLING])+
-`<p style="margin-top:10pt">Demikian surat undangan ini kami sampaikan. Untuk informasi lebih lanjut, ${s} dapat menghubungi WhatsApp Layanan Perwalian Pengampuan di nomor ${WA()}. Atas perhatian dan kehadiran ${s}, kami mengucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,false)}},
-  desa:{nama:r=>GRUP.desa.nama(r),sty:{line:360},fn:r=>{const d=derive(r);
-    return kop()+head(r.nomorUndDesa,`Undangan Menghadiri Pengambilan Sumpah ${d.J}${r.zoom?' Secara Virtual':''}`,r)+yth(lurahNm(r),esc(r.alamatKelurahan||'Tempat'))+
-`<p>${penetapan(r)} terkait penunjukan Sdr. <b>${V(r.nama)}</b> sebagai ${d.J} atas ${d.w?'anak di bawah umur bernama':'Terampu bernama'} <b>${V(d.objek)}</b>, yang merupakan warga di lingkungan ${V(r.kelurahan)}.</p>
-<p>Sebagai institusi negara yang menjalankan fungsi ${d.J} Pengawas, Balai Harta Peninggalan Medan berkomitmen untuk bersinergi dengan aparatur pemerintahan desa/kelurahan guna memastikan perlindungan hak keperdataan dan kepentingan terbaik ${d.w?'anak':'Terampu'} di wilayah Bapak/Ibu. Sehubungan dengan hal tersebut, kami turut mengundang Bapak/Ibu beserta jajaran untuk hadir dan menyaksikan pelaksanaan Pengambilan Sumpah ${d.J}${r.zoom?' yang akan dilaksanakan secara virtual':''} pada:</p>`+tabelJadwal(r)+
-`<p>Kehadiran dan partisipasi Bapak/Ibu beserta jajaran sangat kami harapkan sebagai bentuk dukungan dan awal kolaborasi dalam kegiatan pengawasan (monitoring) ${d.jenisTxt.toLowerCase()} ini ke depannya.</p>
-<p>Demikian undangan ini kami sampaikan. Atas perhatian, kerja sama, dan kehadiran Bapak/Ibu, kami mengucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,false)}},
-  terima:{nama:()=>'Tanda Terima Berkas',sty:{line:300},fn:r=>{const d=derive(r),m=d.madya;
-    const row=(a,b)=>`<tr><td style="width:90pt">${a}</td><td>:</td><td>${b}</td></tr>`;
-    return kop()+`<p class="ctr"><b><u>TANDA TERIMA BERKAS</u></b></p><br>
-<p>Pada hari ini, ${hari(r.tglSumpah)}, tanggal ${tgl(r.tglSumpah)}, bertempat di ${esc(r.tempat||'kediaman '+(r.nama||''))}, kami yang bertanda tangan di bawah ini:</p>
-${NP('1.',0,'<b>PIHAK PERTAMA (Yang Menyerahkan)</b>')}<table style="margin:0 0 8pt 18pt">${row('Nama',V(m.nama))}${row('NIP',V(m.nip))}${row('Jabatan',V(m.jabatan))}${row('Instansi','Balai Harta Peninggalan Medan')}</table>
-${NP('2.',0,'<b>PIHAK KEDUA (Yang Menerima)</b>')}<table style="margin:0 0 8pt 18pt">${row('Nama',V(r.nama))}${row('NIK',V(r.nik))}${row('Alamat',V(r.alamat))}${row('Kedudukan',`${d.J} berdasarkan Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tanggal ${tgl(r.tglPenetapan)}`)}</table>
-<p>Dengan ini menyatakan bahwa <b>PIHAK PERTAMA</b> telah menyerahkan kepada <b>PIHAK KEDUA</b>, dan <b>PIHAK KEDUA</b> telah menerima dari <b>PIHAK PERTAMA</b>, dokumen-dokumen asli yang diterbitkan dan telah ditandatangani oleh Pejabat pada Balai Harta Peninggalan Medan, dengan rincian sebagai berikut:</p>
-<ol style="margin-left:18pt"><li>1 (satu) rangkap <b>Asli Berita Acara Penyumpahan ${d.J}</b> atas nama <b>${V(r.nama)}</b> selaku ${d.J} dari <b>${V(d.objek)}</b>, dibubuhi tanda tangan saksi-saksi;</li><li>1 (satu) rangkap <b>Asli Berita Acara Inventarisasi Harta</b>; dan</li><li>1 (satu) rangkap <b>Asli Berita Acara Penghadapan ${d.J}</b>.</li></ol>
-<p>Dokumen-dokumen tersebut diserahkan dalam keadaan baik, utuh, dan telah dibubuhi tanda tangan basah serta cap instansi yang berwenang untuk dapat dipergunakan sebagaimana mestinya oleh <b>PIHAK KEDUA</b> dalam menjalankan tugasnya sebagai ${d.J}.</p>
-<p>Demikian Tanda Terima ini dibuat dengan sebenarnya dalam rangkap 2 (dua) yang mempunyai kekuatan hukum yang sama, 1 (satu) rangkap disimpan oleh <b>PIHAK PERTAMA</b> sebagai arsip instansi dan 1 (satu) rangkap diserahkan kepada <b>PIHAK KEDUA</b>.</p>`+
-    ttd2('Yang Menerima,<br>PIHAK KEDUA','Yang Menyerahkan,<br>PIHAK PERTAMA',V(r.nama),V(m.nama),'',m.nip)}}};
+`<p style="margin-top:10pt">Demikian surat undangan ini kami sampaikan. Untuk informasi lebih lanjut, ${s} dapat menghubungi WhatsApp Layanan Perwalian Pengampuan di nomor ${WA()}. Atas perhatian dan kehadiran ${s}, kami mengucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,false)}}};
 const DOCS={
   permohonan:{nama:r=>'Surat Permohonan Penyumpahan',sty:{font:'Times New Roman',line:360,tline:360},fn:r=>{const d=derive(r);return `<p class="ni" style="text-align:right;margin-top:24pt">${tempatTgl(r)}</p><br>
 <p class="ni" style="margin-top:6pt"><b>Kepada Yth;</b><br>Kepala Balai Harta Peninggalan Medan<br>Jl. Listrik No. 10 Medan</p><br>
@@ -487,9 +470,7 @@ ${NP('II.',18,'<b>PASSIVA</b>',';margin-top:10pt',1)}<p class="ni" style="margin
 /* kelompok dokumen: dua surat antar (bernomor SPS) + satu Dokumen Penyumpahan (tiap bagian halaman baru) */
 const GRUP={surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,keys:['surat'],tahap:1},lurah:{nama:()=>'Surat Antar ke Lurah',keys:['lurah'],tahap:1},
   undangan:{nama:r=>`Undangan Sumpah ke ${derive(r).J}`,keys:['undangan'],tahap:1,ket:'Bila sumpah di kantor / Kanwil / virtual (Zoom)'},
-  desa:{nama:r=>`Undangan ke ${/^Desa\s/i.test(String(r.kelurahan||'').replace(/^(Lurah|Kelurahan)\s+/i,''))?'Kepala Desa':'Lurah'} (menyaksikan)`,keys:['desa'],tahap:1,ket:'Mengundang aparat desa/kelurahan menyaksikan sumpah'},
-  penyumpahan:{nama:()=>'Dokumen Penyumpahan',keys:['permohonan','bap','ba','harta'],tahap:2,ket:'Permohonan · BAP · BA Sumpah · BA Inventarisasi (tiap bagian halaman baru)'},
-  terima:{nama:()=>'Tanda Terima Berkas',keys:['terima'],tahap:3,ket:'Serah terima BA asli ke '+'pemohon setelah sumpah'}};
+  penyumpahan:{nama:()=>'Dokumen Penyumpahan',keys:['permohonan','bap','ba','harta'],tahap:2,ket:'Permohonan · BAP · BA Sumpah · BA Inventarisasi (tiap bagian halaman baru)'}};
 const TAHAP={1:'Sebelum sumpah',2:'Hari penyumpahan',3:'Setelah sumpah'};
 Object.assign(DOCS,DOCS_EXTRA);
 const kurangGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kurang(k,r)))];
@@ -760,23 +741,23 @@ async function gdocCore(key,keys,judul){const blob=await buatDocx(keys);const b6
   const r=await api('apiBuatDokumen',cur.id,key,judul,b64);cur.dokumen=cur.dokumen||{};cur.dokumen[key]=r.dok;cur.folderUrl=r.folderUrl;cur._versi=r.versi;return r.dok}
 let PILIH=null;
 function pilihDefault(r){const sudah=g=>(r.dokumen||{})[g];const L=['surat','lurah','penyumpahan'].filter(g=>!sudah(g));
-  if(r.zoom||/kantor|kanwil|balai/i.test(r.tempat||''))['undangan','desa'].forEach(g=>{if(!sudah(g))L.push(g)});
-  if(r.tglSumpah&&r.tglSumpah<=today()&&!sudah('terima'))L.push('terima');return L.length?L:['penyumpahan']}
+  if(r.zoom||/kantor|kanwil|balai/i.test(r.tempat||''))['undangan'].forEach(g=>{if(!sudah(g))L.push(g)});
+  return L.length?L:['penyumpahan']}
 function paketBerkas(){const r=cur,P=PILIH||pilihDefault(r);PILIH=P;
   const siap=Object.keys(GRUP).filter(g=>(r.dokumen||{})[g]).length,tot=Object.keys(GRUP).length;
   return`<div class="paket"><div class="paket-h"><div><b>🧩 Paket Berkas</b><span class="hint"> — centang dokumen yang diperlukan, lalu buat sekaligus</span></div><div class="prog"><i style="width:${Math.round(siap/tot*100)}%"></i></div><small>${siap}/${tot} dibuat</small></div>
-  <div class="paket-g">${[1,2,3].map(t=>`<div class="paket-c"><h5>${t}. ${TAHAP[t]}</h5>${Object.entries(GRUP).filter(([g,o])=>o.tahap===t).map(([g,o])=>{const dk=(r.dokumen||{})[g],ku=kurangGrup(g,r);
+  <div class="paket-g">${[1,2,3].filter(t=>Object.values(GRUP).some(o=>o.tahap===t)).map(t=>`<div class="paket-c"><h5>${t}. ${TAHAP[t]}</h5>${Object.entries(GRUP).filter(([g,o])=>o.tahap===t).map(([g,o])=>{const dk=(r.dokumen||{})[g],ku=kurangGrup(g,r);
     return`<label class="pk ${dk?'ok':''}"><input type="checkbox" ${P.includes(g)?'checked':''} onchange="PILIH=this.checked?[...new Set([...PILIH,'${g}'])]:PILIH.filter(x=>x!=='${g}');$('#pkBtn').textContent='⚡ Buat '+PILIH.length+' dokumen terpilih'">
       <span><b>${esc(o.nama(r))}</b><small>${dk?`✅ Sudah dibuat · <a href="${dk.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">buka</a>`:ku.length?`<span style="color:#b45309">Kurang: ${esc(ku.slice(0,3).join(', '))}${ku.length>3?'…':''}</span>`:'Siap dibuat'}${NOMOR[g]?(r[NOMOR[g]]?` · No. ${esc(r[NOMOR[g]])}`:' · perlu nomor SPS'):''}</small></span></label>`}).join('')}</div>`).join('')}</div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px"><button class="pri" id="pkBtn" style="padding:11px 18px;border-radius:12px" onclick="prosesOtomatis()">⚡ Buat ${P.length} dokumen terpilih</button><span class="hint">Otomatis: cek data → ambil nomor SPS (untuk surat) → buat Google Doc di folder berkas.</span></div></div>`}
-async function prosesOtomatis(){if(!cur)return;clearTimeout(saveT);await flush();const P=PILIH||pilihDefault(cur);if(!P.length){toast('Centang minimal satu dokumen');return}
+async function prosesOtomatis(){if(!cur)return;clearTimeout(saveT);await flush();const P=(PILIH||pilihDefault(cur)).filter(g=>GRUP[g]);if(!P.length){toast('Centang minimal satu dokumen');return}
   const perlu=P.map(g=>[g,kurangGrup(g,cur)]).filter(x=>x[1].length);
   if(perlu.length){dlg(`<h3>⚡ Proses Otomatis</h3><p>Isian belum lengkap, lengkapi dulu agar nomor & dokumen tidak salah:</p><ul>${perlu.map(([g,m])=>`<li><b>${GRUP[g].nama(cur)}</b>: ${esc(m.join(', '))}</li>`).join('')}</ul><p style="text-align:right"><button class="pri" onclick="dlgClose()">Mengerti</button></p>`);return}
   const w=cekCetak(cur).map(x=>(x.lvl==='e'?'⛔ ':'⚠ ')+x.msg);const tanpa=Object.entries(NOMOR).filter(([k,f])=>P.includes(k)&&!cur[f]);
   dlg(`<h3>⚡ Proses Otomatis</h3>${boxCek(w)}<p>Langkah yang akan dijalankan:</p><ol><li>Simpan berkas</li>${tanpa.length?`<li>Ambil <b>${tanpa.length} nomor</b> dari SPS (tanggal hari ini, ${cur.jenis==='Perwalian'?'AH.06.02':'AH.06.03'}): ${tanpa.map(([k])=>DOCS[k].nama(cur)).join(', ')}</li>`:'<li>Semua dokumen sudah bernomor</li>'}<li>Buat <b>${P.length} Google Doc</b> di folder Drive berkas: ${P.map(g=>esc(GRUP[g].nama(cur))).join(', ')}</li></ol>
     <p class="hint">Nomor SPS yang sudah diambil tidak bisa dibatalkan dari aplikasi. Pastikan data sudah benar.</p>
     <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end"><button onclick="dlgClose()">Batal</button><button class="pri" onclick="jalankanOtomatis()">${w.length?'Tetap lanjutkan':'Ya, proses sekarang'} →</button></p>`)}
-async function jalankanOtomatis(){const P=PILIH||pilihDefault(cur),tanpa=Object.entries(NOMOR).filter(([k,f])=>P.includes(k)&&!cur[f]);
+async function jalankanOtomatis(){const P=(PILIH||pilihDefault(cur)).filter(g=>GRUP[g]),tanpa=Object.entries(NOMOR).filter(([k,f])=>P.includes(k)&&!cur[f]);
   const L=[['simpan','Simpan berkas'],...tanpa.map(([k])=>['n_'+k,'Nomor SPS — '+DOCS[k].nama(cur)]),...P.map(g=>['d_'+g,'Google Doc — '+GRUP[g].nama(cur)])];
   dlg(`<h3>⚡ Memproses…</h3><div class="log">${L.map(([id,t])=>`<div class="logi" id="pr_${id}">⏳ ${esc(t)}</div>`).join('')}</div><p id="prEnd" style="text-align:right;margin-top:12px"></p>`,true);
   const set=(id,ok,t)=>{const e=$('#pr_'+id);if(e)e.innerHTML=(ok?'✅ ':'❌ ')+t};let gagal=false;
