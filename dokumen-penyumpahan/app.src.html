@@ -43,7 +43,7 @@ h3{margin:4px 0 12px;font-size:15px}
 .doc b{font-size:13px}.doc div{display:flex;gap:6px}
 .doc button{flex:1;padding:6px;font-size:12px}
 #prev{background:#8a8fa3;padding:20px;border-radius:var(--rad);overflow:auto;max-height:80vh}
-.paper{background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto 20px;padding:48pt 48pt 48pt 71pt;font:12pt/1.5 Arial,"Liberation Sans",Helvetica,sans-serif;box-shadow:0 4px 20px #0003}
+.paper{background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto 20px;padding:1cm 2cm 2.5cm 3cm;font:12pt/1.5 Arial,"Liberation Sans",Helvetica,sans-serif;box-shadow:0 4px 20px #0003}
 .paper p{margin:0;text-align:justify;text-indent:36pt}
 .paper p.ni,.paper p.ctr{text-indent:0}.paper p.ctr,.paper .ctr{text-align:center}
 table.kop{width:100%;border-collapse:collapse;border-bottom:1.25pt solid #000;margin:0 0 12pt}
@@ -333,10 +333,10 @@ const LOGO_DEF='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALAAAADGCAIAAAD9rp
 const kop=()=>`<table class="kop"><tr><td class="lg"><img src="${SET.logo||LOGO_DEF}" width="77" height="87" alt="logo"></td><td class="tx">${esc(SET.instansi)}<br>${esc(SET.kanwil)}<br><span class="b">${esc(SET.balai)}</span><br><span class="s">${esc(SET.alamat)}<br>${esc(SET.telp)}<br>${esc(SET.web)}</span></td></tr></table>`;
 /* ---------------- dokumen (sesuai template di folder Drive BHP Medan) ---------------- */
 const WA=()=>`<b>${esc(SET.wa)}</b>`;
-const ttdKepala=()=>`<p class="ni" style="margin-left:262pt;margin-top:20pt;text-align:left">Kepala,<br><br><br><br>${esc(SET.kepala)}</p>`;
+const ttdKepala=()=>`<p class="ni" data-keep="ttd" style="margin-left:262pt;margin-top:20pt;text-align:left">Kepala,<br><br><br><br>${esc(SET.kepala)}</p>`;
 const lurahNm=r=>{const k=String(r.kelurahan||'').trim().replace(/^(Lurah|Kelurahan)\s+/i,'');return /^Desa\s/i.test(k)?'Kepala '+V(k):'Lurah '+V(k)};
 const kanwil=r=>r.kanwilTembusan||SET.kanwilTembusan;
-const tembusan=(r,lurah=true)=>`<p class="ni" style="margin-top:22pt;font-size:10pt;line-height:1">Tembusan:</p><ol style="font-size:10pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${lurahNm(r)}</li>`:''}</ol>`;
+const tembusan=(r,lurah=true)=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:10pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:10pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${lurahNm(r)}</li>`:''}</ol>`;
 const penetapan=r=>`Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap`;
 const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'};
 const kota=r=>r.kotaPermohonan||((r.kelurahan||'').match(/(?:Kota|Kabupaten|Kab\.)\s+([^,]+)/i)||[])[1]||'Medan';
@@ -459,9 +459,9 @@ const DOCS={
 ${bapList(isi.length?r.isiBap:buatBap(r),r)}
 <p style="margin-top:8pt">Oleh karena tidak ada lagi yang perlu diterangkan dan dijelaskan, maka Berita Acara Penghadapan ini ditutup pada hari dan tanggal tersebut diatas, kemudian ditandatangani oleh saya dan penghadap.</p>`+
     ttd2(esc((p.jabatan||'').toUpperCase()),d.J.toUpperCase(),V(p.nama),V(r.nama),V(p.nip),'')+
-`<p class="ctr" style="margin-top:22pt"><b>P E R N Y A T A A N</b></p>
+`<p class="ctr" data-keep="1" style="margin-top:22pt"><b>P E R N Y A T A A N</b></p>
 <p style="margin-top:8pt">Saya yang bertanda tangan di bawah ini, dengan ini menyatakan bahwa keterangan-keterangan dan penjelasan tersebut diatas adalah keterangan dan penjelasan yang sebenarnya, bahwa saya mengetahui dan menyadari apabila keterangan-keterangan dan penjelasan tersebut tidak benar adanya, saya bersedia dituntut dihadapan Pengadilan dan menanggung segala akibatnya. Kemudian saya bertanggung jawab sepenuhnya terhadap ${d.w?'Anak di bawah umur yang berada di bawah perwalian':'Terampu yang berada di bawah pengampuan'} saya sebagaimana yang diamanatkan oleh peraturan perundang-undangan.</p>
-<p class="ni" style="margin-left:262pt;margin-top:14pt;text-align:left">${tempatTgl(r)}<br>Yang membuat pernyataan,<br><br><br><br><br><b>${V(r.nama)}</b></p>`+saksi(r)}},
+<p class="ni" data-keep="ttd" style="margin-left:262pt;margin-top:14pt;text-align:left">${tempatTgl(r)}<br>Yang membuat pernyataan,<br><br><br><br><br><b>${V(r.nama)}</b></p>`+saksi(r)}},
 
   ba:{nama:r=>`BA Penyumpahan ${derive(r).jenisTxt}`,sty:{line:276},fn:r=>{const d=derive(r),m=d.madya;
     return kop()+judulBA(`BERITA ACARA PENYUMPAHAN ${d.jenisTxt.toUpperCase()}`,noManual(r,'nomorBA'))+
@@ -960,17 +960,21 @@ function tableXml(t){
   const cols=w.map(x=>tw(x||rest)),tot=cols.reduce((a,b)=>a+b,0);
   const body=rows.map((r,ri)=>{let i=0;const h=Math.max(...[...r.cells].map(c=>ptOf(c.style.height)),0);
     return `<w:tr><w:trPr><w:cantSplit/>${h?`<w:trHeight w:val="${tw(h)}"/>`:''}</w:trPr>${[...r.cells].map(c=>{const sp=c.colSpan||1,cw=cols.slice(i,i+sp).reduce((a,b)=>a+b,0);i+=sp;
-      return `<w:tc><w:tcPr><w:tcW w:w="${cw}" w:type="dxa"/>${sp>1?`<w:gridSpan w:val="${sp}"/>`:''}</w:tcPr>${para(c,{jc:ttd&&t.classList.contains('ctr')?'center':'left',noInd:1,after:ttd?0:40,line:STY.tline||276,keep:ttd&&ri<rows.length-1})}</w:tc>`}).join('')}</w:tr>`}).join('');
+      return `<w:tc><w:tcPr><w:tcW w:w="${cw}" w:type="dxa"/>${sp>1?`<w:gridSpan w:val="${sp}"/>`:''}</w:tcPr>${para(c,{jc:ttd&&t.classList.contains('ctr')?'center':'left',noInd:1,after:ttd?0:40,line:STY.tline||276,keep:ri<rows.length-1&&(ttd||rows.length<=8)})}</w:tc>`}).join('')}</w:tr>`}).join('');
   return (ptOf(t.style.marginTop)?spacer(ptOf(t.style.marginTop),ttd):'')+`<w:tbl><w:tblPr><w:tblW w:w="${tot}" w:type="dxa"/><w:tblInd w:w="${tw(indL)}" w:type="dxa"/><w:tblLayout w:type="fixed"/>${noBorders}<w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>${body}</w:tbl>`+spacer(ptOf(t.style.marginBottom)||4)}
 function blocksXml(html){
   const root=new DOMParser().parseFromString(`<div>${html}</div>`,'text/html').body.firstChild;let x='';
   for(const el of root.childNodes){
     if(el.nodeType!==1)continue;
     if(el.tagName==='TABLE')x+=el.classList.contains('kop')?kopXml():tableXml(el);
-    else if(el.tagName==='P'&&el.dataset.n)x+=para(el,{left:18,hang:360,prefix:`<w:r>${rPr(el.dataset.b?{b:1}:{})}<w:t>${xe(el.dataset.n)}</w:t></w:r><w:r><w:tab/></w:r>`});
-    else if(el.tagName==='P'||el.tagName==='DIV'){const nx=el.nextElementSibling;x+=para(el,nx&&nx.tagName==='TABLE'&&nx.classList.contains('ttd')?{keep:1}:{})}
+    else if(el.tagName==='P'&&el.dataset.n)x+=para(el,{keep:el.dataset.b||/:\s*$/.test(el.textContent),left:18,hang:360,prefix:`<w:r>${rPr(el.dataset.b?{b:1}:{})}<w:t>${xe(el.dataset.n)}</w:t></w:r><w:r><w:tab/></w:r>`});
+    else if(el.tagName==='P'||el.tagName==='DIV'){const nx=el.nextElementSibling;
+      /* penutup ("Demikian …") tidak dipisah dari tanda tangan; tanda tangan tidak dipisah dari tembusan */
+      /* kalimat pengantar/judul yang berakhir titik dua ikut isi di bawahnya */
+      x+=para(el,el.dataset.keep||/:\s*$/.test(el.textContent)||(nx&&(nx.dataset.keep==='ttd'||nx.tagName==='TABLE'&&nx.classList.contains('ttd')))?{keep:1}:{})}
     else if(el.tagName==='OL'||el.tagName==='UL'){const lh=parseFloat(el.style.lineHeight)||0,sz=ptOf(el.style.fontSize),dash=el.classList.contains('dash');
-      [...el.children].forEach((li,i)=>x+=para(li,{noInd:1,left:18+ptOf(el.style.marginLeft),hang:360,after:0,sz,line:lh&&lh<5?Math.round(lh*240):0,prefix:`<w:r><w:t>${el.tagName==='OL'?(el.type==='a'?'abcdefghijklmnop'[i]:i+1)+'.':dash?'-':'•'}</w:t></w:r><w:r><w:tab/></w:r>`}))}
+      const kp=!!el.dataset.keep,nli=el.children.length;
+      [...el.children].forEach((li,i)=>x+=para(li,{keep:kp&&i<nli-1,noInd:1,left:18+ptOf(el.style.marginLeft),hang:360,after:0,sz,line:lh&&lh<5?Math.round(lh*240):0,prefix:`<w:r><w:t>${el.tagName==='OL'?(el.type==='a'?'abcdefghijklmnop'[i]:i+1)+'.':dash?'-':'•'}</w:t></w:r><w:r><w:tab/></w:r>`}))}
     else if(el.tagName==='BR')x+=spacer(12)}
   return x}
 async function buatDocx(keys){

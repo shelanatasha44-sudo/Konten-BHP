@@ -12,6 +12,7 @@ Folder ini hanya berisi **tampilan** aplikasi Dokumen Penyumpahan. Backend (`Cod
 ## Perubahan dibanding versi `damayantielsintha-wq/Kalender-Kerja-Wilayah-II` (ec4746f)
 - **Mode HP**: menu kiri menjadi navigasi bawah (Daftar Berkas, Berkas Baru, Jadwal Sumpah, ☰ Lainnya); menu lain muncul sebagai lembar dari bawah. Bar atas ringkas (judul + tombol 👤 + kotak cari). Saat berkas dibuka, daftar disembunyikan dan ada tombol **← Daftar Berkas**. Input 16px agar iPhone tidak zoom otomatis.
 - **Lebih ringan**: `Index.html` turun dari ±280 KB menjadi ±127 KB (JavaScript diperkecil dan dikompres). Font web tidak dimuat di HP dan tidak lagi menahan tampilan di desktop. Bayangan dimatikan di HP; animasi dimatikan bila HP meminta *reduced motion*.
+- **Dokumen A4 lebih rapi** (DOCX/Google Docs): kalimat penutup ("Demikian …"), tanda tangan Kepala, dan Tembusan selalu tampil bersama (tidak ada tanda tangan atau sebagian tembusan yang tertinggal sendirian di halaman baru); blok Pernyataan + tanda tangan + saksi di BA Penghadapan tidak terpisah; tabel Hari/Tanggal–Pukul–Tempat dan tabel identitas tidak terbelah; judul harta (A–F, AKTIVA, PASSIVA) dan kalimat yang berakhir titik dua selalu ikut isinya. Pratinjau di aplikasi kini memakai margin yang sama dengan dokumen (atas 1 cm, kanan 2 cm, bawah 2,5 cm, kiri 3 cm; kertas A4).
 - Tampilan desktop tidak berubah.
 
 ## Cara pasang
