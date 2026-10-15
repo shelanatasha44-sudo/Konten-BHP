@@ -38,6 +38,8 @@ h3{margin:4px 0 12px;font-size:15px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:0;border-radius:0}.seg button.on{background:var(--pri);color:#fff}
 .child{border:1px dashed var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.child.dewasa{opacity:.62;background:color-mix(in srgb,var(--line) 35%,transparent)}
+.child .badge-dw{grid-column:1/-1;justify-self:start;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:#fde7e7;color:#a32020}
 .docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
 .doc{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .doc b{font-size:13px}.doc div{display:flex;gap:6px}
@@ -289,10 +291,10 @@ function umurTh(s,ref){const d=pd(s);if(!d)return null;const r=pd(ref)||new Date
 /* ---- filter kelayakan perwalian ---- */
 const BATAS_DEWASA=17;
 const MILITER=/\b(TNI|ABRI|tentara|prajurit|militer|angkatan\s+(darat|laut|udara)|kodim|korem|kodam|koramil|lanud|lantamal|yonif|kostrad|ASABRI|polri|kepolisian|polisi|bhayangkara|brimob|bintara|tamtama|perwira)\b/i;
-function anakWali(r){if(r.jenis!=='Perwalian')return[];const ref=r.tglSumpah||today();
-  const A=(r.anak||[]).filter(a=>a.nama&&a.wali!=='Tidak');
-  const kecil=A.filter(a=>{const u=umurTh(a.tglLahir,ref);return u===null||u<BATAS_DEWASA});
-  return kecil.length?kecil:A}
+/* usia dihitung pada tanggal sumpah (atau hari ini bila belum dijadwalkan) */
+function anakDewasa(a,r){const u=umurTh(a&&a.tglLahir,(r&&r.tglSumpah)||today());return u!==null&&u>=BATAS_DEWASA}
+function anakWali(r){if(r.jenis!=='Perwalian')return[];
+  return (r.anak||[]).filter(a=>a.nama&&a.wali!=='Tidak'&&!anakDewasa(a,r))}
 function cekKelayakan(r){const tolak=[],info=[];if(!r||r.jenis!=='Perwalian')return{tolak,info};
   const ref=r.tglSumpah||today(),A=(r.anak||[]).filter(a=>a&&a.nama&&a.wali!=='Tidak'&&a.diwalikan!==false);
   const um=A.map(a=>({a,u:umurTh(a.tglLahir,ref)})),besar=um.filter(x=>x.u!==null&&x.u>=BATAS_DEWASA);
@@ -707,7 +709,7 @@ function cekCetak(r){const L=[],E=(tab,f,msg)=>L.push({lvl:'e',tab,f,msg}),W=(ta
       const ua=umurPada(a.tglLahir,r.tglLahir?a.tglLahir:null),uw=r.tglLahir?umurPada(r.tglLahir,a.tglLahir):null;if(uw!==null&&uw<12)W('objek',`anak.${i}.tglLahir`,`Selisih umur ${J} dan anak ${a.nama} hanya ${uw} tahun — periksa`);
       if(r.tglMeninggalPasangan){const bts=new Date(pd(r.tglMeninggalPasangan).getTime()+300*864e5).toISOString().slice(0,10);if(a.tglLahir>bts)W('objek',`anak.${i}.tglLahir`,`Anak ${a.nama} lahir lebih dari 300 hari setelah ${r.pasangan||'pasangan'} meninggal — periksa`)}
       if(r.nama&&a.nama===r.nama)E('objek',`anak.${i}.nama`,'Nama anak sama dengan nama '+J)});
-    const aw=anakWali(r);if(A.length&&!aw.length)E('objek','anak.0.wali','Tidak ada anak yang ditandai diwalikan')}
+    const aw=anakWali(r);if(A.length&&!aw.length)E('objek','anak.0.tglLahir',A.every(a=>anakDewasa(a,r))?'Semua anak sudah '+BATAS_DEWASA+' tahun ke atas pada tanggal sumpah — tidak ada anak yang dapat diwalikan':'Tidak ada anak yang ditandai diwalikan')}
   else{const tp=r.terampu||{};if(!tp.nama)E('objek','terampu.nama','Nama terampu kosong');if(!tp.tglLahir)W('objek','terampu.tglLahir','Tanggal lahir terampu kosong');
     else{const u=umurPada(tp.tglLahir,ref);if(u!==null&&u<18)E('objek','terampu.tglLahir','Terampu baru '+u+' tahun — pengampuan untuk orang dewasa')}
     if(!tp.kondisi)W('objek','terampu.kondisi','Kondisi medis terampu kosong');if(tp.nama&&tp.nama===r.nama)E('objek','terampu.nama','Nama terampu sama dengan pengampu')}
@@ -858,7 +860,7 @@ function renderMain(){
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
     F('status',`Hubungan dgn ${d.pihak} (mis. Ibu Kandung, Saudara Kandung)`)+F('hp','No. HP (surat permohonan)')+F('alamat','Alamat lengkap','area')+
     `<div class="full"><label>Kelurahan, Kecamatan, Kota (terisi otomatis dari alamat)</label><input data-kel value="${esc(cur.kelurahan)}" oninput="setv('kelurahan',this.value)"></div>`+F('alamatKelurahan','Alamat kantor kelurahan (surat lurah)')+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
-  if(tab==='objek'){if(w){h+=`<div class="full">${cur.anak.map((a,i)=>`<div class="child grid">${F(`anak.${i}.nama`,`Nama Anak ${i+1}`)}${F(`anak.${i}.jk`,'Jenis Kelamin','select',['Laki-laki','Perempuan'])}${F(`anak.${i}.tglLahir`,'Tanggal Lahir','date')}${F(`anak.${i}.wali`,'Diwalikan? (Tidak = sudah dewasa)','select',['Ya','Tidak'])}<div><label>&nbsp;</label><button onclick="cur.anak.splice(${i},1);save();renderMain()">Hapus</button></div></div>`).join('')}
+  if(tab==='objek'){if(w){const refU=cur.tglSumpah||today();h+=`<div class="full"><p class="hint">Usia anak dihitung otomatis pada ${cur.tglSumpah?'tanggal sumpah ('+tgl(cur.tglSumpah)+')':'hari ini (tanggal sumpah belum diisi)'}. Anak yang sudah <b>${BATAS_DEWASA} tahun ke atas</b> otomatis tidak diwalikan dan tidak dicantumkan di dokumen.</p>${cur.anak.map((a,i)=>{const u=umurTh(a.tglLahir,refU),dw=anakDewasa(a,cur);return `<div class="child grid${dw?' dewasa':''}">${F(`anak.${i}.nama`,`Nama Anak ${i+1}`)}${F(`anak.${i}.jk`,'Jenis Kelamin','select',['Laki-laki','Perempuan'])}${F(`anak.${i}.tglLahir`,'Tanggal Lahir','date')}<div><label>Usia (otomatis)</label><input disabled value="${u===null?'—':u+' Tahun'}"></div>${dw?`<div><label>Diwalikan?</label><input disabled value="Tidak — sudah ${u} tahun"></div>`:F(`anak.${i}.wali`,'Diwalikan?','select',['Ya','Tidak'])}<div><label>&nbsp;</label><button onclick="cur.anak.splice(${i},1);save();renderMain()">Hapus</button></div>${dw?`<span class="badge-dw">${BATAS_DEWASA}+ · tidak diwalikan otomatis</span>`:''}</div>`}).join('')}
     <button onclick="cur.anak.push({nama:'',jk:'Laki-laki',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
     else h+=F('terampu.nama','Nama Terampu')+F('terampu.jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('terampu.tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.terampu.tglLahir,cur.tglSumpah)}"></div>`+F('terampu.kondisi','Kondisi medis + surat dokter','area')}
