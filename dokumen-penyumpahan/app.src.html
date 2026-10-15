@@ -532,7 +532,7 @@ FORMAT WAJIB:
 - HANYA fakta yang tertulis di penetapan. Jangan mengarang nomor, tanggal, nama, atau aset.
 Balas satu objek JSON: {"isiBap":["baris 1","baris 2", "..."]}`;
 async function bapDariPenetapan(file){const b64=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(file)});
-  const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',PROMPT_BAP);const l=d&&(Array.isArray(d.isiBap)?d.isiBap:String(d.isiBap||'').split('\n'));
+  const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',await promptBersih(file,PROMPT_BAP));const l=d&&(Array.isArray(d.isiBap)?d.isiBap:String(d.isiBap||'').split('\n'));
   const t=(l||[]).map(x=>String(x).trim()).filter(Boolean).map(x=>x.replace(/^(-{0,2})\s*(?:\d+[.)]|[a-z][.)])\s+/i,'$1 ').replace(/^ /,'')).join('\n');if(!t)throw new Error('AI tidak menghasilkan isi BAP');return t}
 async function susunBapAI(inp){const f=inp.files[0];inp.value='';if(!f)return;if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan AI dari penetapan?'))return;
   toast('Claude sedang membaca penetapan & menyusun BAP… (±30–60 detik)');const lb=inp.closest('label');if(lb)lb.style.opacity=.5;
@@ -1147,25 +1147,61 @@ async function handlePenetapan(file){
     reviewPenetapan(data,file.name);
   }catch(e){if(WZ.on){const d=$('#wzDrop');if(d)d.innerHTML=`<div class="ic">⚠️</div><b>Gagal membaca: ${esc(e.message)}</b><small>Klik untuk mencoba file lain, atau isi manual.</small><input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this)">`;return}$('#penBody').innerHTML=`<h3>Gagal membaca penetapan</h3><p>${esc(e.message)}</p><p class="hint">Coba file PDF asli (bukan foto miring/buram), atau isi kunci AI di Pengaturan.</p><p style="text-align:right"><button onclick="penDlg.close()">Tutup</button></p>`}
 }
+/* ===== Pembaca dokumen tahan watermark =====
+   Watermark direktori putusan MA ("Mahkamah Agung Republik Indonesia" miring, besar, samar), kop "Direktori Putusan…",
+   nomor halaman dan blok Disclaimer dibuang sebelum teks dipakai parser maupun dikirim ke AI sebagai pendamping. */
+const WM_BARIS=[/^Direktori Putusan Mahkamah Agung Republik Indonesia$/i,/^putusan\.mahkamahagung\.go\.id$/i,/^Halaman \d+( dari \d+)?(\s+(Penetapan|Putusan)\b.*)?$/i,
+  /^Disclaimer$/i,/^Kepaniteraan Mahkamah Agung Republik Indonesia berusaha/i,/^pelaksanaan fungsi peradilan/i,/^Dalam hal Anda menemukan inakurasi/i,
+  /^masih terdapat kemungkinan/i,/^Email\s*:\s*kepaniteraan@/i,/^(M|Ma|Mah|Mahk|Mahka|Mahkam|Mahkama)?h?(kamah|amah|mah|ah)?\s*Agung\s*Repub(lik)?(\s*Indonesi?a?)?$/i,/^R?e?p?u?b?lik Indonesi?a?$/i];
+function bukanWM(l){l=l.trim();return l&&!WM_BARIS.some(r=>r.test(l))}
+function bersihWM(t){return String(t||'').split('\n').filter(bukanWM).join('\n').replace(/\n{3,}/g,'\n\n').trim()}
+/* teks satu halaman pdf.js: buang item miring (watermark diagonal) & ukuran huruf ekstrem, susun ulang per baris */
+function teksHalaman(items){
+  const it=items.filter(i=>i.str&&i.str.trim()).map(i=>{const[a,b,c,d,x,y]=i.transform;return{s:i.str,x,y,w:i.width||0,h:Math.hypot(c,d)||i.height||0,miring:Math.abs(b)>0.01*Math.abs(a)+1e-6||Math.abs(c)>0.01*Math.abs(d)+1e-6}});
+  const hs=it.filter(i=>!i.miring).map(i=>i.h).sort((p,q)=>p-q),med=hs.length?hs[hs.length>>1]:10;
+  const ok=it.filter(i=>!i.miring&&i.h<med*2.6&&i.h>med*0.55).sort((p,q)=>Math.abs(q.y-p.y)>med*0.4?q.y-p.y:p.x-q.x);
+  const bar=[];let cur=null;
+  for(const i of ok){if(!cur||Math.abs(i.y-cur.y)>med*0.4){cur={y:i.y,t:i.s,ex:i.x+i.w};bar.push(cur)}
+    else{cur.t+=(i.x-cur.ex>med*0.15&&!/\s$/.test(cur.t)&&!/^\s/.test(i.s)?' ':'')+i.s;cur.ex=i.x+i.w}}
+  return bar.map(b=>b.t.replace(/\s+/g,' ').trim()).filter(bukanWM).join('\n')}
+/* gambar → kanvas abu-abu; piksel terang (watermark samar/berwarna muda, latar kusam) diputihkan supaya OCR fokus ke tinta */
+function bersihkanKanvas(cv,ambang=185){const g=cv.getContext('2d',{willReadFrequently:true}),im=g.getImageData(0,0,cv.width,cv.height),p=im.data;
+  for(let i=0;i<p.length;i+=4){const l=.299*p[i]+.587*p[i+1]+.114*p[i+2],m=Math.max(p[i],p[i+1],p[i+2])-Math.min(p[i],p[i+1],p[i+2]);
+    const v=l>ambang||(m>60&&l>120)?255:Math.max(0,Math.round((l-40)*1.25));p[i]=p[i+1]=p[i+2]=v}g.putImageData(im,0,0);return cv}
+async function gambarKeKanvas(file){const url=URL.createObjectURL(file);try{const img=await new Promise((ok,no)=>{const m=new Image();m.onload=()=>ok(m);m.onerror=()=>no(new Error('Gambar tidak dapat dibuka'));m.src=url});
+  const k=Math.min(1,2600/Math.max(img.naturalWidth,img.naturalHeight)),cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);
+  cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);return cv}finally{URL.revokeObjectURL(url)}}
+const TEKS_FILE=new WeakMap();
+/* teks lapisan PDF yang sudah dibersihkan (tanpa OCR, cepat) — dipakai sebagai transkrip pendamping untuk AI */
+async function teksPdfBersih(file){if(!file||file.type.startsWith('image/'))return'';if(TEKS_FILE.has(file))return TEKS_FILE.get(file);
+  const job=(async()=>{await loadJs(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min.js','pdf.worker.min.js');
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let out='';
+    try{for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);out+=teksHalaman((await pg.getTextContent()).items)+'\n';pg.cleanup()}}finally{pdf.destroy()}
+    return bersihWM(out)})().catch(e=>{console.warn(e);return''});
+  TEKS_FILE.set(file,job);return job}
+const WM_ATURAN=`
+CATATAN DOKUMEN BER-WATERMARK: dokumen ini dapat memuat watermark/tanda air (mis. tulisan miring besar dan samar "Mahkamah Agung Republik Indonesia", stempel atau logo transparan), kop "Direktori Putusan Mahkamah Agung Republik Indonesia – putusan.mahkamahagung.go.id", nomor "Halaman N", dan blok "Disclaimer" di kaki halaman. ABAIKAN semua itu: bukan bagian isi penetapan, jangan dikutip dan jangan biarkan potongannya (mis. "hkamah Agung", "blik Indonesi") menyela atau mengubah nama, NIK, nomor, tanggal, maupun kalimat. Bila huruf tertutup watermark, baca konteks kalimatnya dan cocokkan dengan TRANSKRIP BERSIH di bawah (bila ada) — transkrip itu teks asli dokumen yang watermark-nya sudah dibuang, jadikan acuan utama untuk ejaan nama, angka NIK, nomor perkara dan tanggal.`;
+async function promptBersih(file,prompt){const t=await teksPdfBersih(file);
+  return prompt+WM_ATURAN+(t&&t.replace(/\s/g,'').length>200?`\n\n=== TRANSKRIP BERSIH (tanpa watermark) ===\n${t.slice(0,60000)}\n=== AKHIR TRANSKRIP ===`:'')}
 async function fileText(file){
   if(file.type.startsWith('image/'))return ocr([file]);
+  stat('Membaca teks dokumen (watermark dibuang)…');const out=await teksPdfBersih(file);
+  if(out.replace(/\s/g,'').length>200)return out;
   await loadJs(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min.js','pdf.worker.min.js');
-  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let out='';
-  for(let i=1;i<=pdf.numPages;i++){stat(`Membaca halaman ${i}/${pdf.numPages}…`);const c=await(await pdf.getPage(i)).getTextContent();
-    let y=null;c.items.forEach(it=>{const ny=it.transform[5];out+=(y!==null&&Math.abs(ny-y)>3?'\n':' ')+it.str;y=ny});out+='\n'}
-  if(out.replace(/\s/g,'').length>200){pdf.destroy();return out}
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
   /* scan: OCR halaman demi halaman supaya hemat memori (HP) */
   const HP=matchMedia('(max-width:900px)').matches||/Android|iPhone|iPad/i.test(navigator.userAgent);
   const maks=Math.min(pdf.numPages,HP?8:20),skala=HP?1.4:2;
   await loadJs(TESS);const wk=await Tesseract.createWorker('ind');let t='';
   try{for(let i=1;i<=maks;i++){stat(`Membaca scan halaman ${i}/${maks}…${HP?' (mode hemat memori)':''}`);
       const pg=await pdf.getPage(i),vp=pg.getViewport({scale:skala});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
-      await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;t+=(await wk.recognize(cv)).data.text+'\n';
+      await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;t+=(await wk.recognize(bersihkanKanvas(cv))).data.text+'\n';
       cv.width=cv.height=0;pg.cleanup()}}
   finally{await wk.terminate();pdf.destroy()}
-  return t}
+  return bersihWM(t)}
 async function ocr(imgs){await loadJs(TESS);const w=await Tesseract.createWorker('ind');let t='';
-  for(let i=0;i<imgs.length;i++){stat(`OCR (scan) halaman ${i+1}/${imgs.length}… agak lama`);t+=(await w.recognize(imgs[i])).data.text+'\n'}await w.terminate();return t}
+  for(let i=0;i<imgs.length;i++){stat(`OCR (scan) halaman ${i+1}/${imgs.length}… agak lama`);let src=imgs[i];try{src=bersihkanKanvas(await gambarKeKanvas(imgs[i]))}catch(e){console.warn(e)}
+    t+=(await w.recognize(src)).data.text+'\n'}await w.terminate();return bersihWM(t)}
 
 /* heuristik teks penetapan PN (format direktori putusan MA) */
 function parsePenetapan(raw){
@@ -1256,7 +1292,7 @@ Balas satu objek JSON dengan kunci:
 "orangTuaHidup": true HANYA bila menurut penetapan ayah DAN ibu kandung anak keduanya masih hidup (tidak ada yang meninggal dunia); false bila salah satu/keduanya telah meninggal. "terkaitMiliter": isi singkat bila pemohon ATAU orang tua anak yang meninggal adalah anggota TNI/Polri atau permohonan terkait ASABRI/dinas militer/kepolisian (mis. "almarhum anggota TNI AD, untuk pencairan ASABRI"); kosongkan bila tidak. Jangan anggap SKCK (Surat Keterangan Catatan Kepolisian) sebagai keterkaitan kepolisian.
 Untuk Perwalian: "anak" berisi SEMUA anak pemohon yang disebut dalam penetapan beserta tanggal lahirnya; "diwalikan" true hanya untuk anak yang ditetapkan di bawah perwalian pemohon dalam amar (anak di bawah umur), false untuk anak yang sudah dewasa/tidak termasuk amar. Kosongkan "terampu".
 Untuk Pengampuan: isi "terampu", kosongkan "anak" dan data pasangan kecuali relevan.`;
-  const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',prompt);if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;return n}
+  const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',await promptBersih(file,prompt));if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;return n}
 
 const PEN_LBL={jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan'};
 let PEN=null;
