@@ -21,9 +21,9 @@ button:hover{border-color:var(--pri)}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:16px}
 .list{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow:auto}
-.lfil{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px}.lfil #fGrp{grid-column:1/-1}.lfil select{font-size:12.5px;padding:7px 8px;border-radius:9px;min-width:0}
+.lfil{display:grid;grid-template-columns:1fr;gap:6px;margin:0 0 10px}.lfil #fGrp,.lfil #fBln{grid-column:1/-1}.lfil select{font-size:12.5px;padding:7px 8px;border-radius:9px;min-width:0}
 .lgrp{position:sticky;top:0;z-index:1;background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 2px 4px;font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.3px;text-transform:uppercase;border-bottom:1px solid var(--line)}
-.lgrp.sub{position:static;text-transform:none;letter-spacing:0;font-weight:600;border-bottom:0;padding:4px 2px 0}.lgrp i{font-style:normal;background:var(--line);border-radius:20px;padding:1px 8px;font-size:11px}
+.lgrp.sub2{padding-left:12px}.lgrp.sub{position:static;text-transform:none;letter-spacing:0;font-weight:600;border-bottom:0;padding:4px 2px 0}.lgrp i{font-style:normal;background:var(--line);border-radius:20px;padding:1px 8px;font-size:11px}
 .item .meta-l{display:block;color:var(--mut);font-size:11.5px;margin-top:3px}
 .item{padding:10px;border-radius:10px;border:1px solid var(--line);cursor:pointer}
 .item.on{border-color:var(--pri);background:var(--pri2)}
@@ -241,8 +241,8 @@ html,body{max-width:100%;overflow-x:hidden}
 <div class="wrap">
   <aside class="card">
     <h3>Daftar Berkas</h3>
-    <div class="lfil"><select id="fGrp" onchange="setFil('grp',this.value)" title="Pisahkan daftar berdasarkan"><option value="lok">Pisah per lokasi</option><option value="tgl">Pisah per tanggal dibuat</option><option value="lt">Lokasi → tanggal dibuat</option><option value="">Tanpa pemisah</option></select>
-      <select id="fLok" onchange="setFil('lok',this.value)" title="Saring lokasi"></select><select id="fBln" onchange="setFil('bln',this.value)" title="Saring bulan dibuat"></select></div>
+    <div class="lfil"><select id="fGrp" onchange="setFil('grp',this.value)" title="Pisahkan daftar berdasarkan"><option value="prov">Provinsi → kota/kabupaten</option><option value="plt">Provinsi → kota/kab → tanggal dibuat</option><option value="lok">Per kota/kabupaten</option><option value="lt">Kota/kab → tanggal dibuat</option><option value="tgl">Per tanggal dibuat</option><option value="">Tanpa pemisah</option></select>
+      <select id="fProv" onchange="setFil('prov',this.value)" title="Saring provinsi"></select><select id="fLok" onchange="setFil('lok',this.value)" title="Saring kota/kabupaten"></select><select id="fBln" onchange="setFil('bln',this.value)" title="Saring bulan dibuat"></select></div>
     <div class="list" id="list"></div>
   </aside>
 
@@ -838,12 +838,26 @@ const DEMO=(()=>{const K='bhpDemo.v2',st=(()=>{try{return JSON.parse(localStorag
 /* ---------------- render UI ---------------- */
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1800)}
 /* ===== Pemisahan daftar berkas: lokasi (kota/kabupaten pemohon) & tanggal pembuatan berkas ===== */
-const FIL=(()=>{try{return Object.assign({grp:'lok',lok:'',bln:''},JSON.parse(localStorage.getItem('bhp_fil')||'{}'))}catch(e){return{grp:'lok',lok:'',bln:''}}})();
+const FIL=(()=>{try{return Object.assign({grp:'prov',prov:'',lok:'',bln:''},JSON.parse(localStorage.getItem('bhp_fil')||'{}'))}catch(e){return{grp:'prov',prov:'',lok:'',bln:''}}})();
 function setFil(k,v){FIL[k]=v;try{localStorage.setItem('bhp_fil',JSON.stringify(FIL))}catch(e){}renderList()}
 function lokasiBerkas(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
   const k=s.match(/\b(Kota|Kabupaten|Kab\.)\s+([A-Za-z .'-]+?)(?=\s*(?:,|;|$|\bProv))/i),kc=s.match(/\b(?:Kecamatan|Kec\.)\s*([A-Za-z .'-]+?)(?=\s*(?:,|;|$))/i);
   const kota=k?(/^kab/i.test(k[1])?'Kabupaten ':'Kota ')+k[2].trim().replace(/\b\w/g,c=>c.toUpperCase()):String(r.kotaPermohonan||'').trim()?'Kota '+String(r.kotaPermohonan).trim():'';
   return{kota:kota||'Lokasi belum diisi',kec:kc?'Kec. '+kc[1].trim().replace(/\b\w/g,c=>c.toUpperCase())+(kota?', '+kota:''):''}}
+/* kota/kabupaten → provinsi (wilayah kerja BHP Medan) */
+const PROV_DATA={'Sumatera Utara':'k:Asahan|k:Batu Bara|k:Dairi|k:Deli Serdang|k:Humbang Hasundutan|k:Karo|k:Labuhanbatu|k:Labuhanbatu Selatan|k:Labuhanbatu Utara|k:Langkat|k:Mandailing Natal|k:Nias|k:Nias Barat|k:Nias Selatan|k:Nias Utara|k:Padang Lawas|k:Padang Lawas Utara|k:Pakpak Bharat|k:Samosir|k:Serdang Bedagai|k:Simalungun|k:Tapanuli Selatan|k:Tapanuli Tengah|k:Tapanuli Utara|k:Toba|k:Toba Samosir|c:Binjai|c:Gunungsitoli|c:Medan|c:Padangsidimpuan|c:Padang Sidempuan|c:Pematangsiantar|c:Sibolga|c:Tanjungbalai|c:Tebing Tinggi|p:Lubuk Pakam|p:Stabat|p:Kisaran|p:Rantau Prapat|p:Kabanjahe|p:Sidikalang|p:Balige|p:Tarutung|p:Sei Rampah|p:Pandan|p:Panyabungan|p:Sibuhuan|p:Salak|p:Dolok Sanggul|p:Limapuluh|p:Lima Puluh|p:Tanjung Balai|p:Pangururan|p:Gunung Sitoli|p:Sipirok',
+  'Aceh':'k:Aceh Barat|k:Aceh Barat Daya|k:Aceh Besar|k:Aceh Jaya|k:Aceh Selatan|k:Aceh Singkil|k:Aceh Tamiang|k:Aceh Tengah|k:Aceh Tenggara|k:Aceh Timur|k:Aceh Utara|k:Bener Meriah|k:Bireuen|k:Gayo Lues|k:Nagan Raya|k:Pidie|k:Pidie Jaya|k:Simeulue|c:Banda Aceh|c:Langsa|c:Lhokseumawe|c:Sabang|c:Subulussalam|p:Meulaboh|p:Jantho|p:Calang|p:Tapaktuan|p:Singkil|p:Kuala Simpang|p:Takengon|p:Kutacane|p:Idi|p:Lhoksukon|p:Sigli|p:Meureudu|p:Blangkejeren|p:Suka Makmue|p:Sinabang|p:Simpang Tiga Redelong|p:Blangpidie',
+  'Sumatera Barat':'k:Agam|k:Dharmasraya|k:Kepulauan Mentawai|k:Lima Puluh Kota|k:Padang Pariaman|k:Pasaman|k:Pasaman Barat|k:Pesisir Selatan|k:Sijunjung|k:Solok|k:Solok Selatan|k:Tanah Datar|c:Bukittinggi|c:Padang|c:Padang Panjang|c:Pariaman|c:Payakumbuh|c:Sawahlunto|c:Solok|p:Lubuk Basung|p:Pulau Punjung|p:Painan|p:Muaro Sijunjung|p:Batusangkar|p:Koto Baru|p:Lubuk Sikaping|p:Pasaman Barat|p:Tuapejat',
+  'Riau':'k:Bengkalis|k:Indragiri Hilir|k:Indragiri Hulu|k:Kampar|k:Kepulauan Meranti|k:Kuantan Singingi|k:Pelalawan|k:Rokan Hilir|k:Rokan Hulu|k:Siak|c:Dumai|c:Pekanbaru|p:Tembilahan|p:Rengat|p:Bangkinang|p:Teluk Kuantan|p:Pangkalan Kerinci|p:Bagan Siapiapi|p:Rokan Hilir|p:Pasir Pangaraian|p:Siak Sri Indrapura|p:Selat Panjang',
+  'Kepulauan Riau':'k:Bintan|k:Karimun|k:Kepulauan Anambas|k:Lingga|k:Natuna|c:Batam|c:Tanjungpinang|c:Tanjung Pinang|p:Tanjung Balai Karimun|p:Ranai|p:Tarempa|p:Daik'};
+const PROV_IDX=(()=>{const m={};for(const[pv,l]of Object.entries(PROV_DATA))l.split('|').forEach(x=>{const[t,n]=x.split(':');m[t+':'+n.toLowerCase().replace(/[^a-z]/g,'')]=pv});return m})();
+function provinsiBerkas(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
+  const pv=s.match(/\b(?:Provinsi|Prov\.)\s*([A-Za-z .]+?)(?=\s*(?:,|;|$|\d))/i);if(pv){const n=pv[1].trim().toLowerCase().replace(/[^a-z]/g,'');const f=Object.keys(PROV_DATA).find(k=>k.toLowerCase().replace(/[^a-z]/g,'')===n||(n==='sumut'&&k==='Sumatera Utara')||(n==='sumbar'&&k==='Sumatera Barat')||(n==='kepri'&&k==='Kepulauan Riau')||(n==='nad'&&k==='Aceh'));return f||pv[1].trim().replace(/\b\w/g,c=>c.toUpperCase())}
+  const kk=lokasiBerkas(r).kota,key=n=>String(n).toLowerCase().replace(/[^a-z]/g,'');
+  if(kk!=='Lokasi belum diisi'){const kab=/^Kabupaten /.test(kk),n=key(kk.replace(/^(Kota|Kabupaten)\s+/,''));const f=PROV_IDX[(kab?'k:':'c:')+n]||PROV_IDX[(kab?'c:':'k:')+n]||PROV_IDX['p:'+n];if(f)return f}
+  const pn=String(r.pengadilan||'').match(/Pengadilan\s+(?:Negeri|Agama|Mahkamah\s+Syar'?iyah|Mahkamah\s+Syariah)\s+(.+)$/i)||String(r.pengadilan||'').match(/Mahkamah\s+Syar'?iyah\s+(.+)$/i);
+  if(pn){const n=key(pn[1].replace(/\bKelas\b.*$/i,''));const f=PROV_IDX['c:'+n]||PROV_IDX['p:'+n]||PROV_IDX['k:'+n];if(f)return f}
+  return'Provinsi belum diketahui'}
 function tglDibuat(r){const v=(r._meta&&r._meta.dibuatPada)||r.dibuatPada||'';if(!v)return'';const d=new Date(v);if(isNaN(d))return String(v).slice(0,10);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function hariTgl(s){const d=pd(s);return d?HARI[d.getDay()]+', '+tgl(s):'Tanggal dibuat tidak tercatat'}
@@ -851,24 +865,24 @@ function renderList(){const q=($('#q').value||'').toLowerCase();
   const semua=DB.filter(r=>(r.nama+' '+derive(r).objek).toLowerCase().includes(q));
   /* pilihan saringan (dengan jumlah) */
   const hit=(arr,f)=>arr.reduce((m,r)=>{const k=f(r);m[k]=(m[k]||0)+1;return m},{});
-  const lokN=hit(semua,r=>lokasiBerkas(r).kota),blnN=hit(semua,r=>(tglDibuat(r)||'').slice(0,7)||'-');
-  if(FIL.lok&&!lokN[FIL.lok])FIL.lok='';if(FIL.bln&&!blnN[FIL.bln])FIL.bln='';
+  const provN=hit(semua,provinsiBerkas),lokN=hit(semua.filter(r=>!FIL.prov||provinsiBerkas(r)===FIL.prov),r=>lokasiBerkas(r).kota),blnN=hit(semua,r=>(tglDibuat(r)||'').slice(0,7)||'-');
+  if(FIL.prov&&!provN[FIL.prov])FIL.prov='';if(FIL.lok&&!lokN[FIL.lok])FIL.lok='';if(FIL.bln&&!blnN[FIL.bln])FIL.bln='';
   const fg=$('#fGrp');if(fg)fg.value=FIL.grp;
-  const fl=$('#fLok');if(fl)fl.innerHTML=`<option value="">Semua lokasi</option>`+Object.keys(lokN).sort((a,b)=>(a==='Lokasi belum diisi')-(b==='Lokasi belum diisi')||a.localeCompare(b)).map(k=>`<option value="${esc(k)}" ${k===FIL.lok?'selected':''}>${esc(k)} (${lokN[k]})</option>`).join('');
+  const urutB=(a,b)=>(/belum/.test(a))-(/belum/.test(b))||a.localeCompare(b);
+  const fp=$('#fProv');if(fp)fp.innerHTML=`<option value="">Semua provinsi</option>`+Object.keys(provN).sort(urutB).map(k=>`<option value="${esc(k)}" ${k===FIL.prov?'selected':''}>${esc(k)} (${provN[k]})</option>`).join('');
+  const fl=$('#fLok');if(fl)fl.innerHTML=`<option value="">Semua kota/kab</option>`+Object.keys(lokN).sort((a,b)=>(a==='Lokasi belum diisi')-(b==='Lokasi belum diisi')||a.localeCompare(b)).map(k=>`<option value="${esc(k)}" ${k===FIL.lok?'selected':''}>${esc(k)} (${lokN[k]})</option>`).join('');
   const fb=$('#fBln');if(fb)fb.innerHTML=`<option value="">Semua bulan</option>`+Object.keys(blnN).sort().reverse().map(k=>`<option value="${k}" ${k===FIL.bln?'selected':''}>${k==='-'?'Tanpa tanggal':blnThn(k+'-01')} (${blnN[k]})</option>`).join('');
-  const L=semua.filter(r=>(!FIL.lok||lokasiBerkas(r).kota===FIL.lok)&&(!FIL.bln||((tglDibuat(r)||'').slice(0,7)||'-')===FIL.bln))
+  const L=semua.filter(r=>(!FIL.prov||provinsiBerkas(r)===FIL.prov)&&(!FIL.lok||lokasiBerkas(r).kota===FIL.lok)&&(!FIL.bln||((tglDibuat(r)||'').slice(0,7)||'-')===FIL.bln))
     .sort((a,b)=>(tglDibuat(b)||'').localeCompare(tglDibuat(a)||''));
   const item=r=>`<div class="item ${cur&&cur.id===r.id?'on':''}" style="${r._dihapus?'opacity:.5':''}" onclick="pick('${r.id}')">${r._dihapus?'<span class="tag" style="color:var(--warn)">Terhapus</span>':''}
   <b>${esc(r.nama||'(tanpa nama)')}</b>${(q=>q.some(x=>x.lvl==='e')?' <span title="Ada kesalahan data" style="color:#e5484d">●</span>':'')(cekCetak(r))}<small>${esc(derive(r).objek||'-')}</small><br><span class="tag">${r.jenis}</span>${(t=>t.length?` <span class="tag" style="color:#c0392b" title="${esc(t.join(' | '))}">⛔ Ditolak</span><br><small style="color:#c0392b">${esc(t.map(x=>x.split('. Alasan')[0]).join('; '))}</small>`:'')(cekKelayakan(r).tolak)} <small>${r.tglSumpah?'Sumpah '+tgl(r.tglSumpah):''}</small><span class="meta-l">📍 ${esc(lokasiBerkas(r).kec||lokasiBerkas(r).kota)} · 🗓 dibuat ${tglDibuat(r)?tgl(tglDibuat(r)):'—'}</span></div>`;
   const grupkan=(arr,f)=>{const m=new Map();arr.forEach(r=>{const k=f(r);if(!m.has(k))m.set(k,[]);m.get(k).push(r)});return[...m]};
-  const head=(t,n,sub)=>`<div class="lgrp${sub?' sub':''}"><span>${t}</span><i>${n}</i></div>`;
-  const perLok=arr=>grupkan(arr,r=>lokasiBerkas(r).kota).sort((a,b)=>(a[0]==='Lokasi belum diisi')-(b[0]==='Lokasi belum diisi')||a[0].localeCompare(b[0]));
-  const perTgl=arr=>grupkan(arr,r=>tglDibuat(r)||'');
-  let h='';
-  if(FIL.grp==='lok')h=perLok(L).map(([k,a])=>head('📍 '+esc(k),a.length)+a.map(item).join('')).join('');
-  else if(FIL.grp==='tgl')h=perTgl(L).map(([k,a])=>head('🗓 '+hariTgl(k),a.length)+a.map(item).join('')).join('');
-  else if(FIL.grp==='lt')h=perLok(L).map(([k,a])=>head('📍 '+esc(k),a.length)+perTgl(a).map(([t,b])=>head('🗓 '+hariTgl(t),b.length,1)+b.map(item).join('')).join('')).join('');
-  else h=L.map(item).join('');
+  const head=(t,n,sub)=>`<div class="lgrp${sub?' sub':''}${sub>1?' sub2':''}"><span>${t}</span><i>${n}</i></div>`;
+  const LV={P:{f:provinsiBerkas,t:k=>'🗺 Provinsi '+esc(k.replace(/^Provinsi /,'')),srt:1},L:{f:r=>lokasiBerkas(r).kota,t:k=>'📍 '+esc(k),srt:1},T:{f:r=>tglDibuat(r)||'',t:k=>'🗓 '+hariTgl(k)}};
+  const MODE={prov:'PL',plt:'PLT',lok:'L',lt:'LT',tgl:'T','':''}[FIL.grp]??'PL';
+  const susun=(arr,lv)=>{if(!lv.length)return arr.map(item).join('');const L0=LV[lv[0]],d=MODE.length-lv.length;let g=grupkan(arr,L0.f);if(L0.srt)g.sort((a,b)=>urutB(a[0],b[0]));
+    return g.map(([k,a])=>head(L0.t(k),a.length,d>0?(d>1?2:1):0)+susun(a,lv.slice(1))).join('')};
+  const h=susun(L,MODE.split(''));
   $('#list').innerHTML=h||(DB.length?'<p class="hint">Tidak ada berkas yang cocok dengan saringan.</p>':'<p class="hint">Belum ada berkas. Klik “📑 Berkas Baru” di menu kiri untuk memulai.</p>')}
 function pick(id){PILIH=null;WZ.on=false;setNav('berkas','Daftar Berkas');clearTimeout(saveT);if(cur)flush();cur=DB.find(r=>r.id===id);if(tab==='riw'&&!cur)tab='umum';renderMain();renderList()}
 function newRec(){if(cur){clearTimeout(saveT);flush()}cur=addRec(blank(),'Berkas baru (manual)');tab='umum';renderMain();renderList();flush()}
