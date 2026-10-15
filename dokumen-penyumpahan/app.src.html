@@ -342,6 +342,10 @@ const tembusan=(r,lurah=true)=>`<p class="ni" data-keep="1" style="margin-top:22
 const penetapan=r=>`Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap`;
 const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'};
 const kota=r=>r.kotaPermohonan||((r.kelurahan||'').match(/(?:Kota|Kabupaten|Kab\.)\s+([^,]+)/i)||[])[1]||'Medan';
+/* alamat lengkap pemohon (wali/pengampu): alamat + kelurahan/kecamatan/kota bila belum tercantum */
+function alamatLengkap(r){const a=String(r.alamat||'').trim().replace(/[\s.,;]+$/,''),k=String(r.kelurahan||'').trim().replace(/[\s.,;]+$/,'');if(!a||!k)return a||k;
+  const kn=k.match(/Kel(?:urahan)?\.?\s+([^,]+)/i);return kn&&a.toLowerCase().includes(kn[1].trim().toLowerCase())?a:a+', '+k}
+const tempatSumpah=r=>String(r.tempat||'').trim()||alamatLengkap(r)||'Kediaman '+(r.nama||'');
 const tempatTgl=r=>`${esc(kota(r))},&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${blnThn(r.tglSumpah)}`;
 const bapP=r=>pjCari(r.bapOleh===undefined?r.muda:r.bapOleh);
 /* nomor BA/BAP/BA Harta diisi manual petugas pada hari penyumpahan (SPS tidak bisa tanggal maju) */
@@ -373,14 +377,14 @@ function head(no,hal,r){return `<table class="hd" style="width:100%;margin-botto
 <tr><td>Sifat</td><td>:</td><td>Segera</td><td></td></tr><tr><td>Lampiran</td><td>:</td><td>-</td><td></td></tr>
 <tr><td>Hal</td><td>:</td><td colspan=2>${hal}</td></tr></table>`}
 const jadwal=(r,note)=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:90pt">Hari/Tanggal</td><td>:</td><td>${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}</td></tr>
-<tr><td>Pukul</td><td>:</td><td>${V(r.waktu)}<br>(${note} ${WA()})</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(r.tempat||'Kediaman '+(r.nama||''))}</td></tr></table>`;
+<tr><td>Pukul</td><td>:</td><td>${V(r.waktu)}<br>(${note} ${WA()})</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(tempatSumpah(r))}</td></tr></table>`;
 const yth=(nama,alamat)=>`<p class="ni" style="text-align:left">Yth. <b>${nama}</b><br>di</p><p class="ni" style="margin-left:18pt;max-width:260pt;text-align:left">${alamat}</p><br>`;
 const syarat=(items,after)=>`<ol style="margin-left:36pt;line-height:1.15">${items.map(x=>`<li>${x}</li>`).join('')}</ol>${after.map(x=>`<p class="ni" style="margin-left:54pt;line-height:1.15">${x}</p>`).join('')}`;
 const PNBP='Nominal PNBP ditetapkan secara resmi berdasarkan Peraturan Pemerintah Republik Indonesia Nomor 45 Tahun 2024 tentang Jenis dan Tarif atas Jenis Penerimaan Negara Bukan Pajak yang Berlaku pada Kementerian Hukum dan Hak Asasi Manusia.';
 const BILLING='(Mekanisme pembayaran akan dipandu melalui kode pembayaran/<i>billing</i> kas negara secara elektronik pada saat kegiatan).';
 
 const tabelJadwal=r=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:100pt">Hari / Tanggal</td><td>:</td><td>${hari(r.tglSumpah)}, ${tgl(r.tglSumpah)}</td></tr>
-<tr><td>Waktu</td><td>:</td><td>${V(r.waktu)}</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(r.tempat||'Kediaman '+(r.nama||''))}</td></tr>${r.zoom?`<tr><td>Link Zoom</td><td>:</td><td>${esc(r.zoom)}</td></tr>`:''}</table>`;
+<tr><td>Waktu</td><td>:</td><td>${V(r.waktu)}</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(tempatSumpah(r))}</td></tr>${r.zoom?`<tr><td>Link Zoom</td><td>:</td><td>${esc(r.zoom)}</td></tr>`:''}</table>`;
 const DOCS_EXTRA={
   undangan:{nama:r=>`Undangan Sumpah ke ${derive(r).J}`,sty:{line:360},fn:r=>{const d=derive(r),s=d.sapa;
     return kop()+head(r.nomorUndangan,`Undangan Pengambilan Sumpah ${d.J}`,r)+yth(`${s} ${V(r.nama)}`,V(r.alamat))+
@@ -867,7 +871,7 @@ function renderMain(){
     <button onclick="cur.anak.push({nama:'',jk:'Laki-laki',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
     else h+=F('terampu.nama','Nama Terampu')+F('terampu.jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('terampu.tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.terampu.tglLahir,cur.tglSumpah)}"></div>`+F('terampu.kondisi','Kondisi medis + surat dokter','area')}
-  if(tab==='jadwal')h+=`<div class="full" style="max-width:460px"><label>Pilih tanggal sumpah — angka kuning = jumlah penyumpahan yang sudah terjadwal di hari itu</label><div id="miniCal" class="cal mini">${kalHtml(KAL.ymMini||(cur.tglSumpah||today()).slice(0,7),true)}</div></div>`+F('tglSumpah','Tanggal Sumpah','date')+F('waktu','Waktu')+F('tempat','Tempat (kosong = kediaman)')+F('zoom','Link Zoom (isi bila sumpah virtual)')+
+  if(tab==='jadwal')h+=`<div class="full" style="max-width:460px"><label>Pilih tanggal sumpah — angka kuning = jumlah penyumpahan yang sudah terjadwal di hari itu</label><div id="miniCal" class="cal mini">${kalHtml(KAL.ymMini||(cur.tglSumpah||today()).slice(0,7),true)}</div></div>`+F('tglSumpah','Tanggal Sumpah','date')+F('waktu','Waktu')+F('tempat','Tempat (kosong = alamat pemohon)').replace('<input ',`<input placeholder="${esc(alamatLengkap(cur)||'Alamat pemohon')}" `)+F('zoom','Link Zoom (isi bila sumpah virtual)')+
     `<div><label>Hari/tanggal di BA (otomatis)</label><input disabled value="${tglBA(cur.tglSumpah)}"></div>
     <div><label>Pejabat penyumpah (Madya)</label><select onchange="setv('madya',this.value)">${pjOpt(cur.madya)}</select></div>
     <div><label>Pejabat inventarisasi harta (Muda)</label><select onchange="setv('muda',this.value)">${pjOpt(cur.muda)}</select></div>
@@ -1146,6 +1150,7 @@ async function handlePenetapan(file){
     let rx=null;const cukup=data&&data.nama&&(data.nomorPenetapan||data.tglPenetapan);
     if(!cukup)try{const text=await fileText(file);if(text.replace(/\s/g,'').length>=80){rx=parsePenetapan(text);rx._text=text}}catch(e){if(!data)throw e}
     if(data&&rx)data=gabung(data,rx);else data=data||rx;if(!data)throw new Error('Teks tidak terbaca dari file.');
+    try{const tk=(rx&&rx._text)||await teksPdfBersih(file),h=hubDariTeks(tk,data);if(h&&h!==data.status){console.info('Hubungan dikoreksi dari teks penetapan:',data.status,'→',h);data.status=h}}catch(e){console.warn(e)}
     if(WZ.on){if(!WZ.pilih||!data.jenis)data.jenis=data.jenis||WZ.jenis;if(WZ.pilih)data.jenis=WZ.jenis;WZ.data=data;wizard(2);return}
     reviewPenetapan(data,file.name);
   }catch(e){if(WZ.on){const d=$('#wzDrop');if(d)d.innerHTML=`<div class="ic">⚠️</div><b>Gagal membaca: ${esc(e.message)}</b><small>Klik untuk mencoba file lain, atau isi manual.</small><input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this)">`;return}$('#penBody').innerHTML=`<h3>Gagal membaca penetapan</h3><p>${esc(e.message)}</p><p class="hint">Coba file PDF asli (bukan foto miring/buram), atau isi kunci AI di Pengaturan.</p><p style="text-align:right"><button onclick="penDlg.close()">Tutup</button></p>`}
@@ -1267,6 +1272,26 @@ function parsePenetapan(raw){
   }
   return R}
 
+/* hubungan objek (terampu/anak) terhadap pemohon, dibaca langsung dari teks penetapan — dipakai mengoreksi AI bila terbalik arah */
+const HUB_RE='(?:adik|kakak|saudara)(?:\\s+(?:kandung|tiri|seayah|seibu))?(?:\\s+(?:perempuan|laki-laki))?|(?:ibu|ayah|bapak)(?:\\s+(?:kandung|tiri|angkat|mertua))?|anak(?:\\s+(?:kandung|tiri|angkat))?|cucu(?:\\s+kandung)?|keponakan|suami|isteri|istri|paman|bibi|kakek|nenek|menantu|mertua';
+function hubTitle(h){return String(h).toLowerCase().replace(/\s+/g,' ').replace(/^isteri/,'istri').replace(/\b\w/g,c=>c.toUpperCase())}
+function hubBalik(h,jkObj){h=h.toLowerCase().replace(/\s+/g,' ');const P=jkObj==='Perempuan',L=jkObj==='Laki-laki',k=/kandung/.test(h)?' kandung':/tiri/.test(h)?' tiri':'';
+  if(/^kakak/.test(h))return'adik'+(k||' kandung');if(/^adik/.test(h))return'kakak'+(k||' kandung');if(/^saudara/.test(h))return h;
+  if(/^(ibu|ayah|bapak)/.test(h)&&!/mertua/.test(h))return'anak'+(/angkat/.test(h)?' angkat':k||' kandung');
+  if(/^anak/.test(h))return P?'ibu'+(k||' kandung'):L?'ayah'+(k||' kandung'):'';
+  if(h==='suami')return'istri';if(/^istri|^isteri/.test(h))return'suami';if(/^(paman|bibi)/.test(h))return'keponakan';if(h==='keponakan')return P?'bibi':L?'paman':'';
+  if(/^(kakek|nenek)/.test(h))return'cucu';if(/^cucu/.test(h))return P?'nenek':L?'kakek':'';if(h==='menantu')return'mertua';if(h==='mertua')return'menantu';return''}
+function hubDariTeks(teks,d){
+  const flat=String(teks||'').replace(/\s+/g,' '),objek=d.jenis==='Perwalian'?(d.anak||[]).filter(a=>a&&a.nama):d.terampu&&d.terampu.nama?[d.terampu]:[];
+  const suara={},tambah=(h,b)=>{h=hubTitle(h);if(h)suara[h]=(suara[h]||0)+b};
+  for(const o of objek){const nm=String(o.nama).trim().split(/\s+/).map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('\\s+');if(nm.length<3)continue;
+    const R=(src,f)=>{const re=new RegExp(src,'gi');let m;while((m=re.exec(flat)))f(m)};
+    R(`${nm}\\s*\\(\\s*(${HUB_RE})\\s+(?:dari\\s+)?(?:para\\s+)?Pemohon\\s*\\)`,m=>tambah(m[1],5));
+    R(`${nm}\\s*,?\\s+(?:adalah|merupakan|selaku|sebagai)\\s+(${HUB_RE})\\s+(?:dari\\s+)?(?:para\\s+)?Pemohon\\b`,m=>tambah(m[1],3));
+    R(`\\b(${HUB_RE})\\s+(?:dari\\s+)?(?:para\\s+)?Pemohon\\s*,?\\s+(?:yang\\s+bernama|bernama|yaitu|yakni|atas\\s+nama|an\\.)\\s+${nm}`,m=>tambah(m[1],3));
+    R(`\\bPemohon\\s+(?:adalah|merupakan|selaku|sebagai)\\s+(${HUB_RE})\\s+(?:dari\\s+)?${nm}`,m=>tambah(hubBalik(m[1],o.jk),3))}
+  if(!Object.keys(suara).length){const re=new RegExp(`(?:pengampu|wali)\\s+(?:dari|atas|bagi|terhadap)\\s+[^()]{3,60}?\\(\\s*(${HUB_RE})\\s+(?:dari\\s+)?(?:para\\s+)?Pemohon\\s*\\)`,'gi');let m;while((m=re.exec(flat)))tambah(m[1],1)}
+  const best=Object.entries(suara).sort((a,b)=>b[1]-a[1])[0];return best?best[0]:''}
 function gabung(ai,rx){const o={...rx,...ai};for(const k in rx)if(typeof rx[k]!=='object'&&!ai[k])o[k]=rx[k];
   if(ai.terampu||rx.terampu){o.terampu={...(rx.terampu||{})};for(const k in (ai.terampu||{}))if(ai.terampu[k])o.terampu[k]=ai.terampu[k]}
   o.anak=(ai.anak&&ai.anak.filter(a=>a&&a.nama).length)?ai.anak:rx.anak;o._text=rx._text;o._ai=true;return o}
@@ -1284,7 +1309,7 @@ ATURAN KETAT: hanya isi data yang benar-benar tertulis di dokumen; bila tidak ad
 Balas satu objek JSON dengan kunci:
 {"jenis":"Perwalian|Pengampuan","pengadilan":"mis. Pengadilan Agama Lubuk Pakam","nomorPenetapan":"","tglPenetapan":"YYYY-MM-DD (tanggal 'Demikianlah ditetapkan')",
 "nama":"","nik":"16 digit","jk":"Laki-laki|Perempuan","tglLahir":"","agama":"Islam|Kristen|Katholik|Hindu|Buddha|Khonghucu","pekerjaan":"","alamat":"alamat lengkap pemohon seperti tertulis","kelurahan":"Kelurahan X, Kecamatan Y, Kota/Kabupaten Z",
-"status":"hubungan ANAK/TERAMPU terhadap pemohon, Title Case (mis. Anak Kandung, Cucu, Suami, Ibu Kandung)",
+"status":"hubungan TERAMPU (pengampuan) atau ANAK (perwalian) TERHADAP PEMOHON = terampu/anak itu SIAPANYA pemohon, Title Case (mis. Adik Kandung, Ibu Kandung, Anak Kandung, Cucu, Keponakan, Suami)",
 "pasangan":"nama suami/istri pemohon (untuk perwalian: orang tua lain dari anak)","aktaNikah":"mis. Kutipan Akta Nikah Nomor 123/45/VI/2008 tanggal 12 Juni 2008 dari KUA Kecamatan …","tglMeninggalPasangan":"","ketMeninggal":"mis. berdasarkan Akta Kematian Nomor … tanggal … yang dikeluarkan oleh …",
 "anak":[{"nama":"","jk":"Laki-laki|Perempuan","tglLahir":"","diwalikan":true}],
 "terampu":{"nama":"","jk":"","tglLahir":"","kondisi":"diagnosis + dasar surat keterangan dokter (nama RS, nomor, tanggal)"},
@@ -1294,10 +1319,11 @@ Balas satu objek JSON dengan kunci:
 "orangTuaHidup":false,"terkaitMiliter":""}
 "orangTuaHidup": true HANYA bila menurut penetapan ayah DAN ibu kandung anak keduanya masih hidup (tidak ada yang meninggal dunia); false bila salah satu/keduanya telah meninggal. "terkaitMiliter": isi singkat bila pemohon ATAU orang tua anak yang meninggal adalah anggota TNI/Polri atau permohonan terkait ASABRI/dinas militer/kepolisian (mis. "almarhum anggota TNI AD, untuk pencairan ASABRI"); kosongkan bila tidak. Jangan anggap SKCK (Surat Keterangan Catatan Kepolisian) sebagai keterkaitan kepolisian.
 Untuk Perwalian: "anak" berisi SEMUA anak pemohon yang disebut dalam penetapan beserta tanggal lahirnya; "diwalikan" true hanya untuk anak yang ditetapkan di bawah perwalian pemohon dalam amar (anak di bawah umur), false untuk anak yang sudah dewasa/tidak termasuk amar. Kosongkan "terampu".
-Untuk Pengampuan: isi "terampu", kosongkan "anak" dan data pasangan kecuali relevan.`;
+Untuk Pengampuan: isi "terampu", kosongkan "anak" dan data pasangan kecuali relevan.
+ARAH "status" (WAJIB BENAR): jawab pertanyaan "TERAMPU/ANAK adalah ___ dari PEMOHON", BUKAN "pemohon adalah ___ dari terampu". Contoh: amar "menetapkan Pemohon sebagai pengampu dari Verawati (Adik Kandung Pemohon)" → "Adik Kandung"; kalimat "Pemohon adalah kakak kandung dari terampu" → "Adik Kandung"; "Pemohon adalah anak kandung terampu" → terampu = "Ibu Kandung"/"Ayah Kandung" sesuai jenis kelamin terampu; "Pemohon adalah ibu kandung dari anak tersebut" → "Anak Kandung"; "Pemohon adalah paman/bibi si anak" → "Keponakan"; "Pemohon adalah nenek/kakek si anak" → "Cucu". Utamakan keterangan dalam AMAR (mis. tanda kurung "(… Pemohon)"). Hanya tentukan hubungan dengan orang yang benar-benar menjadi TERAMPU/ANAK yang diwalikan — keluarga lain yang sekadar disebut (mis. ibu pemohon yang sakit tetapi bukan terampu) jangan dipakai.`;
   const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',await promptBersih(file,prompt));if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;return n}
 
-const PEN_LBL={jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan'};
+const PEN_LBL={jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan (terampu/anak adalah … pemohon)'};
 let PEN=null;
 function reviewHtml(d){PEN=d;const w=d.jenis==='Perwalian';
   const row=(k,lbl,v,type='text')=>`<div><label>${lbl}</label><input type="${type}" value="${esc(v||'')}" data-pk="${k}" style="${v?'':'background:#fff6db;border-color:#f6c343'}"></div>`;
@@ -1347,7 +1373,7 @@ function wizard(step){WZ.on=true;$('.wrap').classList.add('wzmode');WZ.step=step
     <div class="wz-f"><button onclick="wizard(1)">← Kembali</button>${cekKelayakan(penRec(d)).tolak.length?`<button onclick="PEN._paksa=true;applyPenetapan($('#wzBody'),()=>wizard(3))" style="font-size:12px">Tetap lanjut (abaikan penolakan)</button><button class="pri" onclick="WZ.on=false;renderMain()">Tutup — penetapan ditolak</button>`:`<button class="pri" onclick="applyPenetapan($('#wzBody'),()=>wizard(3))">Lanjut ke Bagian 3 →</button>`}</div></div>`}
   if(step===3){const pjOpt=v=>{const c=pjCari(v).nama;return SET.pejabat.map(p=>`<option ${p.nama===c?'selected':''} value="${esc(p.nama)}">${esc(p.nama)} — ${esc(p.jabatan||'')}</option>`).join('')};
     m.innerHTML=`<div class="wz">${wzHead(3)}<h4>📅 Bagian 3: Jadwal Sumpah & Pejabat</h4><div class="grid">
-    ${F('tglSumpah','Tanggal Sumpah','date')}${F('waktu','Waktu')}${F('tempat','Tempat (kosong = kediaman)')}${F('hp','No. HP pemohon')}
+    ${F('tglSumpah','Tanggal Sumpah','date')}${F('waktu','Waktu')}${F('tempat','Tempat (kosong = alamat pemohon)').replace('<input ',`<input placeholder="${esc(alamatLengkap(cur)||'Alamat pemohon')}" `)}${F('hp','No. HP pemohon')}
     <div><label>Pejabat penyumpah (Madya)</label><select onchange="setv('madya',this.value)">${pjOpt(cur.madya)}</select></div>
     <div><label>Pejabat BAP & inventarisasi (Muda)</label><select onchange="setv('muda',this.value);setv('bapOleh',this.value)">${pjOpt(cur.muda)}</select></div></div>
     <div class="wz-f"><button onclick="WZ.on=false;tab='umum';setNav('berkas','Daftar Berkas');renderMain()">Lengkapi detail lain</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="WZ.on=false;tab='dok';setNav('berkas','Daftar Berkas');renderMain();toast('Berkas tersimpan')">Simpan & Lihat Dokumen</button><button class="pri" onclick="WZ.on=false;tab='dok';setNav('berkas','Daftar Berkas');renderMain();prosesOtomatis()">⚡ Proses Otomatis →</button></span></div></div>`}
