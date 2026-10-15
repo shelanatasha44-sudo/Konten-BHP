@@ -353,7 +353,10 @@ const ttd2=(kiri,kanan,namaKiri,namaKanan,nipKiri,nipKanan)=>{kiri=pecah(kiri);k
 <tr><td><b>${namaKiri}</b>${nipKiri?`<br><b>NIP. ${nipKiri}</b>`:''}</td><td><b>${namaKanan}</b>${nipKanan?`<br><b>NIP. ${nipKanan}</b>`:''}</td></tr></table>`};
 const KOSONG='&nbsp;'.repeat(44);
 const saksi=r=>`<table class="ttd ctr" style="margin-top:26pt"><tr><td><b>Saksi 1</b></td><td><b>Saksi 2</b></td></tr><tr><td style="height:52pt"></td><td></td></tr>
-<tr><td>(${r.saksi1?' '+esc(r.saksi1)+' ':KOSONG})<br>NIK.</td><td>(${r.saksi2?' '+esc(r.saksi2)+' ':KOSONG})<br>NIK.</td></tr></table>`;
+<tr>${[r.saksi1,r.saksi2].map(n=>{const t='('+(n?' '+n+' ':'\u00a0'.repeat(44))+')',w=lebarPt(t)*1.06,m=Math.max(0,Math.floor((214-w)/2)),fs=w>214?Math.max(9,Math.floor(24*214/w)/2):0;
+  return `<td style="text-align:left;margin-left:${m}pt;padding-left:${m}pt${fs?`;font-size:${fs}pt`:''}">(${n?' '+esc(n)+' ':KOSONG})<br>NIK.</td>`}).join('')}</tr></table>`;
+/* lebar teks (pt) dalam Arial 12 — supaya "( nama )" tetap di tengah kolom dan "NIK." sejajar kurung buka */
+let LBR_CV;function lebarPt(t){try{const g=(LBR_CV=LBR_CV||document.createElement('canvas')).getContext('2d');g.font='12pt Arial, "Liberation Sans", Helvetica, sans-serif';return g.measureText(t).width*.75}catch(e){return t.length*6}}
 const NP=(n,left,html,extra='',b)=>`<p class="ni" data-n="${n}"${b?' data-b="1"':''} style="margin-left:${left}pt${extra}">${html}</p>`;
 const identitas=r=>`${esc(r.jk)}, Lahir tanggal ${tgl(r.tglLahir)} (${usia(r.tglLahir,r.tglSumpah)}), agama ${esc(r.agama)}, Pekerjaan ${V(r.pekerjaan)}, alamat ${V(r.alamat)}`;
 function objekBA(r,d,o={}){const L=o.left||0;
