@@ -21,6 +21,10 @@ button:hover{border-color:var(--pri)}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:16px}
 .list{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow:auto}
+.lfil{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px}.lfil #fGrp{grid-column:1/-1}.lfil select{font-size:12.5px;padding:7px 8px;border-radius:9px;min-width:0}
+.lgrp{position:sticky;top:0;z-index:1;background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 2px 4px;font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.3px;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.lgrp.sub{position:static;text-transform:none;letter-spacing:0;font-weight:600;border-bottom:0;padding:4px 2px 0}.lgrp i{font-style:normal;background:var(--line);border-radius:20px;padding:1px 8px;font-size:11px}
+.item .meta-l{display:block;color:var(--mut);font-size:11.5px;margin-top:3px}
 .item{padding:10px;border-radius:10px;border:1px solid var(--line);cursor:pointer}
 .item.on{border-color:var(--pri);background:var(--pri2)}
 .item b{display:block;font-size:13px}.item small{color:var(--mut)}
@@ -237,6 +241,8 @@ html,body{max-width:100%;overflow-x:hidden}
 <div class="wrap">
   <aside class="card">
     <h3>Daftar Berkas</h3>
+    <div class="lfil"><select id="fGrp" onchange="setFil('grp',this.value)" title="Pisahkan daftar berdasarkan"><option value="lok">Pisah per lokasi</option><option value="tgl">Pisah per tanggal dibuat</option><option value="lt">Lokasi → tanggal dibuat</option><option value="">Tanpa pemisah</option></select>
+      <select id="fLok" onchange="setFil('lok',this.value)" title="Saring lokasi"></select><select id="fBln" onchange="setFil('bln',this.value)" title="Saring bulan dibuat"></select></div>
     <div class="list" id="list"></div>
   </aside>
 
@@ -831,9 +837,39 @@ const DEMO=(()=>{const K='bhpDemo.v2',st=(()=>{try{return JSON.parse(localStorag
 
 /* ---------------- render UI ---------------- */
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1800)}
+/* ===== Pemisahan daftar berkas: lokasi (kota/kabupaten pemohon) & tanggal pembuatan berkas ===== */
+const FIL=(()=>{try{return Object.assign({grp:'lok',lok:'',bln:''},JSON.parse(localStorage.getItem('bhp_fil')||'{}'))}catch(e){return{grp:'lok',lok:'',bln:''}}})();
+function setFil(k,v){FIL[k]=v;try{localStorage.setItem('bhp_fil',JSON.stringify(FIL))}catch(e){}renderList()}
+function lokasiBerkas(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
+  const k=s.match(/\b(Kota|Kabupaten|Kab\.)\s+([A-Za-z .'-]+?)(?=\s*(?:,|;|$|\bProv))/i),kc=s.match(/\b(?:Kecamatan|Kec\.)\s*([A-Za-z .'-]+?)(?=\s*(?:,|;|$))/i);
+  const kota=k?(/^kab/i.test(k[1])?'Kabupaten ':'Kota ')+k[2].trim().replace(/\b\w/g,c=>c.toUpperCase()):String(r.kotaPermohonan||'').trim()?'Kota '+String(r.kotaPermohonan).trim():'';
+  return{kota:kota||'Lokasi belum diisi',kec:kc?'Kec. '+kc[1].trim().replace(/\b\w/g,c=>c.toUpperCase())+(kota?', '+kota:''):''}}
+function tglDibuat(r){const v=(r._meta&&r._meta.dibuatPada)||r.dibuatPada||'';if(!v)return'';const d=new Date(v);if(isNaN(d))return String(v).slice(0,10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function hariTgl(s){const d=pd(s);return d?HARI[d.getDay()]+', '+tgl(s):'Tanggal dibuat tidak tercatat'}
 function renderList(){const q=($('#q').value||'').toLowerCase();
-  $('#list').innerHTML=DB.filter(r=>(r.nama+' '+derive(r).objek).toLowerCase().includes(q)).map(r=>`<div class="item ${cur&&cur.id===r.id?'on':''}" style="${r._dihapus?'opacity:.5':''}" onclick="pick('${r.id}')">${r._dihapus?'<span class="tag" style="color:var(--warn)">Terhapus</span>':''}
-  <b>${esc(r.nama||'(tanpa nama)')}</b>${(q=>q.some(x=>x.lvl==='e')?' <span title="Ada kesalahan data" style="color:#e5484d">●</span>':'')(cekCetak(r))}<small>${esc(derive(r).objek||'-')}</small><br><span class="tag">${r.jenis}</span>${(t=>t.length?` <span class="tag" style="color:#c0392b" title="${esc(t.join(' | '))}">⛔ Ditolak</span><br><small style="color:#c0392b">${esc(t.map(x=>x.split('. Alasan')[0]).join('; '))}</small>`:'')(cekKelayakan(r).tolak)} <small>${r.tglSumpah?tgl(r.tglSumpah):''}</small></div>`).join('')||'<p class="hint">Belum ada berkas. Klik “📑 Berkas Baru” di menu kiri untuk memulai.</p>'}
+  const semua=DB.filter(r=>(r.nama+' '+derive(r).objek).toLowerCase().includes(q));
+  /* pilihan saringan (dengan jumlah) */
+  const hit=(arr,f)=>arr.reduce((m,r)=>{const k=f(r);m[k]=(m[k]||0)+1;return m},{});
+  const lokN=hit(semua,r=>lokasiBerkas(r).kota),blnN=hit(semua,r=>(tglDibuat(r)||'').slice(0,7)||'-');
+  if(FIL.lok&&!lokN[FIL.lok])FIL.lok='';if(FIL.bln&&!blnN[FIL.bln])FIL.bln='';
+  const fg=$('#fGrp');if(fg)fg.value=FIL.grp;
+  const fl=$('#fLok');if(fl)fl.innerHTML=`<option value="">Semua lokasi</option>`+Object.keys(lokN).sort((a,b)=>(a==='Lokasi belum diisi')-(b==='Lokasi belum diisi')||a.localeCompare(b)).map(k=>`<option value="${esc(k)}" ${k===FIL.lok?'selected':''}>${esc(k)} (${lokN[k]})</option>`).join('');
+  const fb=$('#fBln');if(fb)fb.innerHTML=`<option value="">Semua bulan</option>`+Object.keys(blnN).sort().reverse().map(k=>`<option value="${k}" ${k===FIL.bln?'selected':''}>${k==='-'?'Tanpa tanggal':blnThn(k+'-01')} (${blnN[k]})</option>`).join('');
+  const L=semua.filter(r=>(!FIL.lok||lokasiBerkas(r).kota===FIL.lok)&&(!FIL.bln||((tglDibuat(r)||'').slice(0,7)||'-')===FIL.bln))
+    .sort((a,b)=>(tglDibuat(b)||'').localeCompare(tglDibuat(a)||''));
+  const item=r=>`<div class="item ${cur&&cur.id===r.id?'on':''}" style="${r._dihapus?'opacity:.5':''}" onclick="pick('${r.id}')">${r._dihapus?'<span class="tag" style="color:var(--warn)">Terhapus</span>':''}
+  <b>${esc(r.nama||'(tanpa nama)')}</b>${(q=>q.some(x=>x.lvl==='e')?' <span title="Ada kesalahan data" style="color:#e5484d">●</span>':'')(cekCetak(r))}<small>${esc(derive(r).objek||'-')}</small><br><span class="tag">${r.jenis}</span>${(t=>t.length?` <span class="tag" style="color:#c0392b" title="${esc(t.join(' | '))}">⛔ Ditolak</span><br><small style="color:#c0392b">${esc(t.map(x=>x.split('. Alasan')[0]).join('; '))}</small>`:'')(cekKelayakan(r).tolak)} <small>${r.tglSumpah?'Sumpah '+tgl(r.tglSumpah):''}</small><span class="meta-l">📍 ${esc(lokasiBerkas(r).kec||lokasiBerkas(r).kota)} · 🗓 dibuat ${tglDibuat(r)?tgl(tglDibuat(r)):'—'}</span></div>`;
+  const grupkan=(arr,f)=>{const m=new Map();arr.forEach(r=>{const k=f(r);if(!m.has(k))m.set(k,[]);m.get(k).push(r)});return[...m]};
+  const head=(t,n,sub)=>`<div class="lgrp${sub?' sub':''}"><span>${t}</span><i>${n}</i></div>`;
+  const perLok=arr=>grupkan(arr,r=>lokasiBerkas(r).kota).sort((a,b)=>(a[0]==='Lokasi belum diisi')-(b[0]==='Lokasi belum diisi')||a[0].localeCompare(b[0]));
+  const perTgl=arr=>grupkan(arr,r=>tglDibuat(r)||'');
+  let h='';
+  if(FIL.grp==='lok')h=perLok(L).map(([k,a])=>head('📍 '+esc(k),a.length)+a.map(item).join('')).join('');
+  else if(FIL.grp==='tgl')h=perTgl(L).map(([k,a])=>head('🗓 '+hariTgl(k),a.length)+a.map(item).join('')).join('');
+  else if(FIL.grp==='lt')h=perLok(L).map(([k,a])=>head('📍 '+esc(k),a.length)+perTgl(a).map(([t,b])=>head('🗓 '+hariTgl(t),b.length,1)+b.map(item).join('')).join('')).join('');
+  else h=L.map(item).join('');
+  $('#list').innerHTML=h||(DB.length?'<p class="hint">Tidak ada berkas yang cocok dengan saringan.</p>':'<p class="hint">Belum ada berkas. Klik “📑 Berkas Baru” di menu kiri untuk memulai.</p>')}
 function pick(id){PILIH=null;WZ.on=false;setNav('berkas','Daftar Berkas');clearTimeout(saveT);if(cur)flush();cur=DB.find(r=>r.id===id);if(tab==='riw'&&!cur)tab='umum';renderMain();renderList()}
 function newRec(){if(cur){clearTimeout(saveT);flush()}cur=addRec(blank(),'Berkas baru (manual)');tab='umum';renderMain();renderList();flush()}
 function F(path,lbl,type='text',opt){const v=get(path),c=CEK[path],a=` data-f="${path}"${c?` class="${c.lvl==='e'?'bad':'warnf'}"`:''}`,m=c?`<small class="fmsg">${esc(c.msg)}</small>`:'';
@@ -865,7 +901,7 @@ function renderMain(){
     F('nomorSurat',`Nomor Surat ke ${d.J} (otomatis dari SPS)`)+F('nomorLurah','Nomor Surat ke Lurah (otomatis dari SPS)')+F('nomorBAP','Nomor BAP (diisi petugas di hari H; kosong = awalan saja)')+F('nomorBA','Nomor BA Sumpah (diisi petugas di hari H)')+F('nomorBAHarta','Nomor BA Inventarisasi (diisi petugas di hari H)');
   if(tab==='pihak')h+=F('nama',`Nama ${d.J}`)+F('nik','NIK')+F('jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
-    F('status',`Hubungan dgn ${d.pihak} (mis. Ibu Kandung, Saudara Kandung)`)+F('hp','No. HP (surat permohonan)')+F('alamat','Alamat lengkap','area')+
+    F('status',`Hubungan: ${d.pihak} adalah … pemohon (mis. Adik Kandung, Ibu Kandung, Anak Kandung)`)+F('hp','No. HP (surat permohonan)')+F('alamat','Alamat lengkap','area')+
     `<div class="full"><label>Kelurahan, Kecamatan, Kota (terisi otomatis dari alamat)</label><input data-kel value="${esc(cur.kelurahan)}" oninput="setv('kelurahan',this.value)"></div>`+F('alamatKelurahan','Alamat kantor kelurahan (surat lurah)')+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
   if(tab==='objek'){if(w){const refU=cur.tglSumpah||today();h+=`<div class="full"><p class="hint">Usia anak dihitung otomatis pada ${cur.tglSumpah?'tanggal sumpah ('+tgl(cur.tglSumpah)+')':'hari ini (tanggal sumpah belum diisi)'}. Anak yang sudah <b>${BATAS_DEWASA} tahun ke atas</b> otomatis tidak diwalikan dan tidak dicantumkan di dokumen.</p>${cur.anak.map((a,i)=>{const u=umurTh(a.tglLahir,refU),dw=anakDewasa(a,cur);return `<div class="child grid${dw?' dewasa':''}">${F(`anak.${i}.nama`,`Nama Anak ${i+1}`)}${F(`anak.${i}.jk`,'Jenis Kelamin','select',['Laki-laki','Perempuan'])}${F(`anak.${i}.tglLahir`,'Tanggal Lahir','date')}<div><label>Usia (otomatis)</label><input disabled value="${u===null?'—':u+' Tahun'}"></div>${dw?`<div><label>Diwalikan?</label><input disabled value="Tidak — sudah ${u} tahun"></div>`:F(`anak.${i}.wali`,'Diwalikan?','select',['Ya','Tidak'])}<div><label>&nbsp;</label><button onclick="cur.anak.splice(${i},1);save();renderMain()">Hapus</button></div>${dw?`<span class="badge-dw">${BATAS_DEWASA}+ · tidak diwalikan otomatis</span>`:''}</div>`}).join('')}
     <button onclick="cur.anak.push({nama:'',jk:'Laki-laki',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
