@@ -359,8 +359,9 @@ const awalanNo=r=>`W.2.AHU.AHU.1-AH.06.0${r.jenis==='Perwalian'?2:3}-`;
 const noManual=(r,f)=>String(r[f]||'').trim()?esc(r[f]):esc(awalanNo(r));
 const judulBA=(baris,no)=>`<p class="ctr" style="line-height:1.15"><b><u>${baris}</u></b><br><b>Nomor : ${no}</b></p><br>`;
 const pecah=t=>String(t).replace(/ (AHLI )/,'<br>$1');
-const ttd2=(kiri,kanan,namaKiri,namaKanan,nipKiri,nipKanan)=>{kiri=pecah(kiri);kanan=pecah(kanan);return `<table class="ttd" style="margin-top:18pt"><tr><td><b>${kiri}</b></td><td><b>${kanan}</b></td></tr><tr><td style="height:56pt"></td><td></td></tr>
+const ttd2=(kiri,kanan,namaKiri,namaKanan,nipKiri,nipKanan,tinggi=56)=>{kiri=pecah(kiri);kanan=pecah(kanan);return `<table class="ttd" style="margin-top:18pt"><tr><td><b>${kiri}</b></td><td><b>${kanan}</b></td></tr><tr><td style="height:${tinggi}pt"></td><td></td></tr>
 <tr><td><b>${namaKiri}</b>${nipKiri?`<br><b>NIP. ${nipKiri}</b>`:''}</td><td><b>${namaKanan}</b>${nipKanan?`<br><b>NIP. ${nipKanan}</b>`:''}</td></tr></table>`};
+const MTR=78; // tinggi ruang tanda tangan bermeterai (pt)
 const KOSONG='&nbsp;'.repeat(44);
 const saksi=r=>`<table class="ttd ctr" style="margin-top:26pt"><tr><td><b>Saksi 1</b></td><td><b>Saksi 2</b></td></tr><tr><td style="height:52pt"></td><td></td></tr>
 <tr>${[r.saksi1,r.saksi2].map(n=>{const t='('+(n?' '+n+' ':'\u00a0'.repeat(44))+')',w=lebarPt(t)*1.06,m=Math.max(0,Math.floor((214-w)/2)),fs=w>214?Math.max(9,Math.floor(24*214/w)/2):0;
@@ -468,7 +469,8 @@ ${bapList(isi.length?r.isiBap:buatBap(r),r)}
 <p class="ctr" style="margin-top:6pt"><b><i>"${esc(d.laf)}"</i></b></p>
 <p class="ctr">----------------------------------------------Demikianlah----------------------------------------------</p>
 <p style="margin-top:6pt">Berita Acara Penyumpahan ${d.jenisTxt} ini diperbuat sebagaimana mestinya, diperbuat diatas kertas yang dibubuhi materai tempel Rp. 10.000,- kemudian ditandatangani sebagaimana mestinya.</p>`+
-    ttd2('YANG MENGANGKAT SUMPAH',esc((m.jabatan||'').toUpperCase()),V(r.nama),V(m.nama),'',V(m.nip))+saksi(r)}},
+    /* ruang ttd ±3 cm: cukup untuk meterai tempel + tanda tangan */
+    ttd2('YANG MENGANGKAT SUMPAH',esc((m.jabatan||'').toUpperCase()),V(r.nama),V(m.nama),'',V(m.nip),MTR)+saksi(r)}},
 
   harta:{nama:r=>'BA Inventarisasi Harta',sty:{line:276},fn:r=>{const d=derive(r),m=d.muda;
     return kop()+judulBA(`BERITA ACARA PENCATATAN/PENDAFTARAN HARTA KEKAYAAN MILIK<br>${d.w?'ANAK DI BAWAH UMUR ATAS NAMA':'TERAMPU AN.'} ${V(d.objek.toUpperCase())}`,noManual(r,'nomorBAHarta'))+
@@ -480,7 +482,7 @@ ${NP('I.',18,'<b>AKTIVA</b>',';margin-top:8pt',1)}
 ${HARTA.map(([k,l,o],i)=>NP('ABCDEF'[i]+'.',36,l+' :',';margin-top:4pt')+daftarHarta(hv(r,k,o))).join('')}
 ${NP('II.',18,'<b>PASSIVA</b>',';margin-top:10pt',1)}<p class="ni" style="margin-left:36pt"><b>HUTANG-HUTANG</b> :</p>${daftarHarta(r.hartaHutang)}
 <p style="margin-top:12pt">Oleh karena tidak ada lagi yang akan dicatat dan didaftar, maka kami akhiri Berita Acara Pencatatan/Pendaftaran Harta kekayaan milik ${d.w?'anak di bawah umur':'terampu'} ini, yang diperbuat diatas kertas yang dibubuhi materai tempel Rp. 10.000,- pada hari dan tanggal yang tersebut diatas, untuk dipergunakan sebagaimana mestinya.</p>`+
-    ttd2(esc((m.jabatan||'').toUpperCase()),d.J.toUpperCase(),V(m.nama),V(r.nama),V(m.nip),'')}}
+    ttd2(esc((m.jabatan||'').toUpperCase()),d.J.toUpperCase(),V(m.nama),V(r.nama),V(m.nip),'',MTR)}}
 };
 /* kelompok dokumen: dua surat antar (bernomor SPS) + satu Dokumen Penyumpahan (tiap bagian halaman baru) */
 const GRUP={surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,keys:['surat'],tahap:1},lurah:{nama:()=>'Surat Antar ke Lurah',keys:['lurah'],tahap:1},
