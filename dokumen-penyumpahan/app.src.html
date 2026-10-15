@@ -48,7 +48,7 @@ h3{margin:4px 0 12px;font-size:15px}
 .paper{background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto 20px;padding:1cm 2cm 2.5cm 3cm;font:12pt/1.5 Arial,"Liberation Sans",Helvetica,sans-serif;box-shadow:0 4px 20px #0003}
 .paper p{margin:0;text-align:justify;text-indent:36pt}
 .paper p.ni,.paper p.ctr{text-indent:0}.paper p.ctr,.paper .ctr{text-align:center}
-table.kop{width:100%;border-collapse:collapse;border-bottom:1.25pt solid #000;margin:0 0 12pt}
+table.kop{width:100%;border-collapse:collapse;border-bottom:.5pt solid #000;margin:0 0 12pt}
 .paper table.hd td:first-child{padding-left:0}.paper table.hd td:last-child{padding-right:0}
 table.kop td{padding:0 0 3pt;vertical-align:middle}
 table.kop td.lg{width:62pt;padding:0}
@@ -932,7 +932,7 @@ function kopXml(){
   const L=[[SET.instansi,12],[SET.kanwil,12],[SET.balai,12,1],[SET.alamat,10],[SET.telp,10],[SET.web,10]];
   const lg=1240,W=DX.W;
   const tx=L.map(([t,sz,b],i)=>`<w:p><w:pPr><w:spacing w:before="0" w:after="${i===L.length-1?60:0}" w:line="264" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr><w:r>${rPr({sz,b})}<w:t xml:space="preserve">${xe(t||'')}</w:t></w:r></w:p>`).join('');
-  return `<w:tbl><w:tblPr><w:tblW w:w="${W}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="single" w:sz="10" w:space="0" w:color="000000"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${lg}"/><w:gridCol w:w="${W-lg}"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="${lg}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="60"/></w:pPr>${imgRun()}</w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="${W-lg}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${tx}</w:tc></w:tr></w:tbl>`+spacer(12)}
+  return `<w:tbl><w:tblPr><w:tblW w:w="${W}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${lg}"/><w:gridCol w:w="${W-lg}"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="${lg}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="60"/></w:pPr>${imgRun()}</w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="${W-lg}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${tx}</w:tc></w:tr></w:tbl>`+spacer(12)}
 function tableXml(t){
   const rows=[...t.rows];if(!rows.length)return'';
   const n=Math.max(...rows.map(r=>[...r.cells].reduce((a,c)=>a+(c.colSpan||1),0)));
