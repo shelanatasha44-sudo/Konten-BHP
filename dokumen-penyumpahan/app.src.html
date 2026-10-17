@@ -1218,6 +1218,7 @@ async function handlePenetapan(file){
     let rx=null;const cukup=data&&data.nama&&(data.nomorPenetapan||data.tglPenetapan);
     if(!cukup)try{const text=await fileText(file);if(text.replace(/\s/g,'').length>=80){rx=parsePenetapan(text);rx._text=text}}catch(e){if(!data)throw e}
     if(data&&rx)data=gabung(data,rx);else data=data||rx;if(!data)throw new Error('Teks tidak terbaca dari file.');
+    try{const wl=wilayahLurah(data);if(wl.kel&&wl.kec)cariLurahWilayah(wl,false)}catch(e){console.warn(e)}
     try{const tk=(rx&&rx._text)||await teksPdfBersih(file),h=hubDariTeks(tk,data);if(h&&h!==data.status){console.info('Hubungan dikoreksi dari teks penetapan:',data.status,'→',h);data.status=h}}catch(e){console.warn(e)}
     if(WZ.on){if(!WZ.pilih||!data.jenis)data.jenis=data.jenis||WZ.jenis;if(WZ.pilih)data.jenis=WZ.jenis;WZ.data=data;wizard(2);return}
     reviewPenetapan(data,file.name);
@@ -1417,7 +1418,7 @@ function applyPenetapan(root,next){
   {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));api('apiCatat','TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
   let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;if(!r)r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||''));
   ['jenis','pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tglLahir','agama','pekerjaan','alamat','kelurahan','status','pasangan','aktaNikah','tglMeninggalPasangan','ketMeninggal','alasan','terkaitMiliter'].forEach(k=>{if(PEN[k])r[k]=typeof PEN[k]==='string'?PEN[k]:String(PEN[k])});
-  if(typeof PEN.orangTuaHidup==='boolean')r.orangTuaHidup=PEN.orangTuaHidup;terapkanTambahan(PEN,r);if(typeof PEN.isiBap==='string'&&PEN.isiBap.trim())r.isiBap=PEN.isiBap;
+  if(typeof PEN.orangTuaHidup==='boolean')r.orangTuaHidup=PEN.orangTuaHidup;terapkanTambahan(PEN,r);isiLurahTersimpan(r);if(typeof PEN.isiBap==='string'&&PEN.isiBap.trim())r.isiBap=PEN.isiBap;
   if(PEN.kelurahan)r._kelManual=true;
   if(PEN.jenis==='Perwalian'){const a=(PEN.anak||[]).filter(x=>x&&x.nama).map(x=>({nama:String(x.nama).toUpperCase(),jk:/perem/i.test(x.jk)?'Perempuan':'Laki-laki',tglLahir:x.tglLahir||'',wali:x.diwalikan===false||x.wali==='Tidak'?'Tidak':'Ya'}));if(a.length)r.anak=a}
   else if(PEN.terampu){const t=PEN.terampu;r.terampu={nama:t.nama||'',jk:/perem/i.test(t.jk)?'Perempuan':'Laki-laki',tglLahir:t.tglLahir||'',kondisi:t.kondisi||''}}
@@ -1511,16 +1512,24 @@ function lurahBoxHtml(){if(!cur)return'';const w=wilayahLurah(cur),k=kunciLurah(
   if(d.status==='tidak_ada_ai')return`<div class="lb warn"><span>AI Claude belum aktif (isi kunci di Pengaturan) — cari manual: ${peta}</span></div>`;
   return`<div class="lb warn"><span>Kantor lurah tidak ditemukan dengan pasti. Isi manual setelah dicek: ${peta}</span><div class="row">${tombol}</div></div>`}
 function segarkanLurahBox(){const b=$('#lurahBox');if(b)b.innerHTML=lurahBoxHtml()}
+/* mulai cari untuk satu wilayah (dipakai juga saat upload penetapan, sebelum berkas dibuat) */
+async function cariLurahWilayah(w,paksa){const k=kunciLurah(w);if(!w.kel||!w.kec)return null;
+  if(LURAH[k]&&LURAH[k].st==='cari')return LURAH[k].p;if(!paksa&&LURAH[k]&&LURAH[k].st==='ok')return LURAH[k].d;
+  const pr=api('apiCariKantorLurah',w.kel,w.kec,w.kota,!!paksa).then(d=>{LURAH[k]={st:'ok',d};return d},e=>{LURAH[k]={st:'err',e:e.message||String(e)};return null});
+  LURAH[k]={st:'cari',p:pr};return pr}
+function isiLurahTersimpan(r){if(!r||String(r.alamatKelurahan||'').trim())return false;const L=LURAH[kunciLurah(wilayahLurah(r))];
+  if(L&&L.st==='ok'&&L.d&&L.d.status==='terverifikasi'){r.alamatKelurahan=teksLurah(L.d);return true}return false}
 async function cariLurah(paksa){if(!cur)return;const id=cur.id,w=wilayahLurah(cur),k=kunciLurah(w);if(!w.kel||!w.kec)return;
-  if(LURAH[k]&&LURAH[k].st==='cari')return;LURAH[k]={st:'cari'};segarkanLurahBox();
-  try{const d=await api('apiCariKantorLurah',w.kel,w.kec,w.kota,!!paksa);LURAH[k]={st:'ok',d};
+  if(LURAH[k]&&LURAH[k].st==='cari'){segarkanLurahBox();await LURAH[k].p}else{const pr=cariLurahWilayah(w,paksa);segarkanLurahBox();await pr}
+  try{const L=LURAH[k];if(L.st!=='ok')throw new Error(L.e||'gagal');const d=L.d;
     if(d&&d.status==='terverifikasi'&&cur&&cur.id===id&&!String(cur.alamatKelurahan||'').trim()){cur.alamatKelurahan=teksLurah(d);save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i)i.value=cur.alamatKelurahan;toast('Kantor lurah terverifikasi & diisi otomatis')}}
-  catch(e){LURAH[k]={st:'err',e:e.message||String(e)}}
+  catch(e){if(LURAH[k].st!=='err')LURAH[k]={st:'err',e:e.message||String(e)}}
   if(cur&&cur.id===id)segarkanLurahBox()}
 function pakaiLurah(){const L=LURAH[kunciLurah(wilayahLurah(cur))];if(!L||!L.d)return;cur.alamatKelurahan=teksLurah(L.d);save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i)i.value=cur.alamatKelurahan;segarkanLurahBox();toast('Alamat kantor lurah dipakai')}
 /* otomatis: saat kolom tampil, alamat kantor masih kosong, dan wilayah sudah terisi */
 (function(){const asli=renderMain;renderMain=function(){const r=asli.apply(this,arguments);
-  try{if(cur&&$('#lurahBox')&&!String(cur.alamatKelurahan||'').trim()){const w=wilayahLurah(cur);if(w.kel&&w.kec&&!LURAH[kunciLurah(w)])cariLurah(false)}}catch(e){console.warn(e)}
+  try{if(cur&&isiLurahTersimpan(cur)){save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i)i.value=cur.alamatKelurahan;segarkanLurahBox()}
+    if(cur&&$('#lurahBox')&&!String(cur.alamatKelurahan||'').trim()){const w=wilayahLurah(cur),L=LURAH[kunciLurah(w)];if(w.kel&&w.kec&&(!L||L.st==='cari'))cariLurah(false)}}catch(e){console.warn(e)}
   return r}})();
 </script>
 </body>
