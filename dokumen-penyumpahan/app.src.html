@@ -24,8 +24,7 @@ button:hover{border-color:var(--pri)}
 .lfil{display:grid;grid-template-columns:1fr;gap:6px;margin:0 0 10px}.lfil #fGrp,.lfil #fBln{grid-column:1/-1}.lfil select{font-size:12.5px;padding:7px 8px;border-radius:9px;min-width:0}
 .lgrp{position:sticky;top:0;z-index:1;background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 2px 4px;font-size:12px;font-weight:700;color:var(--mut);letter-spacing:.3px;text-transform:uppercase;border-bottom:1px solid var(--line)}
 .lgrp.sub2{padding-left:12px}.lgrp.sub{position:static;text-transform:none;letter-spacing:0;font-weight:600;border-bottom:0;padding:4px 2px 0}.lgrp i{font-style:normal;background:var(--line);border-radius:20px;padding:1px 8px;font-size:11px}
-.lurah-box{font-size:12.5px;margin-top:-4px}.lurah-box .lb{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-.lurah-box .lb.ok{border-color:#16a34a66;background:#16a34a0d}.lurah-box .lb.warn{border-color:#d9770666;background:#d977060d}.lurah-box ul{margin:2px 0 0 18px;padding:0}.lurah-box .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lurah-box{font-size:12.5px;margin-top:-4px}.lurah-box .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .item .meta-l{display:block;color:var(--mut);font-size:11.5px;margin-top:3px}
 .item{padding:10px;border-radius:10px;border:1px solid var(--line);cursor:pointer}
 .item.on{border-color:var(--pri);background:var(--pri2)}
@@ -849,7 +848,7 @@ const DEMO=(()=>{const K='bhpDemo.v2',st=(()=>{try{return JSON.parse(localStorag
       st.users.push({username:d.username.toLowerCase(),nama:d.nama,role:d.role,aktif:true,wajibGanti:true,loginTerakhir:''});log(u,'TAMBAH_PENGGUNA','','',d.nama);return 'demo'},
     apiAmbilNomor(){throw new Error('Pengambilan nomor SPS hanya berjalan setelah aplikasi di-deploy ke Google Apps Script.')},
     apiTesSps(){throw new Error('Hanya tersedia setelah di-deploy.')},apiSimpanKredensialSps(){throw new Error('Hanya tersedia setelah di-deploy.')},
-    apiAdaAI(){return false},apiCariKantorLurah(t,kel,kec,kota){return{status:'tidak_ada_ai',petaUrl:'https://www.google.com/maps/search/'+encodeURIComponent('Kantor Lurah '+kel+', '+kec+', '+kota)}},apiSimpanBanyak(t,l){return{jumlah:l.length,lewat:0,ids:l.map(r=>r.id)}},apiBacaSheet(t,ss,n){const w=/WALI/i.test(n);return w?{judul:'Contoh / '+n,header:['Nama_Wali','NIK_Wali','Jenis_Kelamin_Wali','Tanggal_Lahir_Wali','Agama_Wali','Pekerjaan_Wali','Alamat_Wali','Kel_Kec_Kota','Status_Dengan_Wali','Lokasi_Pengadilan','Nomor_Penetapan','Tanggal_Penetapan','Nama_Anak_1','Jenis_Kelamin_Anak_1','Tanggal_Lahir_Anak_1','Nama_Anak_2','Tanggal_Lahir_Anak_2'],
+    apiAdaAI(){return false},apiSimpanBanyak(t,l){return{jumlah:l.length,lewat:0,ids:l.map(r=>r.id)}},apiBacaSheet(t,ss,n){const w=/WALI/i.test(n);return w?{judul:'Contoh / '+n,header:['Nama_Wali','NIK_Wali','Jenis_Kelamin_Wali','Tanggal_Lahir_Wali','Agama_Wali','Pekerjaan_Wali','Alamat_Wali','Kel_Kec_Kota','Status_Dengan_Wali','Lokasi_Pengadilan','Nomor_Penetapan','Tanggal_Penetapan','Nama_Anak_1','Jenis_Kelamin_Anak_1','Tanggal_Lahir_Anak_1','Nama_Anak_2','Tanggal_Lahir_Anak_2'],
       rows:[['Rina Wati','1471014506850003','Perempuan','05/06/1985','Islam','Wiraswasta','Jl. Durian No. 5 Pekanbaru','Kelurahan Labuh Baru Timur, Kecamatan Payung Sekaki, Kota Pekanbaru','Anak Kandung','Pengadilan Negeri Pekanbaru','48/Pdt.P/2025/PN Pbr','12 Juni 2025','Andi Saputra','Laki-laki','30 Mei 2011','Sari Putri','17-08-2014'],['','','','','','','','','','','','','','','','','']]}
       :{judul:'Contoh / '+n,header:['Nama_Pengampu','Tanggal_Lahir_Pengampu','Nama_Terampu','Tanggal_Lahir_Terampu','Kondisi_Medis_Terampu','Nomor_Penetapan'],rows:[['Budi','1970-01-02','Joko','1990-03-04','gangguan jiwa','9/Pdt.P/2025/PN Dum']]}},apiSimpanKunciAI(){throw new Error('Hanya tersedia setelah di-deploy.')},apiBacaPenetapanAI(){return null}}})();
 
@@ -934,7 +933,7 @@ function renderMain(){
   if(tab==='pihak')h+=F('nama',`Nama ${d.J}`)+F('nik','NIK')+F('jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
     F('status',`Hubungan: ${d.pihak} adalah … pemohon (mis. Adik Kandung, Ibu Kandung, Anak Kandung)`)+F('hp','No. HP (surat permohonan)')+F('alamat','Alamat lengkap','area')+
-    `<div class="full"><label>Kelurahan, Kecamatan, Kota (terisi otomatis dari alamat)</label><input data-kel value="${esc(cur.kelurahan)}" oninput="setv('kelurahan',this.value)"></div>`+F('alamatKelurahan','Nama kantor lurah + alamat (surat lurah) — dicari otomatis dari kolom kelurahan').replace(/^<div data-f="alamatKelurahan"(?: class="([^"]*)")?/,(m,c)=>`<div data-f="alamatKelurahan" class="full ${c||''}"`)+`<div class="full lurah-box" id="lurahBox">${lurahBoxHtml()}</div>`+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
+    `<div class="full"><label>Kelurahan, Kecamatan, Kota (terisi otomatis dari alamat)</label><input data-kel value="${esc(cur.kelurahan)}" oninput="setv('kelurahan',this.value)"></div>`+F('alamatKelurahan','Nama kantor lurah/kepala desa + alamat (surat lurah)').replace(/^<div data-f="alamatKelurahan"(?: class="([^"]*)")?/,(m,c)=>`<div data-f="alamatKelurahan" class="full ${c||''}"`)+`<div class="full lurah-box" id="lurahBox">${lurahBoxHtml()}</div>`+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
   if(tab==='objek'){if(w){const refU=cur.tglSumpah||today();h+=`<div class="full"><p class="hint">Usia anak dihitung otomatis pada ${cur.tglSumpah?'tanggal sumpah ('+tgl(cur.tglSumpah)+')':'hari ini (tanggal sumpah belum diisi)'}. Anak yang sudah <b>${BATAS_DEWASA} tahun ke atas</b> otomatis tidak diwalikan dan tidak dicantumkan di dokumen.</p>${cur.anak.map((a,i)=>{const u=umurTh(a.tglLahir,refU),dw=anakDewasa(a,cur);return `<div class="child grid${dw?' dewasa':''}">${F(`anak.${i}.nama`,`Nama Anak ${i+1}`)}${F(`anak.${i}.jk`,'Jenis Kelamin','select',['Laki-laki','Perempuan'])}${F(`anak.${i}.tglLahir`,'Tanggal Lahir','date')}<div><label>Usia (otomatis)</label><input disabled value="${u===null?'—':u+' Tahun'}"></div>${dw?`<div><label>Diwalikan?</label><input disabled value="Tidak — sudah ${u} tahun"></div>`:F(`anak.${i}.wali`,'Diwalikan?','select',['Ya','Tidak'])}<div><label>&nbsp;</label><button onclick="cur.anak.splice(${i},1);save();renderMain()">Hapus</button></div>${dw?`<span class="badge-dw">${BATAS_DEWASA}+ · tidak diwalikan otomatis</span>`:''}</div>`}).join('')}
     <button onclick="cur.anak.push({nama:'',jk:'Laki-laki',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
     else h+=F('terampu.nama','Nama Terampu')+F('terampu.jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('terampu.tglLahir','Tanggal Lahir','date')+
@@ -1218,7 +1217,6 @@ async function handlePenetapan(file){
     let rx=null;const cukup=data&&data.nama&&(data.nomorPenetapan||data.tglPenetapan);
     if(!cukup)try{const text=await fileText(file);if(text.replace(/\s/g,'').length>=80){rx=parsePenetapan(text);rx._text=text}}catch(e){if(!data)throw e}
     if(data&&rx)data=gabung(data,rx);else data=data||rx;if(!data)throw new Error('Teks tidak terbaca dari file.');
-    try{const wl=wilayahLurah(data);if(wl.kel&&wl.kec)cariLurahWilayah(wl,false)}catch(e){console.warn(e)}
     try{const tk=(rx&&rx._text)||await teksPdfBersih(file),h=hubDariTeks(tk,data);if(h&&h!==data.status){console.info('Hubungan dikoreksi dari teks penetapan:',data.status,'→',h);data.status=h}}catch(e){console.warn(e)}
     if(WZ.on){if(!WZ.pilih||!data.jenis)data.jenis=data.jenis||WZ.jenis;if(WZ.pilih)data.jenis=WZ.jenis;WZ.data=data;wizard(2);return}
     reviewPenetapan(data,file.name);
@@ -1418,7 +1416,7 @@ function applyPenetapan(root,next){
   {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));api('apiCatat','TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
   let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;if(!r)r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||''));
   ['jenis','pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tglLahir','agama','pekerjaan','alamat','kelurahan','status','pasangan','aktaNikah','tglMeninggalPasangan','ketMeninggal','alasan','terkaitMiliter'].forEach(k=>{if(PEN[k])r[k]=typeof PEN[k]==='string'?PEN[k]:String(PEN[k])});
-  if(typeof PEN.orangTuaHidup==='boolean')r.orangTuaHidup=PEN.orangTuaHidup;terapkanTambahan(PEN,r);isiLurahTersimpan(r);if(typeof PEN.isiBap==='string'&&PEN.isiBap.trim())r.isiBap=PEN.isiBap;
+  if(typeof PEN.orangTuaHidup==='boolean')r.orangTuaHidup=PEN.orangTuaHidup;terapkanTambahan(PEN,r);if(typeof PEN.isiBap==='string'&&PEN.isiBap.trim())r.isiBap=PEN.isiBap;
   if(PEN.kelurahan)r._kelManual=true;
   if(PEN.jenis==='Perwalian'){const a=(PEN.anak||[]).filter(x=>x&&x.nama).map(x=>({nama:String(x.nama).toUpperCase(),jk:/perem/i.test(x.jk)?'Perempuan':'Laki-laki',tglLahir:x.tglLahir||'',wali:x.diwalikan===false||x.wali==='Tidak'?'Tidak':'Ya'}));if(a.length)r.anak=a}
   else if(PEN.terampu){const t=PEN.terampu;r.terampu={nama:t.nama||'',jk:/perem/i.test(t.jk)?'Perempuan':'Laki-laki',tglLahir:t.tglLahir||'',kondisi:t.kondisi||''}}
@@ -1491,46 +1489,21 @@ function kembaliM(){if(cur){clearTimeout(saveT);flush()}cur=null;goBerkas();scro
   if(buka&&!document.querySelector('#main .back-m')){const b=document.createElement('button');b.className='back-m';b.textContent='← Daftar Berkas';b.onclick=kembaliM;$('#main').prepend(b)}
   return r}})();
 
-/* ===== Kantor lurah otomatis: Claude cari di web → sumber dicek → alamat diverifikasi Google Maps (server) ===== */
-const LURAH={};// kunci wilayah → {st:'cari'|'ok'|'err', d, e}
+/* ===== Kantor lurah: link Google Maps dari ketikan (gratis, tanpa AI) ===== */
 function wilayahLurah(r){const t=[r.kelurahan,r.alamat].filter(Boolean).join(', ');const m=re=>((t.match(re)||[])[0]||'').trim();
   return{kel:m(/\b(?:Kelurahan|Kel\.|Desa)\s*[^,;]+/i).replace(/^Kel\.\s*/i,'Kelurahan '),kec:m(/\b(?:Kecamatan|Kec\.)\s*[^,;]+/i).replace(/^Kec\.\s*/i,'Kecamatan '),kota:m(/\b(?:Kota|Kabupaten|Kab\.)\s+[^,;]+/i).replace(/^Kab\.\s*/i,'Kabupaten ')}}
-const kunciLurah=w=>[w.kel,w.kec,w.kota].join('|').toLowerCase();
-function teksLurah(d){const n=String(d.nama||'').trim(),a=String(d.alamat||'').trim();return a.toLowerCase().startsWith(n.toLowerCase())?a:[n,a].filter(Boolean).join(', ')}
-function lurahBoxHtml(){if(!cur)return'';const w=wilayahLurah(cur),k=kunciLurah(w),L=LURAH[k];
-  if(!w.kel||!w.kec)return'<span class="hint">Isi kolom Kelurahan, Kecamatan, Kota di atas agar kantor lurah dicari otomatis.</span>';
-  const tombol=`<button class="btn" type="button" onclick="cariLurah(true)">🔎 ${L?'Cari ulang':'Cari kantor lurah otomatis'}</button>`;
-  if(!L)return`<div class="row">${tombol}<span class="hint">${esc(w.kel)}, ${esc(w.kec)}${w.kota?', '+esc(w.kota):''}</span></div>`;
-  if(L.st==='cari')return'<div class="lb"><span>⏳ Mencari kantor '+esc(w.kel)+' di web & memverifikasi dengan Google Maps… (±20–40 detik)</span></div>';
-  if(L.st==='err')return`<div class="lb warn"><span>⚠️ Pencarian gagal: ${esc(L.e)}</span><div class="row">${tombol}</div></div>`;
-  const d=L.d,peta=d.petaUrl?`<a href="${esc(d.petaUrl)}" target="_blank" rel="noopener">Buka di Google Maps ↗</a>`:'';
-  const src=(d.sumber||[]).filter(x=>x.nyata!==false).slice(0,4).map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.judul||x.url.replace(/^https?:\/\//,'').slice(0,40))}</a>`).join(' · ');
-  if(d.status==='terverifikasi'){const dipakai=String(cur.alamatKelurahan||'').trim()===teksLurah(d);
-    return`<div class="lb ok"><b>✅ Terverifikasi — ${esc(teksLurah(d))}</b><span class="hint">Sumber: ${src||'-'}${d.maps&&d.maps.alamatMaps?' · Google Maps: '+esc(d.maps.alamatMaps):''}</span><div class="row">${dipakai?'<span class="hint">Sudah dipakai di surat lurah.</span>':`<button class="btn pri" type="button" onclick="pakaiLurah()">Pakai alamat ini</button>`}${peta}${tombol}</div></div>`}
-  if(d.status==='perlu_cek'){const c=d.cek||{},li=(ok,t)=>`<li>${ok?'✓':'✗'} ${t}</li>`;
-    return`<div class="lb warn"><b>⚠️ Ditemukan tetapi BELUM terverifikasi — tidak diisi otomatis</b><span>${esc(teksLurah(d))}</span><ul>${li(c.namaKelurahanCocok,'Nama kelurahan cocok')}${li(c.kecamatanTertulis,'Kecamatan tercantum di alamat')}${li(c.sumberNyata,'Sumber web nyata')}${li(c.googleMapsCocok,'Google Maps menunjukkan wilayah yang sama')}</ul>${d.catatan?`<span class="hint">${esc(d.catatan)}</span>`:''}<span class="hint">Sumber: ${src||'-'}</span><div class="row"><button class="btn" type="button" onclick="pakaiLurah()">Sudah saya cek — pakai</button>${peta}${tombol}</div></div>`}
-  if(d.status==='tidak_ada_ai')return`<div class="lb warn"><span>AI Claude belum aktif (isi kunci di Pengaturan) — cari manual: ${peta}</span></div>`;
-  return`<div class="lb warn"><span>Kantor lurah tidak ditemukan dengan pasti. Isi manual setelah dicek: ${peta}</span><div class="row">${tombol}</div></div>`}
+/* nama kantor baku dari kolom kelurahan: Kelurahan X → Kantor Lurah X; Desa X → Kantor Kepala Desa X */
+function namaKantorLurah(r){const w=wilayahLurah(r);if(!w.kel)return'';const n=w.kel.replace(/^(Kelurahan|Desa)\s+/i,'').trim();return(/^Desa/i.test(w.kel)?'Kantor Kepala Desa ':'Kantor Lurah ')+n}
+function petaLurahUrl(r){const w=wilayahLurah(r),ketik=String(r.alamatKelurahan||'').trim();
+  const q=ketik?[ketik,!new RegExp(w.kec.replace(/^Kecamatan\s+/i,'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i').test(ketik)?w.kec:'',!/\b(Kota|Kabupaten|Kab\.)\b/i.test(ketik)?w.kota:''].filter(Boolean).join(', '):[namaKantorLurah(r),w.kec,w.kota].filter(Boolean).join(', ');
+  return q?'https://www.google.com/maps/search/'+encodeURIComponent(q):''}
+function lurahBoxHtml(){if(!cur)return'';const u=petaLurahUrl(cur),nk=namaKantorLurah(cur),isi=String(cur.alamatKelurahan||'').trim();
+  if(!u)return'<span class="hint">Isi kolom Kelurahan, Kecamatan, Kota di atas agar link Google Maps muncul.</span>';
+  return`<div class="row"><a class="btn" href="${esc(u)}" target="_blank" rel="noopener">📍 Cari ${esc(isi?'ketikan ini':nk||'kantor lurah')} di Google Maps ↗</a>${!isi&&nk?`<button class="btn" type="button" onclick="tulisNamaKantor()">✍️ Tulis “${esc(nk)}”</button>`:''}<span class="hint">Salin alamat dari Google Maps, tulis nama kantornya dulu lalu alamatnya.</span></div>`}
 function segarkanLurahBox(){const b=$('#lurahBox');if(b)b.innerHTML=lurahBoxHtml()}
-/* mulai cari untuk satu wilayah (dipakai juga saat upload penetapan, sebelum berkas dibuat) */
-async function cariLurahWilayah(w,paksa){const k=kunciLurah(w);if(!w.kel||!w.kec)return null;
-  if(LURAH[k]&&LURAH[k].st==='cari')return LURAH[k].p;if(!paksa&&LURAH[k]&&LURAH[k].st==='ok')return LURAH[k].d;
-  const pr=api('apiCariKantorLurah',w.kel,w.kec,w.kota,!!paksa).then(d=>{LURAH[k]={st:'ok',d};return d},e=>{LURAH[k]={st:'err',e:e.message||String(e)};return null});
-  LURAH[k]={st:'cari',p:pr};return pr}
-function isiLurahTersimpan(r){if(!r||String(r.alamatKelurahan||'').trim())return false;const L=LURAH[kunciLurah(wilayahLurah(r))];
-  if(L&&L.st==='ok'&&L.d&&L.d.status==='terverifikasi'){r.alamatKelurahan=teksLurah(L.d);return true}return false}
-async function cariLurah(paksa){if(!cur)return;const id=cur.id,w=wilayahLurah(cur),k=kunciLurah(w);if(!w.kel||!w.kec)return;
-  if(LURAH[k]&&LURAH[k].st==='cari'){segarkanLurahBox();await LURAH[k].p}else{const pr=cariLurahWilayah(w,paksa);segarkanLurahBox();await pr}
-  try{const L=LURAH[k];if(L.st!=='ok')throw new Error(L.e||'gagal');const d=L.d;
-    if(d&&d.status==='terverifikasi'&&cur&&cur.id===id&&!String(cur.alamatKelurahan||'').trim()){cur.alamatKelurahan=teksLurah(d);save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i)i.value=cur.alamatKelurahan;toast('Kantor lurah terverifikasi & diisi otomatis')}}
-  catch(e){if(LURAH[k].st!=='err')LURAH[k]={st:'err',e:e.message||String(e)}}
-  if(cur&&cur.id===id)segarkanLurahBox()}
-function pakaiLurah(){const L=LURAH[kunciLurah(wilayahLurah(cur))];if(!L||!L.d)return;cur.alamatKelurahan=teksLurah(L.d);save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i)i.value=cur.alamatKelurahan;segarkanLurahBox();toast('Alamat kantor lurah dipakai')}
-/* otomatis: saat kolom tampil, alamat kantor masih kosong, dan wilayah sudah terisi */
-(function(){const asli=renderMain;renderMain=function(){const r=asli.apply(this,arguments);
-  try{if(cur&&isiLurahTersimpan(cur)){save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i)i.value=cur.alamatKelurahan;segarkanLurahBox()}
-    if(cur&&$('#lurahBox')&&!String(cur.alamatKelurahan||'').trim()){const w=wilayahLurah(cur),L=LURAH[kunciLurah(w)];if(w.kel&&w.kec&&(!L||L.st==='cari'))cariLurah(false)}}catch(e){console.warn(e)}
-  return r}})();
+function tulisNamaKantor(){const nk=namaKantorLurah(cur);if(!nk)return;cur.alamatKelurahan=nk+', ';save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i){i.value=cur.alamatKelurahan;i.focus();i.setSelectionRange(i.value.length,i.value.length)}segarkanLurahBox()}
+/* link ikut berubah saat mengetik di kolom kantor lurah atau kolom kelurahan */
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[data-f="alamatKelurahan"],[data-kel]'))segarkanLurahBox()});
 </script>
 </body>
 </html>
