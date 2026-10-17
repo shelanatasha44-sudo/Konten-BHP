@@ -523,8 +523,8 @@ function buatBap(r){const d=derive(r),w=d.w,L=[],urut=x=>[...x].sort((a,b)=>Stri
   const sk=baris(r.saksiKet);if(sk.length){L.push('Bahwa keterangan saksi-saksi yang hadir adalah sebagai berikut:');sk.forEach(x=>L.push('- '+x.replace(/[.;]\s*$/,'')+';'))}
   L.push(`Bahwa penghadap bersedia menjalankan tugas sebagai ${d.J} dengan sebaik-baiknya, mengurus kepentingan dan harta kekayaan ${w?'anak di bawah umur':'terampu'} tersebut dengan penuh tanggung jawab, serta bersedia diawasi oleh Balai Harta Peninggalan Medan selaku ${d.J} Pengawas.`);
   return L.join('\n')}
-/* token dari AI: {usia:YYYY-MM-DD} dihitung pada tanggal sumpah, {tgl:YYYY-MM-DD} ditulis lengkap */
-const tebal=(s,r)=>esc(s).replace(/\{usia:(\d{4}-\d{2}-\d{2})\}/g,(m,d)=>usia(d,r&&r.tglSumpah)).replace(/\{tgl:(\d{4}-\d{2}-\d{2})\}/g,(m,d)=>tgl(d)).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+/* token dari AI: [usia:YYYY-MM-DD] dihitung pada tanggal sumpah, [tgl:YYYY-MM-DD] ditulis lengkap (format lama {usia:…} tetap dibaca) */
+const tebal=(s,r)=>esc(s).replace(/[\[{]usia:(\d{4}-\d{2}-\d{2})[\]}]/g,(m,d)=>usia(d,r&&r.tglSumpah)).replace(/[\[{]tgl:(\d{4}-\d{2}-\d{2})[\]}]/g,(m,d)=>tgl(d)).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
 const PROMPT_BAP=`Anda penyusun Berita Acara Penghadapan (BAP) pada Balai Harta Peninggalan Medan. Baca SELURUH penetapan pengadilan terlampir (identitas, duduk perkara, bukti surat, keterangan saksi, pertimbangan hukum, amar) lalu susun isi BAP berupa keterangan penghadap (= pemohon yang ditetapkan sebagai wali/pengampu) yang LENGKAP, TAJAM, RUNTUT dan MENGALIR — setiap butir menyambung logis dengan butir sebelumnya.
 Urutan butir (lewati yang datanya tidak ada di penetapan):
 1. Identitas lengkap penghadap: nama, NIK, tempat & tanggal lahir, usia, agama, pekerjaan, alamat lengkap; serta hubungan penghadap dengan anak/terampu.
@@ -542,17 +542,31 @@ FORMAT WAJIB:
 - Satu butir per baris. Butir utama TANPA nomor, diawali kata "Bahwa". Sub-butir diawali "- " (tanpa huruf), sub-sub-butir diawali "-- ". Penomoran dibuat otomatis oleh aplikasi — jangan menulis nomor/huruf sendiri.
 - Akhiri setiap butir/sub-butir dengan ";" kecuali butir paling akhir diakhiri ".".
 - Nama orang dalam HURUF KAPITAL dan diapit ** ** (contoh **SITI AMINAH**). Sebut pemohon sebagai "penghadap".
-- Untuk USIA jangan hitung sendiri: tulis {usia:YYYY-MM-DD} berisi tanggal lahir orangnya. Untuk tanggal tulis {tgl:YYYY-MM-DD}.
+- Untuk USIA jangan hitung sendiri: tulis [usia:YYYY-MM-DD] berisi tanggal lahir orangnya. Untuk tanggal tulis [tgl:YYYY-MM-DD].
 - Bahasa Indonesia baku gaya berita acara resmi; kalimat padat, jelas, tidak berulang.
 - HANYA fakta yang tertulis di penetapan. Jangan mengarang nomor, tanggal, nama, atau aset.
-Balas satu objek JSON: {"isiBap":["baris 1","baris 2", "..."]}`;
-async function bapDariPenetapan(file){const b64=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(file)});
-  const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',await promptBersih(file,PROMPT_BAP));const l=d&&(Array.isArray(d.isiBap)?d.isiBap:String(d.isiBap||'').split('\n'));
-  const t=(l||[]).map(x=>String(x).trim()).filter(Boolean).map(x=>x.replace(/^(-{0,2})\s*(?:\d+[.)]|[a-z][.)])\s+/i,'$1 ').replace(/^ /,'')).join('\n');if(!t)throw new Error('AI tidak menghasilkan isi BAP');return t}
+GAYA: tulis seperti petugas menceritakan kembali isi penetapan kepada orang awam — kronologis (siapa penghadap → keluarga/terampu → peristiwa yang melatarbelakangi → alasan permohonan → harta → saksi → penetapan → kesanggupan), satu gagasan per butir, kalimat aktif dan lugas, istilah hukum dijelaskan singkat bila perlu, tanpa pengulangan identitas yang sudah disebut (cukup sebut nama).
+PANJANG: secukupnya namun tuntas — paling banyak ±40 baris dan setiap baris paling banyak ±70 kata, supaya jawaban tidak terpotong.
+KEAMANAN FORMAT JSON (WAJIB): di dalam teks JANGAN memakai tanda petik ganda (") — pakai petik tunggal ‘…’ bila perlu mengutip; JANGAN ada baris baru, tab, garis miring terbalik, atau kurung kurawal { } di dalam teks.
+Balas satu objek JSON saja, tanpa penjelasan: {"isiBap":["baris 1","baris 2"]}`;
+const PROMPT_BAP_RINGKAS=`
+PERCOBAAN ULANG: jawaban sebelumnya gagal dibaca (kemungkinan terlalu panjang atau format JSON rusak). Susun ulang dengan butir yang LEBIH RINGKAS (paling banyak ±25 baris, setiap baris paling banyak ±45 kata), tetap runtut dan lengkap pokok-pokoknya. Patuhi KEAMANAN FORMAT JSON dengan ketat.`;
+const rapikanBap=l=>(l||[]).map(x=>String(x).replace(/\s+/g,' ').trim()).filter(Boolean).map(x=>x.replace(/^(-{0,2})\s*(?:\d+[.)]|[a-z][.)])\s+/i,'$1 ').replace(/^ /,'')).join('\n');
+/* isi BAP dari penetapan oleh AI — dicoba sampai 3 kali (percobaan ulang lebih ringkas); gagal total → Error (pemanggil memakai susunan otomatis) */
+async function bapDariPenetapan(file,onTry){const b64=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(file)});
+  const dasar=await promptBersih(file,PROMPT_BAP);let err;
+  for(let i=0;i<3;i++){if(onTry)onTry(i);
+    try{const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',i?dasar+PROMPT_BAP_RINGKAS:dasar);
+      const l=d&&(Array.isArray(d.isiBap)?d.isiBap:String(d.isiBap||'').split('\n'));const t=rapikanBap(l);
+      if(t&&t.split('\n').length>=3)return t;err=new Error('AI tidak menghasilkan isi BAP')}
+    catch(e){err=e;console.warn('Susun BAP AI percobaan '+(i+1)+' gagal:',e);if(/belum diisi|belum aktif|menolak|sesi|login|token/i.test(String(e.message||e)))break}
+    await new Promise(r=>setTimeout(r,1200*(i+1)))}
+  throw err||new Error('AI tidak menghasilkan isi BAP')}
 async function susunBapAI(inp){const f=inp.files[0];inp.value='';if(!f)return;if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan AI dari penetapan?'))return;
   toast('Claude sedang membaca penetapan & menyusun BAP… (±30–60 detik)');const lb=inp.closest('label');if(lb)lb.style.opacity=.5;
-  try{cur.isiBap=await bapDariPenetapan(f);save();renderMain();toast('Isi BAP disusun dari penetapan — periksa sebelum mencetak');api('apiCatat','BACA_PENETAPAN',cur.id,cur.nama,'Isi BAP disusun AI dari '+f.name).catch(()=>{})}
-  catch(e){alert('Gagal menyusun BAP: '+(e.message||e));if(lb)lb.style.opacity=1}}
+  try{const t=await bapDariPenetapan(f,i=>{if(i)toast('Menyusun ulang BAP (percobaan '+(i+1)+' dari 3)…')});const r=cur;r.isiBap=t;save();renderMain();toast('Isi BAP disusun dari penetapan — periksa sebelum mencetak');api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Isi BAP disusun AI dari '+f.name).catch(()=>{})}
+  catch(e){console.warn(e);const r=cur;r.isiBap=buatBap(r);save();renderMain();toast('AI sedang tidak dapat dihubungi — isi BAP disusun otomatis dari data berkas. Coba tombol AI lagi nanti bila ingin versi AI.')}
+  finally{if(lb)lb.style.opacity=1}}
 function susunBap(){if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan otomatis dari data berkas?'))return;cur.isiBap=buatBap(cur);save();renderMain();toast('Isi BAP disusun ulang')}
 function bapList(t,r){const c=[0,0,0];return baris(t).map(x=>{const m=x.match(/^(-{1,2})\s*(.*)$/),lv=m?m[1].length:0,tx=m?m[2]:x;c[lv]++;for(let i=lv+1;i<3;i++)c[i]=0;const tx2=lv?tx.charAt(0).toUpperCase()+tx.slice(1):tx;
     const n=lv===0?c[0]+'.':lv===1?'abcdefghijklmnopqrstuvwxyz'[(c[1]-1)%26]+'.':c[2]+')';return NP(n,lv*18,tebal(tx2,r),lv?'':';margin-top:3pt')}).join('')}
@@ -1198,7 +1212,7 @@ async function handlePenetapan(file){
   if(!file)return;busy('Membaca '+file.name+'…');
   try{
     let data;
-    if(ADA_AI){stat('Menganalisis dengan AI Claude (data + isi BAP)…');const pb=bapDariPenetapan(file).catch(e=>{console.warn(e);return ''});try{data=await aiExtract(file)}catch(e){console.warn(e);toast('AI gagal, pakai pembaca biasa')}stat('Menyusun isi BAP…');const bt=await pb;if(data&&bt)data.isiBap=bt}
+    if(ADA_AI){stat('Menganalisis dengan AI Claude (data + isi BAP)…');const pb=bapDariPenetapan(file).catch(e=>{console.warn(e);return ''});for(let i=0;i<2&&!data;i++)try{data=await aiExtract(file)}catch(e){console.warn('Baca data AI percobaan '+(i+1)+' gagal:',e);if(i)toast('AI gagal membaca data, pakai pembaca biasa');else stat('Membaca ulang dengan AI…')}stat('Menyusun isi BAP (runtut & lengkap)…');const bt=await pb;if(data&&bt)data.isiBap=bt;else if(data)toast('Isi BAP AI belum berhasil — dipakai susunan otomatis; bisa disusun ulang dengan tombol AI di tab BAP')}
     let rx=null;const cukup=data&&data.nama&&(data.nomorPenetapan||data.tglPenetapan);
     if(!cukup)try{const text=await fileText(file);if(text.replace(/\s/g,'').length>=80){rx=parsePenetapan(text);rx._text=text}}catch(e){if(!data)throw e}
     if(data&&rx)data=gabung(data,rx);else data=data||rx;if(!data)throw new Error('Teks tidak terbaca dari file.');
@@ -1372,7 +1386,8 @@ Balas satu objek JSON dengan kunci:
 "orangTuaHidup": true HANYA bila menurut penetapan ayah DAN ibu kandung anak keduanya masih hidup (tidak ada yang meninggal dunia); false bila salah satu/keduanya telah meninggal. "terkaitMiliter": isi singkat bila pemohon ATAU orang tua anak yang meninggal adalah anggota TNI/Polri atau permohonan terkait ASABRI/dinas militer/kepolisian (mis. "almarhum anggota TNI AD, untuk pencairan ASABRI"); kosongkan bila tidak. Jangan anggap SKCK (Surat Keterangan Catatan Kepolisian) sebagai keterkaitan kepolisian.
 Untuk Perwalian: "anak" berisi SEMUA anak pemohon yang disebut dalam penetapan beserta tanggal lahirnya; "diwalikan" true hanya untuk anak yang ditetapkan di bawah perwalian pemohon dalam amar (anak di bawah umur), false untuk anak yang sudah dewasa/tidak termasuk amar. Kosongkan "terampu".
 Untuk Pengampuan: isi "terampu", kosongkan "anak" dan data pasangan kecuali relevan.
-ARAH "status" (WAJIB BENAR): jawab pertanyaan "TERAMPU/ANAK adalah ___ dari PEMOHON", BUKAN "pemohon adalah ___ dari terampu". Contoh: amar "menetapkan Pemohon sebagai pengampu dari Verawati (Adik Kandung Pemohon)" → "Adik Kandung"; kalimat "Pemohon adalah kakak kandung dari terampu" → "Adik Kandung"; "Pemohon adalah anak kandung terampu" → terampu = "Ibu Kandung"/"Ayah Kandung" sesuai jenis kelamin terampu; "Pemohon adalah ibu kandung dari anak tersebut" → "Anak Kandung"; "Pemohon adalah paman/bibi si anak" → "Keponakan"; "Pemohon adalah nenek/kakek si anak" → "Cucu". Utamakan keterangan dalam AMAR (mis. tanda kurung "(… Pemohon)"). Hanya tentukan hubungan dengan orang yang benar-benar menjadi TERAMPU/ANAK yang diwalikan — keluarga lain yang sekadar disebut (mis. ibu pemohon yang sakit tetapi bukan terampu) jangan dipakai.`;
+ARAH "status" (WAJIB BENAR): jawab pertanyaan "TERAMPU/ANAK adalah ___ dari PEMOHON", BUKAN "pemohon adalah ___ dari terampu". Contoh: amar "menetapkan Pemohon sebagai pengampu dari Verawati (Adik Kandung Pemohon)" → "Adik Kandung"; kalimat "Pemohon adalah kakak kandung dari terampu" → "Adik Kandung"; "Pemohon adalah anak kandung terampu" → terampu = "Ibu Kandung"/"Ayah Kandung" sesuai jenis kelamin terampu; "Pemohon adalah ibu kandung dari anak tersebut" → "Anak Kandung"; "Pemohon adalah paman/bibi si anak" → "Keponakan"; "Pemohon adalah nenek/kakek si anak" → "Cucu". Utamakan keterangan dalam AMAR (mis. tanda kurung "(… Pemohon)"). Hanya tentukan hubungan dengan orang yang benar-benar menjadi TERAMPU/ANAK yang diwalikan — keluarga lain yang sekadar disebut (mis. ibu pemohon yang sakit tetapi bukan terampu) jangan dipakai.
+KEAMANAN FORMAT JSON (WAJIB): di dalam nilai teks JANGAN memakai tanda petik ganda (") — pakai petik tunggal ‘…’; JANGAN ada baris baru, tab, garis miring terbalik, atau kurung kurawal di dalam teks. Balas satu objek JSON saja.`;
   const d=await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',await promptBersih(file,prompt));if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;return n}
 
 const PEN_LBL={jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan (terampu/anak adalah … pemohon)'};
