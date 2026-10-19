@@ -1,125 +1,81 @@
 /**
- * IMPOR MASSAL PDF PENETAPAN DARI GOOGLE DRIVE + AI CLAUDE HEMAT TOKEN
+ * PEMASANG IMPOR MASSAL PDF (tempel SEKALI saja, selanjutnya memperbarui diri dari GitHub)
  *
- * Cara pasang (sekali saja, di proyek Apps Script "Dokumen Penyumpahan"):
- *   1. File → + → Skrip, beri nama  ImporMassal  lalu tempel SELURUH isi file ini, Simpan.
- *   2. Terapkan → Kelola deployment → Edit → Versi baru → Terapkan.
- *   3. Folder Drive sumber PDF harus bisa dibuka oleh akun pemilik proyek Apps Script ini
- *      (minimal akses Pelihat). Bila folder milik orang lain, minta dibagikan ke akun tersebut.
+ * Cara pasang di proyek Apps Script "Dokumen Penyumpahan":
+ *   1. File → + → Skrip, beri nama  ImporMassal , tempel SELURUH isi file ini, lalu Simpan.
+ *   2. Pilih fungsi  pasangImporMassal  di bilah atas → Jalankan → izinkan akses (sekali saja).
+ *   3. Terapkan → Kelola deployment → Edit → Versi baru → Terapkan.
+ *   Folder Drive sumber PDF harus bisa dibuka akun pemilik proyek ini (minimal Pelihat).
  *
- * Kunci API Claude TIDAK perlu diisi lagi: dipakai kunci yang sudah disimpan lewat
- * Pengaturan → AI Claude (dicari otomatis di Script Properties, nilai berawalan "sk-ant-").
+ * Isi sebenarnya (baca PDF, panggil Claude, impor terjadwal) ada di file
+ * dokumen-penyumpahan/impor-massal-inti.js di GitHub dan dimuat otomatis (di-cache 10 menit,
+ * cadangan terakhir disimpan di Script Properties bila GitHub tidak bisa dihubungi).
+ * Jadi perbaikan berikutnya cukup di-push ke GitHub — file ini tidak perlu ditempel ulang.
+ * Perhatian: siapa pun yang bisa push ke branch tersebut dapat mengubah kode server ini.
  *
- * Kenapa hemat token:
- *   - PDF yang punya lapisan teks (umumnya salinan direktori putusan MA) TIDAK dikirim sebagai PDF;
- *     yang dikirim hanya teks bersihnya (watermark sudah dibuang di browser) → jauh lebih sedikit token
- *     dibanding PDF (teks + gambar tiap halaman).
- *   - Instruksi panjang (sama untuk semua berkas) ditaruh di "system" dengan cache_control, jadi
- *     berkas ke-2 dst. membaca instruksi dari cache (sekitar 5–10% harga normal).
- *   - Jawaban dipaksa sesuai skema JSON (structured outputs) → tidak ada JSON rusak, tidak perlu ulang.
- *   - PDF hasil scan (tanpa teks) dibaca langsung dari Drive oleh server, tidak bolak-balik lewat browser.
+ * Kunci API Claude memakai kunci yang sudah disimpan lewat Pengaturan → AI Claude.
  */
-const IMPOR_MODEL_DEFAULT = 'claude-opus-5-5';
-const IMPOR_MODEL_BOLEH = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'];
-const IMPOR_KUNCI_PROP = ''; // isi nama Script Property kunci Claude bila pencarian otomatis gagal
-const IMPOR_POTONG_BYTE = 3 * 1024 * 1024; // PDF dikirim ke browser per 3 MB
-const IMPOR_MAKS_BYTE_AI = 30 * 1024 * 1024; // batas ukuran PDF yang dikirim ke Claude
+const IMPOR_INTI_URL = 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/ccr-82a96c14-ey9957/dokumen-penyumpahan/impor-massal-inti.js';
+const IMPOR_POTONG_PROP = 8000;
+let IMPOR_INTI_ = null;
 
-/* sesi: dicek sekali lewat apiInit lalu disimpan 30 menit (supaya tidak berat untuk ratusan file) */
-function cekSesiImpor_(t) {
-  const cache = CacheService.getScriptCache(), k = 'imporok_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(t || '')));
-  if (cache.get(k)) return;
-  apiInit(t); // melempar error SESI_HABIS bila token tidak berlaku
-  cache.put(k, '1', 1800);
-}
-
-function idDrive_(s) {
-  s = String(s || '').trim();
-  const m = s.match(/(?:folders\/|[?&]id=|\/d\/)([A-Za-z0-9_-]{10,})/);
-  return m ? m[1] : s;
-}
-
-/** Daftar PDF/gambar di folder (beserta subfolder bila sub=true). */
-function apiDaftarPdfDrive(t, folder, sub) {
-  cekSesiImpor_(t);
-  let root;
-  try { root = DriveApp.getFolderById(idDrive_(folder)); }
-  catch (e) { throw new Error('Folder Drive tidak bisa dibuka. Pastikan tautan benar dan folder dibagikan ke akun pemilik aplikasi (' + Session.getEffectiveUser().getEmail() + ').'); }
-  const out = [], antre = [{ f: root, jalur: '' }];
-  while (antre.length && out.length < 2000) {
-    const x = antre.shift(), it = x.f.getFiles();
-    while (it.hasNext()) {
-      const f = it.next(), mime = f.getMimeType();
-      if (mime !== 'application/pdf' && !/^image\/(png|jpe?g|webp)$/.test(mime)) continue;
-      out.push({ id: f.getId(), nama: f.getName(), mime: mime, ukuran: f.getSize(), diubah: f.getLastUpdated().toISOString(), jalur: x.jalur, url: f.getUrl() });
-    }
-    if (sub) { const fs = x.f.getFolders(); while (fs.hasNext()) { const d = fs.next(); antre.push({ f: d, jalur: (x.jalur ? x.jalur + ' / ' : '') + d.getName() }); } }
+function intiImpor_(segar) {
+  if (IMPOR_INTI_ && !segar) return IMPOR_INTI_;
+  const cache = CacheService.getScriptCache(), props = PropertiesService.getScriptProperties();
+  let kode = segar ? null : cache.get('impor_inti');
+  if (!kode) {
+    try {
+      const r = UrlFetchApp.fetch(IMPOR_INTI_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+      const t = r.getContentText('UTF-8');
+      if (r.getResponseCode() === 200 && t.indexOf('IMPOR_INTI_OK') >= 0) {
+        kode = t;
+        try { cache.put('impor_inti', kode, 600); } catch (e) { /* terlalu besar untuk cache */ }
+        const lama = Number(props.getProperty('IMPOR_INTI_N') || 0), simpan = {};
+        let n = 0;
+        for (let i = 0; i < kode.length; i += IMPOR_POTONG_PROP) simpan['IMPOR_INTI_' + (n++)] = kode.slice(i, i + IMPOR_POTONG_PROP);
+        simpan.IMPOR_INTI_N = String(n);
+        props.setProperties(simpan);
+        for (let i = n; i < lama; i++) props.deleteProperty('IMPOR_INTI_' + i);
+      }
+    } catch (e) { /* GitHub tidak bisa dihubungi: pakai cadangan */ }
   }
-  out.sort(function (a, b) { return (a.jalur + a.nama).localeCompare(b.jalur + b.nama, 'id', { numeric: true }); });
-  return { judul: root.getName(), url: root.getUrl(), file: out };
-}
-
-/** Isi file Drive (base64) per potongan 3 MB: {b64, total, lanjut} — lanjut=null bila sudah habis. */
-function apiAmbilPdfDrive(t, id, mulai) {
-  cekSesiImpor_(t);
-  const f = DriveApp.getFileById(idDrive_(id)), b = f.getBlob().getBytes(), m = Number(mulai) || 0, s = Math.min(b.length, m + IMPOR_POTONG_BYTE);
-  return { b64: Utilities.base64Encode(b.slice(m, s)), total: b.length, lanjut: s < b.length ? s : null, mime: f.getMimeType(), nama: f.getName() };
-}
-
-function kunciClaude_() {
-  const p = PropertiesService.getScriptProperties();
-  if (IMPOR_KUNCI_PROP && p.getProperty(IMPOR_KUNCI_PROP)) return p.getProperty(IMPOR_KUNCI_PROP);
-  const semua = p.getProperties();
-  for (const k in semua) if (/^sk-ant-/.test(String(semua[k]).trim())) return String(semua[k]).trim();
-  throw new Error('KUNCI_AI_TIDAK_ADA: kunci Claude belum disimpan (Pengaturan → AI Claude).');
-}
-
-function panggilClaude_(o, konten) {
-  const model = IMPOR_MODEL_BOLEH.indexOf(o.model) >= 0 ? o.model : IMPOR_MODEL_DEFAULT;
-  const body = {
-    model: model,
-    max_tokens: Math.min(Number(o.maxTokens) || 16000, 32000),
-    system: [{ type: 'text', text: String(o.system || ''), cache_control: { type: 'ephemeral' } }],
-    messages: [{ role: 'user', content: konten }],
-    output_config: { effort: o.effort || 'low', format: { type: 'json_schema', schema: o.schema } }
-  };
-  const fallback = model !== 'claude-haiku-5-5';
-  if (fallback) body.fallbacks = 'default';
-  const kirim = function (pakaiFallback) {
-    const h = { 'x-api-key': kunciClaude_(), 'anthropic-version': '2023-06-01' };
-    const b = JSON.parse(JSON.stringify(body));
-    if (pakaiFallback) h['anthropic-beta'] = 'server-side-fallback-2026-07-01'; else delete b.fallbacks;
-    return UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', headers: h, payload: JSON.stringify(b), muteHttpExceptions: true });
-  };
-  let res = kirim(fallback);
-  if (fallback && res.getResponseCode() === 400 && /fallback/i.test(res.getContentText())) res = kirim(false);
-  const kode = res.getResponseCode(), teks = res.getContentText();
-  if (kode !== 200) {
-    let pesan = teks;
-    try { pesan = JSON.parse(teks).error.message; } catch (e) { }
-    throw new Error('Claude ' + kode + ': ' + String(pesan).slice(0, 300));
+  if (!kode) {
+    const n = Number(props.getProperty('IMPOR_INTI_N') || 0);
+    if (n) { kode = ''; for (let i = 0; i < n; i++) kode += props.getProperty('IMPOR_INTI_' + i) || ''; }
   }
-  const j = JSON.parse(teks);
-  if (j.stop_reason === 'refusal') throw new Error('Claude menolak membaca dokumen ini.');
-  if (j.stop_reason === 'max_tokens') throw new Error('Jawaban Claude terpotong (max_tokens).');
-  const blok = (j.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('');
-  return { data: JSON.parse(blok), usage: j.usage || {}, model: j.model || model };
+  if (!kode) throw new Error('Kode impor massal belum bisa diambil dari GitHub. Coba lagi beberapa saat.');
+  IMPOR_INTI_ = (0, eval)(kode);
+  return IMPOR_INTI_;
 }
 
-/** Teks bersih (tanpa watermark) → JSON sesuai skema. o = {system, schema, model, effort, maxTokens} */
-function apiClaudeTeks(t, o, teks) {
-  cekSesiImpor_(t);
-  return panggilClaude_(o, [{ type: 'text', text: '=== TRANSKRIP PENETAPAN (watermark sudah dibuang) ===\n' + String(teks || '') + '\n=== AKHIR TRANSKRIP ===' }]);
+/** Semua aksi impor massal dari aplikasi: google.script.run.apiImpor(token, aksi, …) */
+function apiImpor(t, aksi, a, b, c) {
+  const m = intiImpor_();
+  if (typeof m[aksi] !== 'function') throw new Error('Aksi impor tidak dikenal: ' + aksi + ' (versi server ' + m.versi + ')');
+  return m[aksi](t, a, b, c);
 }
 
-/** PDF/gambar scan langsung dari Drive (tanpa lewat browser) → JSON sesuai skema. */
-function apiClaudeDrive(t, o, id) {
-  cekSesiImpor_(t);
-  const f = DriveApp.getFileById(idDrive_(id)), blob = f.getBlob(), mime = f.getMimeType();
-  if (f.getSize() > IMPOR_MAKS_BYTE_AI) throw new Error('File terlalu besar untuk dibaca AI (' + Math.round(f.getSize() / 1048576) + ' MB).');
-  const data = Utilities.base64Encode(blob.getBytes());
-  const isi = mime === 'application/pdf'
-    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: data } }
-    : { type: 'image', source: { type: 'base64', media_type: mime === 'image/jpg' ? 'image/jpeg' : mime, data: data } };
-  return panggilClaude_(o, [isi, { type: 'text', text: 'Baca dokumen terlampir sesuai instruksi.' }]);
+/** Dijalankan pemicu waktu (impor terjadwal). Jangan diganti namanya. */
+function imporTerjadwal() {
+  return intiImpor_().terjadwal();
+}
+
+/** Jalankan sekali dari editor untuk memberi izin & mengecek pemasangan. */
+function pasangImporMassal() {
+  izinImpor_();
+  const m = intiImpor_(true);
+  Logger.log('Impor massal siap. Versi inti: ' + m.versi + ' · akun: ' + Session.getEffectiveUser().getEmail());
+  return m.versi;
+}
+
+/* Tidak dipanggil — hanya supaya Apps Script meminta izin yang dipakai kode inti (Drive, pemicu, internet, cache). */
+function izinImpor_() {
+  DriveApp.getRootFolder();
+  ScriptApp.getProjectTriggers();
+  ScriptApp.getOAuthToken();
+  UrlFetchApp.getRequest('https://api.anthropic.com/v1/messages');
+  CacheService.getScriptCache();
+  PropertiesService.getScriptProperties();
+  LockService.getScriptLock();
+  Session.getEffectiveUser();
 }

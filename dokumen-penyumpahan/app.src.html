@@ -618,6 +618,7 @@ async function boot(){
     if(r.ai!==undefined)ADA_AI=r.ai;else api('apiAdaAI').then(v=>ADA_AI=v).catch(()=>{});
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
   $('#login').hidden=true;document.body.classList.remove('locked');renderHeader();cur=null;renderList();renderMain();
+  if(isSuper())setTimeout(()=>msAntreanProses().catch(e=>console.warn('Antrean impor:',e)),2500);
   if(ME.wajibGanti)gantiPassword(true)}
 async function logout(){await api('apiLogout').catch(()=>{});TOKEN=null;ss('bhpTok',null);urlSesi(null);ME=null;DB=[];cur=null;showLogin('Anda sudah keluar.')}
 function renderHeader(){$('#who').innerHTML=`${FOLDER?`<a class="btn" href="${FOLDER}" target="_blank" rel="noopener" title="Folder Drive">📁</a>`:''}<div class="uname"><b>${esc(ME.nama)}</b><small>${isSuper()?'Admin Utama':'Admin'}</small></div><button class="menubtn" onclick="menuUser()">👤 Menu ▾</button>`;
@@ -855,7 +856,7 @@ const DEMO=(()=>{const K='bhpDemo.v2',st=(()=>{try{return JSON.parse(localStorag
       st.users.push({username:d.username.toLowerCase(),nama:d.nama,role:d.role,aktif:true,wajibGanti:true,loginTerakhir:''});log(u,'TAMBAH_PENGGUNA','','',d.nama);return 'demo'},
     apiAmbilNomor(){throw new Error('Pengambilan nomor SPS hanya berjalan setelah aplikasi di-deploy ke Google Apps Script.')},
     apiTesSps(){throw new Error('Hanya tersedia setelah di-deploy.')},apiSimpanKredensialSps(){throw new Error('Hanya tersedia setelah di-deploy.')},
-    apiAdaAI(){return false},apiDaftarPdfDrive(){throw new Error('Impor dari Drive hanya berjalan setelah di-deploy ke Apps Script. Di mode demo pakai tombol pilih PDF dari komputer.')},apiSimpanBanyak(t,l){return{jumlah:l.length,lewat:0,ids:l.map(r=>r.id)}},apiBacaSheet(t,ss,n){const w=/WALI/i.test(n);return w?{judul:'Contoh / '+n,header:['Nama_Wali','NIK_Wali','Jenis_Kelamin_Wali','Tanggal_Lahir_Wali','Agama_Wali','Pekerjaan_Wali','Alamat_Wali','Kel_Kec_Kota','Status_Dengan_Wali','Lokasi_Pengadilan','Nomor_Penetapan','Tanggal_Penetapan','Nama_Anak_1','Jenis_Kelamin_Anak_1','Tanggal_Lahir_Anak_1','Nama_Anak_2','Tanggal_Lahir_Anak_2'],
+    apiAdaAI(){return false},apiImpor(t,aksi){if(aksi==='antrean'||aksi==='selesai')return aksi==='antrean'?[]:0;throw new Error('Impor dari Drive & impor terjadwal hanya berjalan setelah di-deploy ke Apps Script. Di mode demo pakai tombol pilih PDF dari komputer.')},apiSimpanBanyak(t,l){return{jumlah:l.length,lewat:0,ids:l.map(r=>r.id)}},apiBacaSheet(t,ss,n){const w=/WALI/i.test(n);return w?{judul:'Contoh / '+n,header:['Nama_Wali','NIK_Wali','Jenis_Kelamin_Wali','Tanggal_Lahir_Wali','Agama_Wali','Pekerjaan_Wali','Alamat_Wali','Kel_Kec_Kota','Status_Dengan_Wali','Lokasi_Pengadilan','Nomor_Penetapan','Tanggal_Penetapan','Nama_Anak_1','Jenis_Kelamin_Anak_1','Tanggal_Lahir_Anak_1','Nama_Anak_2','Tanggal_Lahir_Anak_2'],
       rows:[['Rina Wati','1471014506850003','Perempuan','05/06/1985','Islam','Wiraswasta','Jl. Durian No. 5 Pekanbaru','Kelurahan Labuh Baru Timur, Kecamatan Payung Sekaki, Kota Pekanbaru','Anak Kandung','Pengadilan Negeri Pekanbaru','48/Pdt.P/2025/PN Pbr','12 Juni 2025','Andi Saputra','Laki-laki','30 Mei 2011','Sari Putri','17-08-2014'],['','','','','','','','','','','','','','','','','']]}
       :{judul:'Contoh / '+n,header:['Nama_Pengampu','Tanggal_Lahir_Pengampu','Nama_Terampu','Tanggal_Lahir_Terampu','Kondisi_Medis_Terampu','Nomor_Penetapan'],rows:[['Budi','1970-01-02','Joko','1990-03-04','gangguan jiwa','9/Pdt.P/2025/PN Dum']]}},apiSimpanKunciAI(){throw new Error('Hanya tersedia setelah di-deploy.')},apiBacaPenetapanAI(){return null}}})();
 
@@ -1198,14 +1199,16 @@ async function imporJalan(btn){btn.disabled=true;let n=0,lewat=0;const gagal=[],
   api('apiCatat','IMPOR_CSV','','',`${n} berkas diimpor dari spreadsheet`).catch(()=>{});renderList();
   $('#impOut').innerHTML=`<p>✅ <b>${n}</b> berkas baru diimpor${lewat?` · ${lewat} dilewati karena sudah ada di database`:''}.</p>${gagal.length?`<p style="color:#c0392b">Sebagian gagal: ${esc([...new Set(gagal)].join('; '))}<br>Klik <b>Periksa lagi</b> lalu impor ulang — yang sudah masuk otomatis dilewati.</p>`:''}<p class="hint">Periksa tiap berkas (tab 1–5) sebelum membuat dokumen.</p>`;
   IMP=null;btn.disabled=false;if(gagal.length){btn.textContent='🔍 Periksa lagi';btn.onclick=()=>imporCek(btn)}else{btn.textContent='Selesai';btn.onclick=dlgClose}}
-/* ---------------- impor massal PDF penetapan dari folder Google Drive (AI Claude hemat token; backend: ImporMassal.gs) ----------------
-   Hemat token: PDF yang punya lapisan teks dikirim sebagai TEKS BERSIH saja (watermark dibuang di browser), instruksi di-cache
-   di server, jawaban dipaksa sesuai skema JSON (tidak perlu ulang), dan file yang nomor penetapannya sudah ada dilewati SEBELUM ke AI.
-   PDF scan (tanpa teks) dibaca Claude langsung dari Drive oleh server. */
+/* ---------------- impor massal PDF penetapan dari folder Google Drive (AI Claude hemat token) ----------------
+   Server: ImporMassal.gs (pemasang sekali-tempel) memuat impor-massal-inti.js dari GitHub; semua aksi lewat apiImpor(token, aksi, …).
+   Hemat token: PDF berlapisan teks dikirim sebagai TEKS BERSIH saja (watermark dibuang di browser), instruksi di-cache di server,
+   jawaban dipaksa sesuai skema JSON, dan file yang nomor penetapannya sudah ada dilewati SEBELUM ke AI. PDF scan dibaca Claude
+   langsung dari Drive. Impor terjadwal: server membaca PDF baru sendiri → antrean → disimpan otomatis saat admin membuka aplikasi. */
 const MS_FOLDER_DEF='https:\/\/drive.google.com/drive/folders/1ozEsyCN1-oij2zweiotXWd-uX3khPldP';
 const MS_MODEL=[['claude-opus-5-5','Opus 5.5 — paling akurat'],['claude-sonnet-5-5','Sonnet 5.5 — akurat, ±½ biaya Opus'],['claude-haiku-5-5','Haiku 5.5 — paling murah']];
 const MS_UNDUH_MAKS=4e6;/* PDF >4 MB hampir selalu scan: langsung dibaca server dari Drive, tidak diunduh ke browser */
-const MS={judul:'',file:[],jalan:false,stop:false,tok:{in:0,cache:0,out:0},bukanGs:false};
+const MS={judul:'',file:[],jalan:false,stop:false,tok:{in:0,cache:0,out:0},bukanGs:false,antrean:[],jad:null};
+const imp=(aksi,...a)=>api('apiImpor',aksi,...a);
 const msGet=(k,d)=>{try{const v=localStorage.getItem('ms_'+k);return v===null?d:v}catch(e){return d}};
 const msSet=(k,v)=>{try{localStorage.setItem('ms_'+k,v)}catch(e){}};
 /* nomor perkara dari teks/nama file: "putusan_332_pdt.p_2025_pa.pbr.pdf" & "332/Pdt.P/2025/PA.Pbr" → "332/2025/pa/pbr" */
@@ -1213,68 +1216,113 @@ function kunciNomor(s){const m=String(s||'').toLowerCase().replace(/_/g,' ').mat
 const msAda=()=>{const k=new Set();DB.forEach(r=>{if(!r._dihapus){const n=kunciNomor(r.nomorPenetapan);if(n)k.add(n)}});return k};
 const msUkuran=b=>b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
 const bukanTerpasang=e=>/is not a function|not a function|Script function not found|tidak ditemukan/i.test(String(e&&e.message||e));
+const MS_PASANG='Fitur impor massal belum terpasang di server: tempel <b>ImporMassal.gs</b> ke proyek Apps Script, jalankan <b>pasangImporMassal</b> sekali, lalu deploy Versi baru (lihat README).';
+const kepriLama=()=>DB.filter(r=>!r._dihapus&&provinsiBerkas(r)==='Kepulauan Riau'&&!r.sumberPdf&&!/^Impor massal/.test(r.asal||'')&&(!MS.kepriWaktu||((r._meta&&r._meta.dibuatPada)||'')<MS.kepriWaktu));
 function msSkema(bap){const S={type:'string'},B={type:'boolean'},obj=p=>({type:'object',properties:p,required:Object.keys(p),additionalProperties:false}),arr=i=>({type:'array',items:i});
   const p={jenis:S,pengadilan:S,nomorPenetapan:S,tglPenetapan:S,nama:S,nik:S,jk:S,tglLahir:S,agama:S,pekerjaan:S,alamat:S,kelurahan:S,status:S,pasangan:S,aktaNikah:S,tglMeninggalPasangan:S,ketMeninggal:S,
     anak:arr(obj({nama:S,jk:S,tglLahir:S,diwalikan:B})),terampu:obj({nama:S,jk:S,tglLahir:S,kondisi:S}),alasan:S,harta:arr(obj({jenis:S,uraian:S})),saksi:arr(obj({nama:S,keterangan:S})),orangTuaHidup:B,terkaitMiliter:S};
   if(bap)p.isiBap=arr(S);return obj(p)}
 /* instruksi sama persis untuk semua file → di-cache server (berkas ke-2 dst. jauh lebih murah) */
-function msOpsi(){const bap=$('#msBap')&&$('#msBap').checked;
-  return{model:$('#msModel').value,effort:'low',maxTokens:16000,schema:msSkema(bap),
+function msOpsi(){const bap=$('#msBap')?$('#msBap').checked:msGet('bap','0')==='1',model=$('#msModel')?$('#msModel').value:msGet('model',MS_MODEL[0][0]);
+  return{model,effort:'low',maxTokens:16000,schema:msSkema(bap),
     system:PROMPT_DATA+WM_ATURAN+(bap?`\n\nTUGAS KEDUA (kunci "isiBap", array baris):\n${PROMPT_BAP}\n\nGABUNGKAN: balas SATU objek JSON berisi semua kunci data di atas DAN kunci "isiBap".`:'')}}
 function imporMassalDlg(){const prov=(()=>{const n={};DB.filter(r=>!r._dihapus).forEach(r=>{const p=provinsiBerkas(r);n[p]=(n[p]||0)+1});return n})();
-  const md=msGet('model',MS_MODEL[0][0]);
-  dlg(`<h3>📂 Impor Massal PDF Penetapan</h3><p class="hint">Semua PDF penetapan di folder Google Drive dibaca ${ADA_AI?'<b>AI Claude</b>':'<b>pembaca otomatis</b> (AI belum terhubung)'} lalu dijadikan berkas. Watermark Mahkamah Agung dibuang dulu sebelum dibaca. File yang nomor penetapannya sudah ada di aplikasi <b>dilewati sebelum dikirim ke AI</b> (tidak memakan token).</p>
+  const md=msGet('model',MS_MODEL[0][0]),cb=(id,on,teks,tt,ext)=>`<label style="margin:0;display:flex;gap:6px;align-items:center"${tt?` title="${tt}"`:''}><input type="checkbox" style="width:auto;margin:0" id="${id}" ${on?'checked':''} ${ext||''}><span>${teks}</span></label>`;
+  dlg(`<h3>📂 Impor Massal PDF Penetapan</h3><p class="hint">Semua PDF penetapan di folder Google Drive dibaca ${ADA_AI?'<b>AI Claude</b>':'<b>pembaca otomatis</b> (AI belum terhubung)'} lalu dijadikan berkas. Watermark Mahkamah Agung dibuang dulu sebelum dibaca. File yang nomor penetapannya sudah ada <b>dilewati sebelum dikirim ke AI</b> (tidak memakan token).</p>
   <div class="grid"><div class="full"><label>Tautan / ID folder Google Drive</label><input id="msFolder" value="${esc(msGet('folder',MS_FOLDER_DEF))}"></div>
   <div><label>Model AI</label><select id="msModel" onchange="msSet('model',this.value)">${MS_MODEL.map(([v,t])=>`<option value="${v}" ${v===md?'selected':''}>${t}</option>`).join('')}</select></div>
   <div style="display:flex;flex-direction:column;gap:4px;justify-content:flex-end;font-size:13px">
-    <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" style="width:auto;margin:0" id="msSub" ${msGet('sub','1')==='1'?'checked':''} onchange="msSet('sub',this.checked?'1':'0')"> Termasuk subfolder</label>
-    <label style="margin:0;display:flex;gap:6px;align-items:center" title="Satu panggilan AI per file sekaligus menyusun isi BAP — lebih banyak token keluaran"><input type="checkbox" style="width:auto;margin:0" id="msBap" ${msGet('bap','0')==='1'?'checked':''} onchange="msSet('bap',this.checked?'1':'0')"> Sekalian susun isi BAP dengan AI <small class="hint">(lebih boros)</small></label></div></div>
-  <p style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="pri" id="msAmbil" onclick="msDaftar(this)">🔍 Ambil daftar PDF dari Drive</button>
-    <label class="btn" style="margin:0;cursor:pointer">💻 atau pilih PDF dari komputer<input type="file" accept=".pdf,image/*" multiple hidden onchange="msLokal(this)"></label></p>
-  <div id="msOut"></div>
-  <details style="margin-top:12px" ${prov['Kepulauan Riau']?'open':''}><summary><b>🗑 Hapus berkas lama per provinsi</b> <span class="hint">(mis. sebelum input ulang)</span></summary>
+    ${cb('msSub',msGet('sub','1')==='1','Termasuk subfolder','',`onchange="msSet('sub',this.checked?'1':'0')"`)}
+    ${cb('msBap',msGet('bap','0')==='1','Sekalian susun isi BAP dengan AI <small class="hint">(lebih boros)</small>','Satu panggilan AI per file sekaligus menyusun isi BAP — lebih banyak token keluaran',`onchange="msSet('bap',this.checked?'1':'0')"`)}
+    <span id="msKepriBox"></span></div></div>
+  <p style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="pri" id="msOto" onclick="msOtomatis(this)">⚡ Impor Otomatis (1 klik)</button><button id="msAmbil" onclick="msDaftar(this)">🔍 Ambil daftar dulu</button>
+    <label class="btn" style="margin:0;cursor:pointer">💻 Pilih PDF dari komputer<input type="file" accept=".pdf,image/*" multiple hidden onchange="msLokal(this)"></label></p>
+  <div id="msInfo"></div><div id="msOut"></div>
+  <details style="margin-top:12px" ontoggle="if(this.open)msJadMuat()"><summary><b>⏰ Impor terjadwal</b> <span class="hint">(server memeriksa folder sendiri, tanpa membuka aplikasi)</span></summary><div id="msJad" class="hint" style="margin-top:6px">Memuat…</div></details>
+  <details style="margin-top:8px"><summary><b>🗑 Hapus berkas lama per provinsi</b> <span class="hint">(manual)</span></summary>
     <p class="hint">Berkas dipindah ke arsip terhapus dan masih bisa dipulihkan admin utama.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="msProv">${Object.keys(prov).sort().map(k=>`<option value="${esc(k)}" ${k==='Kepulauan Riau'?'selected':''}>${esc(k)} (${prov[k]})</option>`).join('')}</select>
     <button style="color:var(--warn)" onclick="msHapusProv(this)">🗑 Hapus semua berkas provinsi ini</button></div></details>
-  <p style="text-align:right;margin-top:12px"><button onclick="if(MS.jalan){MS.stop=true}dlgClose()">Tutup</button></p>`)}
+  <p style="text-align:right;margin-top:12px"><button onclick="if(MS.jalan){MS.stop=true}dlgClose()">Tutup</button></p>`);msInfoAntre();msKepriMuat()}
+/* hapus Kepri hanya SEKALI (sebelum input ulang): waktunya dicatat di server untuk semua admin, dan berkas hasil impor massal
+   atau yang dibuat sesudah waktu itu tidak pernah ikut terhapus */
+async function msKepriMuat(){let w=msGet('kepriWaktu','');try{const c=await imp('catatan');if(c&&c.kepriDihapus)w=c.kepriDihapus}catch(e){}
+  MS.kepriWaktu=w;const nk=kepriLama().length,e=$('#msKepriBox');if(!e)return;
+  e.innerHTML=nk?`<label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" style="width:auto;margin:0" id="msKepri" ${w?'':'checked'}><span>Hapus dulu <b>${nk}</b> berkas lama Kepulauan Riau <small class="hint">(bisa dipulihkan)</small></span></label>`:''}
+function msKepriTandai(){const w=new Date().toISOString();MS.kepriWaktu=w;msSet('kepriWaktu',w);imp('catatan','kepriDihapus',w).catch(()=>{})}
+function msInfoAntre(){const e=$('#msInfo');if(!e)return;const n=MS.antrean.length;e.innerHTML=n?`<div class="card" style="padding:10px;margin-bottom:8px">📥 <b>${n}</b> hasil impor terjadwal perlu dicek (ada isian kosong / ditolak). <button onclick="msTinjau()">Tinjau</button></div>`:''}
+function msTinjau(){MS.judul='Hasil impor terjadwal';MS.file=MS.antrean;msTampil()}
+async function msHapusList(L,label,lapor){let n=0;const gagal=[];
+  for(let i=0;i<L.length;i+=4){await Promise.all(L.slice(i,i+4).map(async r=>{try{await api('apiHapus',r.id);r._dihapus=true;n++}catch(e){gagal.push(r.nama+': '+(e.message||e))}}));if(lapor)lapor(`Menghapus ${n}/${L.length}…`)}
+  if(n)api('apiCatat','HAPUS_MASSAL','','',`${n} berkas ${label} dipindah ke arsip terhapus`).catch(()=>{});
+  renderList();if(cur&&cur._dihapus)renderMain();return{n,gagal}}
 async function msHapusProv(btn){const p=$('#msProv').value,L=DB.filter(r=>!r._dihapus&&provinsiBerkas(r)===p);if(!L.length)return toast('Tidak ada berkas di provinsi ini');
   if(!confirm(`Hapus ${L.length} berkas provinsi ${p}?\n\nBerkas dipindah ke arsip terhapus (bisa dipulihkan admin utama).`))return;
-  btn.disabled=true;let n=0;const gagal=[];
-  for(let i=0;i<L.length;i+=4){await Promise.all(L.slice(i,i+4).map(async r=>{try{await api('apiHapus',r.id);r._dihapus=true;n++}catch(e){gagal.push(r.nama+': '+(e.message||e))}}));btn.textContent=`Menghapus ${n}/${L.length}…`}
-  api('apiCatat','HAPUS_MASSAL','','',`${n} berkas provinsi ${p} dipindah ke arsip terhapus`).catch(()=>{});
-  renderList();if(cur&&cur._dihapus)renderMain();btn.textContent=`✔ ${n} berkas dihapus`;toast(`${n} berkas provinsi ${p} dihapus`+(gagal.length?`, ${gagal.length} gagal`:''));if(gagal.length)alert('Sebagian gagal dihapus:\n'+gagal.slice(0,20).join('\n'))}
-async function msDaftar(btn){const f=$('#msFolder').value.trim();if(!f)return toast('Isi tautan folder Drive');msSet('folder',f);btn.disabled=true;btn.textContent='Membaca folder…';
-  try{if(GAS){const r=await api('apiInit');DB=r.berkas||DB;renderList()}
-    const d=await api('apiDaftarPdfDrive',f,$('#msSub').checked);MS.judul=d.judul;msMulai(d.file.map(x=>({...x})));}
-  catch(e){$('#msOut').innerHTML=`<p style="color:#c0392b">${bukanTerpasang(e)?'Fitur Drive belum terpasang di server: tempel file <b>ImporMassal.gs</b> ke proyek Apps Script lalu deploy Versi baru (lihat README).':esc(e.message||e)}</p>`}
-  finally{btn.disabled=false;btn.textContent='🔍 Ambil daftar PDF dari Drive'}}
+  btn.disabled=true;const{n,gagal}=await msHapusList(L,'provinsi '+p,t=>btn.textContent=t);if(p==='Kepulauan Riau')msKepriTandai();
+  btn.textContent=`✔ ${n} berkas dihapus`;toast(`${n} berkas provinsi ${p} dihapus`+(gagal.length?`, ${gagal.length} gagal`:''));if(gagal.length)alert('Sebagian gagal dihapus:\n'+gagal.slice(0,20).join('\n'))}
+async function msSegarkanDB(){if(GAS){const r=await api('apiInit');DB=r.berkas||DB;renderList()}}
+async function msAmbil(f,sub){msSet('folder',f);const d=await imp('daftar',f,sub);MS.judul=d.judul;msMulai(d.file.map(x=>({...x})))}
+async function msDaftar(btn){const f=$('#msFolder').value.trim();if(!f)return toast('Isi tautan folder Drive');btn.disabled=true;btn.textContent='Membaca folder…';
+  try{await msSegarkanDB();await msAmbil(f,$('#msSub').checked)}
+  catch(e){$('#msOut').innerHTML=`<p style="color:#c0392b">${bukanTerpasang(e)?MS_PASANG:esc(e.message||e)}</p>`}
+  finally{btn.disabled=false;btn.textContent='🔍 Ambil daftar dulu'}}
 function msLokal(inp){const fs=[...inp.files];inp.value='';if(!fs.length)return;MS.judul='File dari komputer';msMulai(fs.map(f=>({id:'',nama:f.name,mime:f.type||'application/pdf',ukuran:f.size,jalur:'',lokal:f})))}
 function msMulai(L){const ada=msAda(),lihat=new Set();MS.tok={in:0,cache:0,out:0};
   MS.file=L.map(x=>{const k=kunciNomor(x.nama);let st={k:'antre',t:'Menunggu'};
     if(k&&ada.has(k))st={k:'dup',t:'Sudah ada di aplikasi (nomor '+k.toUpperCase()+')'};else if(k&&lihat.has(k))st={k:'dup',t:'File ganda di folder'};if(k)lihat.add(k);
     return{...x,kunci:k,st,pilih:st.k==='antre'}});msTampil()}
+/* ⚡ satu klik: (hapus Kepri lama) → daftar folder → baca semua → simpan otomatis yang ✔ siap */
+async function msOtomatis(btn){const f=$('#msFolder').value.trim();if(!f)return toast('Isi tautan folder Drive');
+  const hapus=$('#msKepri')&&$('#msKepri').checked,K=hapus?kepriLama():[];
+  if(!confirm(`Impor otomatis dari Drive:\n${K.length?`• Hapus dulu ${K.length} berkas lama Kepulauan Riau (bisa dipulihkan)\n`:''}• Ambil semua PDF di folder\n• Baca dengan ${ADA_AI?'AI Claude':'pembaca otomatis'} (yang sudah ada dilewati)\n• Simpan otomatis yang ✔ siap; yang perlu cek ditinggal untuk diperiksa\n\nLanjut?`))return;
+  btn.disabled=true;const info=$('#msInfo'),lap=t=>{if(info)info.innerHTML=`<p class="hint">⏳ ${esc(t)}</p>`};
+  try{lap('Menyegarkan data…');await msSegarkanDB();
+    if(K.length){const{n,gagal}=await msHapusList(kepriLama(),'Kepulauan Riau (sebelum impor ulang)',lap);msKepriTandai();if(gagal.length)throw new Error(`${gagal.length} berkas Kepri gagal dihapus: `+gagal.slice(0,3).join('; '))}
+    lap('Membaca isi folder…');await msAmbil(f,$('#msSub').checked);
+    await msJalankan(true);
+    MS.file.forEach(x=>x.pilih=x.st.k==='ok'&&!!x.rec&&!x.disimpan);
+    const s=await msSimpanList(MS.file.filter(x=>x.pilih)),c=k=>MS.file.filter(x=>x.st.k===k).length;msTampil();
+    if(info)info.innerHTML=`<div class="card" style="padding:10px;margin-bottom:8px">✅ Impor otomatis selesai: <b>${s.n}</b> berkas baru disimpan${K.length?` · ${K.length} berkas lama Kepri dihapus`:''} · ${c('dup')} sudah ada · <b>${c('kurang')}</b> perlu cek · ${c('tolak')} ditolak · ${c('gagal')} gagal.${c('kurang')?' Centang yang sudah dicek di tabel lalu klik Simpan.':''}</div>`;
+    api('apiCatat','IMPOR_MASSAL','','',`Impor otomatis ${MS.judul}: ${s.n} berkas disimpan`).catch(()=>{})}
+  catch(e){if(info)info.innerHTML=`<p style="color:#c0392b">${bukanTerpasang(e)?MS_PASANG:esc(e.message||e)}</p>`}
+  finally{btn.disabled=false}}
 const MS_WARNA={antre:'var(--mut)',jalan:'#2980b9',ok:'var(--ok)',kurang:'#d68910',tolak:'#c0392b',dup:'var(--mut)',gagal:'#c0392b'};
 function msBaris(x,i){const r=x.rec;
-  return`<tr id="msR${i}"><td><input type="checkbox" style="width:auto" ${x.pilih?'checked':''} ${MS.jalan?'disabled':''} onchange="MS.file[${i}].pilih=this.checked;msRingkas()"></td>
+  return`<tr id="msR${i}"><td><input type="checkbox" style="width:auto" ${x.pilih?'checked':''} ${MS.jalan||x.disimpan?'disabled':''} onchange="MS.file[${i}].pilih=this.checked;msRingkas()"></td>
     <td style="max-width:240px;overflow-wrap:anywhere">${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nama)}</a>`:esc(x.nama)}<br><small class="hint">${x.jalur?esc(x.jalur)+' · ':''}${msUkuran(x.ukuran||0)}</small></td>
     <td>${r?`<b>${esc(r.nama||'-')}</b><br><small>${esc(r.jenis)} · ${esc(r.nomorPenetapan||'tanpa nomor')}${r.jenis==='Perwalian'?' · '+(r.anak||[]).filter(a=>a.nama).length+' anak':r.terampu&&r.terampu.nama?' · terampu '+esc(r.terampu.nama):''}</small>`:''}</td>
     <td style="color:${MS_WARNA[x.st.k]};font-size:12.5px">${esc(x.st.t)}</td></tr>`}
-function msTampil(){const n=MS.file.length;
-  $('#msOut').innerHTML=!n?'<p class="hint">Tidak ada PDF di folder ini.</p>':`<div class="card" style="padding:10px"><b>${esc(MS.judul)}</b> — ${n} file <span id="msRing" class="hint"></span>
+function msTampil(){const n=MS.file.length,o=$('#msOut');if(!o)return;
+  o.innerHTML=!n?'<p class="hint">Tidak ada PDF di folder ini.</p>':`<div class="card" style="padding:10px"><b>${esc(MS.judul)}</b> — ${n} file <span id="msRing" class="hint"></span>
     <div style="max-height:46vh;overflow:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left"><th><input type="checkbox" style="width:auto" onchange="msSemua(this.checked)" ${MS.jalan?'disabled':''}></th><th>File</th><th>Hasil baca</th><th>Status</th></tr></thead>
     <tbody>${MS.file.map(msBaris).join('')}</tbody></table></div>
     <p id="msTok" class="hint" style="margin:8px 0 0"></p>
     <p style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button id="msBtnBaca" class="pri" onclick="MS.jalan?(MS.stop=true,this.textContent='Menghentikan…'):msJalankan()"></button><button id="msBtnSimpan" onclick="msSimpan(this)"></button></p></div>`;msRingkas()}
-function msSemua(v){MS.file.forEach(x=>{if(x.st.k!=='dup'||!v)x.pilih=v});msTampil()}
+function msSemua(v){MS.file.forEach(x=>{if(!x.disimpan&&(x.st.k!=='dup'||!v))x.pilih=v});msTampil()}
 function msRingkas(){const F=MS.file,c=k=>F.filter(x=>x.st.k===k).length,belum=F.filter(x=>x.pilih&&(x.st.k==='antre'||x.st.k==='gagal')).length,siap=F.filter(x=>x.pilih&&x.rec&&!x.disimpan).length;
   const e=$('#msRing');if(e)e.textContent=`· ${c('ok')} siap · ${c('kurang')} perlu cek · ${c('tolak')} ditolak · ${c('dup')} sudah ada · ${c('gagal')} gagal`;
-  const b=$('#msBtnBaca');if(b&&!MS.jalan)b.textContent=belum?`▶ Baca ${belum} file`:'✔ Semua sudah dibaca',b&&!MS.jalan&&(b.disabled=!belum);
+  const b=$('#msBtnBaca');if(b&&!MS.jalan){b.textContent=belum?`▶ Baca ${belum} file`:'✔ Semua sudah dibaca';b.disabled=!belum}
   const s=$('#msBtnSimpan');if(s){s.textContent=`💾 Simpan ${siap} berkas`;s.disabled=MS.jalan||!siap}
   const t=$('#msTok');if(t&&(MS.tok.in||MS.tok.out))t.textContent=`Token AI terpakai: masuk ${MS.tok.in.toLocaleString('id')} + ${MS.tok.cache.toLocaleString('id')} dari cache · keluar ${MS.tok.out.toLocaleString('id')}`}
 function msSet1(i,k,t){const x=MS.file[i];x.st={k,t};const tr=$('#msR'+i);if(tr)tr.outerHTML=msBaris(x,i);msRingkas()}
-async function msUnduh(x){let mulai=0,bag=[],mime=x.mime;do{const r=await api('apiAmbilPdfDrive',x.id,mulai);bag.push(r.b64);mime=r.mime||mime;mulai=r.lanjut}while(mulai!==null&&mulai!==undefined);
+async function msUnduh(x){let mulai=0,bag=[],mime=x.mime;do{const r=await imp('ambil',x.id,mulai);bag.push(r.b64);mime=r.mime||mime;mulai=r.lanjut}while(mulai!==null&&mulai!==undefined);
   const bytes=bag.map(b=>{const s=atob(b),u=new Uint8Array(s.length);for(let k=0;k<s.length;k++)u[k]=s.charCodeAt(k);return u});return new File(bytes,x.nama,{type:mime})}
 const msHitung=u=>{if(!u)return;MS.tok.in+=(u.input_tokens||0)+(u.cache_creation_input_tokens||0);MS.tok.cache+=u.cache_read_input_tokens||0;MS.tok.out+=u.output_tokens||0};
+/* hasil baca (AI/teks) → berkas + status; dipakai baca langsung & antrean impor terjadwal */
+function msHasil(x,data,teks,cara,daftar){
+  if(teks){const rx=parsePenetapan(teks);if(!data){data=rx;cara='tanpa AI'}else if(!(data.nama&&(data.nomorPenetapan||data.tglPenetapan)))data=gabung(normAI(data),rx)}
+  if(!data)throw new Error('Teks tidak terbaca dari file');
+  data=normAI(data);if(Array.isArray(data.isiBap))data.isiBap=rapikanBap(data.isiBap);
+  if(teks)try{const h=hubDariTeks(teks,data);if(h)data.status=h}catch(e){console.warn(e)}
+  if(!data.jenis)data.jenis=/perwalian|wali\b/i.test((teks||'')+' '+x.nama)?'Perwalian':'Pengampuan';
+  const r=isiDariPen(data,blank());r.asal='Impor massal PDF: '+x.nama+(MS.judul?' ('+MS.judul+')':'');r.sumberPdf=x.url||x.nama;x.rec=r;
+  const k=kunciNomor(r.nomorPenetapan)||x.kunci,tolak=cekKelayakan(penRec(data)).tolak,st=(s,t,p)=>{x.st={k:s,t};x.pilih=p};
+  if(k&&msAda().has(k))return st('dup','Sudah ada di aplikasi ('+r.nomorPenetapan+')',false);
+  if(k&&daftar.some(y=>y!==x&&y.rec&&!y.disimpan&&y.st.k!=='dup'&&(kunciNomor(y.rec.nomorPenetapan)||y.kunci)===k))return st('dup','Ganda dengan file lain di daftar',false);
+  if(tolak.length)return st('tolak','Ditolak: '+tolak.join(' '),false);
+  if(!r.nama)return st('kurang','Nama pemohon tidak terbaca — isi manual',false);
+  const kurang=[!r.nomorPenetapan&&'nomor penetapan',!r.tglPenetapan&&'tgl penetapan',r.jenis==='Perwalian'?!(r.anak||[]).some(a=>a.nama)&&'anak':!(r.terampu&&r.terampu.nama)&&'terampu'].filter(Boolean);
+  st(kurang.length?'kurang':'ok',(kurang.length?'Perlu cek: '+kurang.join(', ')+' kosong · ':'✔ ')+cara,true)}
 async function msBaca(i){const x=MS.file[i],S=t=>msSet1(i,'jalan',t);
   let file=x.lokal||null,teks='';
   if(!file&&x.mime==='application/pdf'&&x.ukuran<=MS_UNDUH_MAKS){S('Mengunduh…');file=await msUnduh(x)}
@@ -1282,37 +1330,60 @@ async function msBaca(i){const x=MS.file[i],S=t=>msSet1(i,'jalan',t);
   const adaTeks=teks.replace(/\s/g,'').length>800;let data=null,cara='';
   if(ADA_AI){const o=msOpsi();
     try{let r=null;
-      if(adaTeks&&!MS.bukanGs){S('AI membaca teks…');try{r=await api('apiClaudeTeks',o,teks);cara='AI · teks'}catch(e){if(!bukanTerpasang(e))throw e;MS.bukanGs=true}}
-      if(!r&&x.id&&!adaTeks){S('AI membaca scan dari Drive…');r=await api('apiClaudeDrive',o,x.id);cara='AI · scan'}
+      if(adaTeks&&!MS.bukanGs){S('AI membaca teks…');try{r=await imp('teks',o,teks);cara='AI · teks'}catch(e){if(!bukanTerpasang(e))throw e;MS.bukanGs=true}}
+      if(!r&&x.id&&!adaTeks){S('AI membaca scan dari Drive…');r=await imp('drive',o,x.id);cara='AI · scan'}
       if(r){msHitung(r.usage);data=r.data}
       else if(file){S('AI membaca PDF…');data=await aiExtract(file);cara='AI · PDF'}}
     catch(e){console.warn('Impor massal AI gagal:',x.nama,e);if(!adaTeks)throw e}}
-  if(adaTeks){const rx=parsePenetapan(teks);if(!data){data=rx;cara='tanpa AI'}else if(!(data.nama&&(data.nomorPenetapan||data.tglPenetapan)))data=gabung(normAI(data),rx)}
-  if(!data){if(!file&&!x.id)throw new Error('File tidak terbaca');if(!ADA_AI)throw new Error('PDF scan butuh AI Claude (Pengaturan → AI Claude)');throw new Error('Teks tidak terbaca dari file')}
-  data=normAI(data);if(Array.isArray(data.isiBap))data.isiBap=rapikanBap(data.isiBap);
-  if(teks)try{const h=hubDariTeks(teks,data);if(h)data.status=h}catch(e){console.warn(e)}
-  if(!data.jenis)data.jenis=/perwalian|wali\b/i.test(teks+' '+x.nama)?'Perwalian':'Pengampuan';
-  const r=isiDariPen(data,blank());r.asal='Impor massal PDF: '+x.nama+(MS.judul?' ('+MS.judul+')':'');x.rec=r;
-  const k=kunciNomor(r.nomorPenetapan)||x.kunci,tolak=cekKelayakan(penRec(data)).tolak;
-  if(k&&msAda().has(k)){x.pilih=false;return msSet1(i,'dup','Sudah ada di aplikasi ('+r.nomorPenetapan+')')}
-  if(k&&MS.file.some((y,j)=>j!==i&&y.rec&&!y.disimpan&&y.pilih&&(kunciNomor(y.rec.nomorPenetapan)||y.kunci)===k)){x.pilih=false;return msSet1(i,'dup','Ganda dengan file lain di daftar')}
-  if(tolak.length){x.pilih=false;return msSet1(i,'tolak','Ditolak: '+tolak.join(' '))}
-  const kurang=[!r.nama&&'nama pemohon',!r.nomorPenetapan&&'nomor penetapan',!r.tglPenetapan&&'tgl penetapan',r.jenis==='Perwalian'?!(r.anak||[]).some(a=>a.nama)&&'anak':!(r.terampu&&r.terampu.nama)&&'terampu'].filter(Boolean);
-  if(!r.nama){x.pilih=false;return msSet1(i,'kurang','Nama pemohon tidak terbaca — isi manual')}
-  msSet1(i,kurang.length?'kurang':'ok',(kurang.length?'Perlu cek: '+kurang.join(', ')+' kosong · ':'✔ ')+cara)}
-async function msJalankan(){const antre=MS.file.map((x,i)=>i).filter(i=>MS.file[i].pilih&&(MS.file[i].st.k==='antre'||MS.file[i].st.k==='gagal'));if(!antre.length)return;
-  MS.jalan=true;MS.stop=false;msTampil();$('#msBtnBaca').textContent='⏸ Hentikan';
+  if(!data&&!adaTeks){if(!ADA_AI)throw new Error('PDF scan butuh AI Claude (Pengaturan → AI Claude)');throw new Error('Teks tidak terbaca dari file')}
+  msHasil(x,data,adaTeks?teks:'',cara,MS.file);msSet1(i,x.st.k,x.st.t)}
+async function msJalankan(diam){const antre=MS.file.map((x,i)=>i).filter(i=>MS.file[i].pilih&&(MS.file[i].st.k==='antre'||MS.file[i].st.k==='gagal'));if(!antre.length)return;
+  MS.jalan=true;MS.stop=false;msTampil();const b=$('#msBtnBaca');if(b)b.textContent='⏸ Hentikan';
   const kerja=async()=>{while(antre.length&&!MS.stop){const i=antre.shift();try{await msBaca(i)}catch(e){console.warn(e);msSet1(i,'gagal','Gagal: '+(e.message||e))}}};
   try{await Promise.all([kerja(),kerja()])}finally{MS.jalan=false;msTampil();
     api('apiCatat','IMPOR_MASSAL_BACA','','',`${MS.file.filter(x=>x.rec).length} PDF dibaca dari ${MS.judul} · token masuk ${MS.tok.in}+${MS.tok.cache} cache, keluar ${MS.tok.out}`).catch(()=>{});
-    toast(MS.stop?'Dihentikan':'Selesai membaca — periksa lalu klik Simpan')}}
-async function msSimpan(btn){const L=MS.file.filter(x=>x.pilih&&x.rec&&!x.disimpan);if(!L.length)return;btn.disabled=true;let n=0,lewat=0;const gagal=[],PAKET=40;
-  for(let i=0;i<L.length;i+=PAKET){const pk=L.slice(i,i+PAKET);btn.textContent=`Menyimpan ${Math.min(i+PAKET,L.length)}/${L.length}…`;
+    if(!diam)toast(MS.stop?'Dihentikan':'Selesai membaca — periksa lalu klik Simpan')}}
+/* simpan berkas (paket 40) lalu tandai file Drive-nya selesai supaya impor terjadwal tidak membacanya lagi */
+async function msSimpanList(L,lapor){let n=0,lewat=0;const gagal=[],PAKET=40;
+  for(let i=0;i<L.length;i+=PAKET){const pk=L.slice(i,i+PAKET);if(lapor)lapor(`Menyimpan ${Math.min(i+PAKET,L.length)}/${L.length}…`);
     try{const x=await api('apiSimpanBanyak',pk.map(y=>JSON.parse(JSON.stringify(y.rec))));const ok=new Set(x.ids||[]);lewat+=x.lewat||0;
       pk.forEach(y=>{if(ok.has(y.rec.id)){addRec(y.rec,y.rec.asal);y.rec._versi=1;y.disimpan=true;y.pilih=false;y.st={k:y.st.k,t:'💾 Tersimpan · '+y.st.t};n++}})}
     catch(e){gagal.push(e.message||String(e))}}
-  api('apiCatat','IMPOR_MASSAL','','',`${n} berkas diimpor dari PDF (${MS.judul})`).catch(()=>{});renderList();msTampil();
+  const F=[...new Set([...L,...MS.file])].filter(x=>x.id&&(x.disimpan||x.st.k==='dup'));
+  if(F.length)imp('selesai',F.map(x=>x.id),F.map(x=>x.rec&&kunciNomor(x.rec.nomorPenetapan)||x.kunci).filter(Boolean)).catch(()=>{});
+  if(n)renderList();return{n,lewat,gagal}}
+async function msSimpan(btn){const L=MS.file.filter(x=>x.pilih&&x.rec&&!x.disimpan);if(!L.length)return;btn.disabled=true;
+  const{n,lewat,gagal}=await msSimpanList(L,t=>btn.textContent=t);
+  api('apiCatat','IMPOR_MASSAL','','',`${n} berkas diimpor dari PDF (${MS.judul})`).catch(()=>{});
+  MS.antrean=MS.antrean.filter(x=>!x.disimpan);msInfoAntre();msTampil();
   toast(`${n} berkas disimpan`+(lewat?`, ${lewat} dilewati (sudah ada)`:''));if(gagal.length)alert('Sebagian gagal disimpan: '+[...new Set(gagal)].join('; ')+'\nKlik Simpan lagi — yang sudah masuk tidak dobel.')}
+/* ---- impor terjadwal ---- */
+async function msJadMuat(){const e=$('#msJad');if(!e)return;e.textContent='Memuat…';
+  try{const s=MS.jad=await imp('jadwalStatus'),L=s.log||{},R=L.ringkas||{},T=s.token||{};
+    e.innerHTML=`<p>Status: ${s.aktif?`<b style="color:var(--ok)">aktif</b> — ${s.jam===24?'tiap hari pukul 06.00':'tiap '+s.jam+' jam'}`:'<b>tidak aktif</b>'}${s.folder?` · folder <a href="${esc(s.folder)}" target="_blank" rel="noopener">Drive</a>`:''}
+      ${L.terakhir?`<br>Terakhir jalan: ${esc(wkt(L.terakhir))} — ${R.dibaca||0} dibaca, ${R.dilewati||0} dilewati, ${R.gagal||0} gagal${R.sisa?`, ${R.sisa} menunggu putaran berikut`:''}`:''}
+      ${L.galat?`<br><span style="color:#c0392b">Galat terakhir: ${esc(L.galat)}</span>`:''}
+      <br>Antrean menunggu disimpan: <b>${s.antrean}</b> · file sudah diproses: ${s.sudah}${T.masuk||T.keluar?` · token: masuk ${(T.masuk||0).toLocaleString('id')} + ${(T.cache||0).toLocaleString('id')} cache, keluar ${(T.keluar||0).toLocaleString('id')}`:''}</p>
+      <p>Hasil yang ✔ siap otomatis disimpan saat admin utama membuka aplikasi; yang perlu cek muncul di atas untuk ditinjau. Folder & model yang dipakai: isian di atas.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="msJam">${[[1,'Tiap 1 jam'],[2,'Tiap 2 jam'],[4,'Tiap 4 jam'],[6,'Tiap 6 jam'],[12,'Tiap 12 jam'],[24,'Tiap hari']].map(([v,t])=>`<option value="${v}" ${v===(s.jam||1)?'selected':''}>${t}</option>`).join('')}</select>
+      <button class="pri" onclick="msJadAtur(true,this)">${s.aktif?'💾 Simpan pengaturan':'▶ Aktifkan'}</button>${s.aktif?`<button onclick="msJadAtur(false,this)">⏸ Matikan</button>`:''}<button onclick="msJadJalan(this)">⚡ Jalankan sekarang</button></div>`}
+  catch(err){e.innerHTML=bukanTerpasang(err)?MS_PASANG:`<span style="color:#c0392b">${esc(err.message||err)}</span>`}}
+async function msJadAtur(aktif,btn){btn.disabled=true;
+  try{const f=$('#msFolder').value.trim();msSet('folder',f);await imp('jadwalAtur',{aktif,jam:+$('#msJam').value,folder:f,sub:$('#msSub').checked,opsi:msOpsi(),kunci:[...msAda()]});toast(aktif?'Impor terjadwal aktif':'Impor terjadwal dimatikan');msJadMuat()}
+  catch(e){alert(e.message||e);btn.disabled=false}}
+async function msJadJalan(btn){btn.disabled=true;btn.textContent='Berjalan… (maks. ±4 menit)';
+  try{const f=$('#msFolder').value.trim();await imp('jadwalAtur',{aktif:!!(MS.jad&&MS.jad.aktif),jam:+$('#msJam').value,folder:f,sub:$('#msSub').checked,opsi:msOpsi(),kunci:[...msAda()]});
+    const r=await imp('jadwalJalan');toast(`${r.dibaca} PDF dibaca${r.sisa?`, ${r.sisa} sisa untuk putaran berikut`:''}`);await msAntreanProses();msInfoAntre();msJadMuat()}
+  catch(e){alert(e.message||e);btn.disabled=false;btn.textContent='⚡ Jalankan sekarang'}}
+/* antrean hasil impor terjadwal → berkas; yang ✔ siap langsung disimpan (dipanggil otomatis setelah login admin utama) */
+async function msAntreanProses(){let L;try{L=await imp('antrean')}catch(e){return}
+  if(!Array.isArray(L)||!L.length){MS.antrean=[];return}
+  const items=L.map(q=>({id:q.id,nama:q.nama,url:q.url,jalur:q.jalur||'',ukuran:q.ukuran||0,mime:q.mime,kunci:kunciNomor(q.nama),st:{k:'antre',t:''},pilih:false,antre:true}));
+  items.forEach((x,i)=>{try{msHasil(x,L[i].data,L[i].teks||'',L[i].cara||'AI',items)}catch(e){x.st={k:'gagal',t:'Gagal: '+(e.message||e)}}});
+  const s=await msSimpanList(items.filter(x=>x.st.k==='ok'));
+  MS.antrean=items.filter(x=>!x.disimpan&&x.st.k!=='dup');
+  if(s.n||MS.antrean.length){toast(`📂 Impor terjadwal: ${s.n} berkas baru disimpan${MS.antrean.length?`, ${MS.antrean.length} perlu dicek (menu Impor Massal PDF)`:''}`);
+    if(s.n)api('apiCatat','IMPOR_MASSAL','','',`${s.n} berkas dari impor terjadwal disimpan otomatis`).catch(()=>{})}}
 async function screenshot(sel,nama){const el=document.querySelector(sel);if(!el)return;toast('Membuat screenshot…');
   try{await loadJs('https:\/\/cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
     const bg=getComputedStyle(document.body).backgroundColor||'#fff';
@@ -1381,7 +1452,9 @@ function exportCsv(){const H=['Jenis','Nama','NIK','Jenis_Kelamin','Tanggal_Lahi
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+t],{type:'text/csv'}));a.download='data-penyumpahan.csv';a.click()}
 
 /* ---------------- baca PDF penetapan ---------------- */
-const loadJs=src=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${src}"]`))return ok();const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('Gagal memuat '+src));document.head.appendChild(e)});
+/* satu janji per skrip: pemanggil yang datang bersamaan menunggu skrip yang sama selesai dimuat */
+const JS_MEMO={};
+const loadJs=src=>JS_MEMO[src]||(JS_MEMO[src]=new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>{delete JS_MEMO[src];e.remove();no(new Error('Gagal memuat '+src))};document.head.appendChild(e)}));
 const PDFJS='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const TESS='https:\/\/cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 let penFill=false;

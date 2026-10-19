@@ -8,7 +8,8 @@ Folder ini hanya berisi **tampilan** aplikasi Dokumen Penyumpahan. Backend (`Cod
 | `build.py` | Membuat `Index.html`: JavaScript diperkecil (terser), dikompres, lalu dibungkus base64url agar tidak dirusak HtmlService |
 | `Index.html` | Hasil build: **file ini yang ditempel ke proyek Apps Script** |
 | `vendor/inflate.min.js` | Pembuka kompresi (fflate, MIT) |
-| `ImporMassal.gs` | Backend tambahan untuk **Impor Massal PDF** dari folder Google Drive (tempel sekali ke proyek Apps Script) |
+| `ImporMassal.gs` | Pemasang backend **Impor Massal PDF** (tempel sekali ke proyek Apps Script; selanjutnya memperbarui diri dari GitHub) |
+| `impor-massal-inti.js` | Kode server impor massal yang dimuat otomatis oleh `ImporMassal.gs` (cukup di-push, tanpa deploy ulang) |
 
 ## Perubahan dibanding versi `damayantielsintha-wq/Kalender-Kerja-Wilayah-II` (ec4746f)
 - **Mode HP**: menu kiri menjadi navigasi bawah (Daftar Berkas, Berkas Baru, Jadwal Sumpah, ☰ Lainnya); menu lain muncul sebagai lembar dari bawah. Bar atas ringkas (judul + tombol 👤 + kotak cari). Saat berkas dibuka, daftar disembunyikan dan ada tombol **← Daftar Berkas**. Input 16px agar iPhone tidak zoom otomatis.
@@ -18,12 +19,19 @@ Folder ini hanya berisi **tampilan** aplikasi Dokumen Penyumpahan. Backend (`Cod
 - Tampilan desktop tidak berubah.
 
 ## Impor Massal PDF penetapan dari Google Drive (AI Claude, hemat token)
-Menu **📂 Impor Massal PDF** (admin utama): tempel tautan folder Drive → **Ambil daftar PDF** → **Baca** → periksa → **Simpan**.
-- **Pasang sekali**: di proyek Apps Script buat file skrip baru `ImporMassal`, tempel isi `ImporMassal.gs`, lalu deploy **Versi baru**. Kunci Claude yang sudah disimpan di Pengaturan dipakai otomatis. Folder Drive harus bisa dibuka akun pemilik proyek Apps Script.
-- **Tahan watermark**: teks PDF dibaca di browser, tulisan miring/samar "Mahkamah Agung Republik Indonesia", kop direktori, nomor halaman dan disclaimer dibuang sebelum dibaca AI. PDF scan dibaca Claude langsung dari Drive (visi).
-- **Hemat token**: PDF yang punya lapisan teks hanya dikirim teks bersihnya (bukan PDF), instruksi di-cache di server (berkas ke-2 dst. jauh lebih murah), jawaban dipaksa sesuai skema JSON (tidak ada ulang karena JSON rusak), dan file yang nomor penetapannya sudah ada di aplikasi / ganda di folder **dilewati sebelum ke AI**. Penyusunan isi BAP oleh AI opsional (dicentang = lebih boros). Pilihan model: Opus 5.5 (bawaan, paling akurat), Sonnet 5.5, Haiku 5.5 (paling murah). Jumlah token terpakai tampil di dialog.
-- Hasil berlabel ✔ siap, *perlu cek* (ada isian kosong), *ditolak* (aturan kelayakan), *sudah ada*. Hanya yang dicentang yang disimpan.
-- **Hapus berkas per provinsi** (bagian bawah dialog): mis. hapus semua berkas Kepulauan Riau sebelum input ulang. Berkas dipindah ke arsip terhapus, masih bisa dipulihkan.
+**Pasang sekali** (di proyek Apps Script *Dokumen Penyumpahan*):
+1. File → + → Skrip, beri nama `ImporMassal`, tempel isi `ImporMassal.gs`, Simpan.
+2. Pilih fungsi `pasangImporMassal` → **Jalankan** → izinkan akses.
+3. Terapkan → Kelola deployment → ✏️ Edit → **Versi baru** → Terapkan.
+
+Setelah itu kode server (`impor-massal-inti.js`) diambil otomatis dari GitHub (cache 10 menit, cadangan di Script Properties), jadi perbaikan berikutnya cukup di-push. Kunci Claude memakai yang sudah disimpan di Pengaturan. Folder Drive harus bisa dibuka akun pemilik proyek Apps Script. *Catatan keamanan: siapa pun yang bisa push ke branch ini dapat mengubah kode server tersebut.*
+
+Menu **📂 Impor Massal PDF** (admin utama):
+- **⚡ Impor Otomatis (1 klik)**: (bila dicentang) hapus dulu berkas lama Kepulauan Riau → ambil semua PDF di folder → baca → **langsung simpan yang ✔ siap**. Yang *perlu cek* / *ditolak* ditinggal di tabel untuk diperiksa lalu disimpan manual. Penghapusan Kepri hanya sekali: waktunya dicatat di server untuk semua admin, dan berkas hasil impor massal tidak pernah ikut terhapus.
+- **⏰ Impor terjadwal**: server memeriksa folder sendiri (tiap 1/2/4/6/12 jam atau harian) tanpa aplikasi dibuka. PDF diubah jadi teks lewat OCR Google Drive (gratis), watermark dibuang, lalu teksnya dibaca Claude; bila OCR tidak lengkap (mis. >10 halaman), PDF utuh yang dibaca. Hasil masuk antrean dan **otomatis disimpan saat admin utama membuka aplikasi**; yang perlu cek muncul di dialog (tombol *Tinjau*). Ada tombol *Jalankan sekarang*.
+- **Tahan watermark**: teks PDF dibaca di browser, tulisan miring/samar "Mahkamah Agung Republik Indonesia", kop direktori, nomor halaman dan disclaimer dibuang sebelum dibaca AI. PDF scan dibaca Claude langsung dari Drive.
+- **Hemat token**: hanya teks bersih yang dikirim (bukan PDF) bila PDF punya teks, instruksi di-cache (file ke-2 dst. jauh lebih murah), jawaban dipaksa sesuai skema JSON (tidak ada ulang karena JSON rusak), file yang sudah diproses atau nomor penetapannya sudah ada **dilewati sebelum ke AI**. Isi BAP oleh AI opsional. Model: Opus 5.5 (bawaan, paling akurat), Sonnet 5.5, Haiku 5.5 (paling murah). Token terpakai tampil di dialog.
+- **Hapus berkas per provinsi** (manual, bagian bawah dialog): berkas dipindah ke arsip terhapus, masih bisa dipulihkan.
 
 ## Tata letak A4 otomatis
 Sebelum DOCX/Google Docs dibuat, pemecahan halaman disimulasikan di browser. Bila kalimat penutup + tanda tangan (+ saksi) terdorong ke halaman baru dan meninggalkan halaman yang banyak kosong: spasi dirapatkan bertahap bila dengan itu dokumen hemat satu halaman; bila tetap tidak muat, spasi di halaman yang kosong direnggangkan supaya terisi wajar. Tanda tangan selalu pindah bersama kalimat penutupnya (tidak pernah sendirian) dan ruang tanda tangan/meterai tidak dikecilkan. Pratinjau di aplikasi memakai hasil yang sama.
