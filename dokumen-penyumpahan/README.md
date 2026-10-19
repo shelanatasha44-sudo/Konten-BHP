@@ -23,6 +23,12 @@ Surat antar cukup tahu **siapa** dan **ke mana** dikirim.
 - Pemeriksaan: kelurahan kosong = **kesalahan** (merah), alamat kantor kelurahan kosong = peringatan (surat ke Lurah hanya bertuliskan "di Tempat").
 - Impor Massal PDF / Spreadsheet / CSV: kelurahan diambil dari alamat bila tidak tertulis terpisah; berkas tanpa kelurahan ditandai **perlu cek** dan nama kelurahan tampil di daftar hasil baca. AI diminta memprioritaskan nama pemohon dan kelurahan.
 
+## Format surat antar & Kepulauan Riau
+- Surat Antar ke Pengampu, Surat Antar ke Lurah (pengampuan & perwalian) mengikuti format Word terbaru (paragraf "Besar harapan kami agar Bapak/Ibu Lurah berkenan membantu meneruskan surat ini…"). Surat Antar ke Wali disusun dari format pengampu. Dasar PNBP: **PP Nomor 30 Tahun 2026** (berlaku 1 Agustus 2026) di semua surat.
+- Tembusan Kanwil mengikuti provinsi tempat tinggal (mis. Kepala Kantor Wilayah Kementerian Hukum Kepulauan Riau); Sumatera Utara/tidak diketahui memakai Pengaturan.
+- **Kepulauan Riau**: jadwal di surat berupa rentang kunjungan (bawaan Senin–Jumat, 23 s.d. 27 November 2026; ubah di ⚙ Pengaturan) — hari & jam dipilih wali/pengampu lewat WhatsApp, ditambah paragraf yang menegaskan BHP hadir sebagai perpanjangan tangan negara untuk mendampingi dan memberi konsultasi hukum.
+- Menu **📦 Surat Massal Kepri**: semua Surat Antar ke Wali/Pengampu + ke Lurah berkas Kepulauan Riau dibuat sekaligus dalam satu ZIP (per kota/kabupaten) + `Daftar Pengiriman.csv`. Opsional ambil nomor SPS sekaligus.
+
 ## Isian baru tidak mengubah/menghapus data lain
 - **Upload PDF penetapan ke berkas yang sudah ada** (tab 1 → *Isi otomatis dari PDF Penetapan*) hanya mengisi kolom yang masih kosong; anak baru ditambahkan tanpa menghapus anak lama. Kolom yang sudah berisi dan berbeda dengan penetapan **tidak diganti** — muncul daftar untuk dicentang bila memang ingin diganti.
 - **Kelurahan** hanya ikut berubah saat alamat diketik bila kelurahan masih kosong atau memang salinan dari alamat sebelumnya.

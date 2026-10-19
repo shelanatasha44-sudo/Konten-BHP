@@ -228,6 +228,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sec">PENYUMPAHAN</div>
   <a class="nav" data-v="baru" onclick="wizard(1)"><i>📑</i> <span>Berkas Baru</span></a>
   <a class="nav" data-v="kalender" onclick="bukaKalender()"><i>📅</i> <span>Jadwal Sumpah</span></a>
+  <a class="nav" onclick="dlgKepri()"><i>📦</i> <span>Surat Massal Kepri</span></a>
   <a class="nav superOnly" onclick="imporMassalDlg()"><i>📂</i> <span>Impor Massal PDF</span></a>
   <a class="nav superOnly" onclick="imporSheetDlg()"><i>📥</i> <span>Impor dari Spreadsheet</span></a>
   <label class="nav" data-v="csv"><i>⬆</i> <span>Impor CSV</span><input type="file" accept=".csv" hidden onchange="importCsv(this)"></label>
@@ -267,6 +268,7 @@ const DEF_SET={
   telp:'Telepon: (061) 451 7830, Faksimile: (061) 451 4328',
   web:'Laman: www.bhpmedan.kemenkum.go.id, Pos-el: bhp.medan@kemenkum.go.id',
   kepala:'Syafriadi Lubis',wa:'0851-2156-2136',
+  kepri:{mulai:'2026-11-23',sampai:'2026-11-27'},
   kanwilTembusan:'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara',
   pejabat:[{nama:'SYUHADA',nip:'196706121989031001',jabatan:'Kurator Keperdataan Ahli Madya'},{nama:'MARIANI BR MARBUN',nip:'197604222003122001',jabatan:'Kurator Keperdataan Ahli Madya'},{nama:'TUMIAR SIMANJORANG',nip:'197306111993032001',jabatan:'Kurator Keperdataan Ahli Madya'},{nama:'DARTIMNOV MT HARAHAP',nip:'',jabatan:'Kurator Keperdataan Ahli Madya'},{nama:'NANANG SURYA PURNAMA',nip:'198106282000031001',jabatan:'Kurator Keperdataan Ahli Muda'}],
   lafaz:{
@@ -345,7 +347,9 @@ const kop=()=>`<table class="kop"><tr><td class="lg"><img src="${SET.logo||LOGO_
 const WA=()=>`<b>${esc(SET.wa)}</b>`;
 const ttdKepala=()=>`<p class="ni" data-keep="ttd" style="margin-left:262pt;margin-top:20pt;text-align:left">Kepala,<br><br><br><br>${esc(SET.kepala)}</p>`;
 const lurahNm=r=>{const k=String(r.kelurahan||'').trim().replace(/^(Lurah|Kelurahan)\s+/i,'');return /^Desa\s/i.test(k)?'Kepala '+V(k):'Lurah '+V(k)};
-const kanwil=r=>r.kanwilTembusan||SET.kanwilTembusan;
+/* tembusan kanwil mengikuti provinsi tempat tinggal (seperti format surat Padang → Kanwil Sumatera Barat); Sumatera Utara / tidak diketahui = Pengaturan */
+const kanwilDef=r=>{const p=provinsiBerkas(r);return PROV_DATA[p]&&p!=='Sumatera Utara'?'Kepala Kantor Wilayah Kementerian Hukum '+p:SET.kanwilTembusan};
+const kanwil=r=>r.kanwilTembusan||kanwilDef(r);
 const tembusan=(r,lurah=true)=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:10pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:10pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${lurahNm(r)}</li>`:''}</ol>`;
 const penetapan=r=>`Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap`;
 const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'};
@@ -388,11 +392,22 @@ const daftarHarta=t=>{const b=baris(t);return b.length?b.map((x,i)=>NP((i+1)+'.'
 function head(no,hal,r){return `<table class="hd" style="width:100%;margin-bottom:12pt"><tr><td style="width:70pt">Nomor</td><td>:</td><td>${V(no)}</td><td style="text-align:right">${tgl(r.tanggalSurat)}</td></tr>
 <tr><td>Sifat</td><td>:</td><td>Segera</td><td></td></tr><tr><td>Lampiran</td><td>:</td><td>-</td><td></td></tr>
 <tr><td>Hal</td><td>:</td><td colspan=2>${hal}</td></tr></table>`}
-const jadwal=(r,note)=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:90pt">Hari/Tanggal</td><td>:</td><td>${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}</td></tr>
-<tr><td>Pukul</td><td>:</td><td>${V(r.waktu)}<br>(${note} ${WA()})</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(tempatSumpah(r))}</td></tr></table>`;
+/* Kepulauan Riau: penyumpahan dalam satu rentang kunjungan (Pengaturan → Kunjungan Kepulauan Riau) — hari & jam dipilih wali/pengampu */
+const isKepri=r=>provinsiBerkas(r)==='Kepulauan Riau';
+const KEPRI=()=>{const k={...DEF_SET.kepri,...(SET.kepri||{})};return pd(k.mulai)&&pd(k.sampai)&&k.sampai>=k.mulai?k:null};
+const kunjKepri=r=>isKepri(r)&&KEPRI();
+function rentangTgl(a,b){const x=pd(a),y=pd(b);if(a===b)return tgl(a).replace(/^0/,'');const th=x.getFullYear()===y.getFullYear();
+  return`${x.getDate()}${x.getMonth()===y.getMonth()&&th?'':' '+BLN[x.getMonth()]}${th?'':' '+x.getFullYear()} s.d. ${y.getDate()} ${BLN[y.getMonth()]} ${y.getFullYear()}`}
+const rentangHari=(a,b)=>a===b?hari(a):hari(a)+' s.d. '+hari(b);
+const kw=r=>kunjKepri(r)?'tanggal dan waktu':'waktu';
+const jadwal=(r,note)=>{const k=kunjKepri(r);return`<table style="margin:0 0 10pt 36pt"><tr><td style="width:90pt">Hari/Tanggal</td><td>:</td><td>${k?`${rentangHari(k.mulai,k.sampai)} / ${rentangTgl(k.mulai,k.sampai)}<br>(dapat dipilih salah satu hari)`:`${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}`}</td></tr>
+<tr><td>Pukul</td><td>:</td><td>${V(r.waktu)}<br>(${note} ${WA()})</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(tempatSumpah(r))}</td></tr></table>`};
+const ajakKepri=(r,s)=>{if(!kunjKepri(r))return'';const d=derive(r),J=d.J,P=d.pihak;
+  return`<p>Perlu kami sampaikan bahwa Balai Harta Peninggalan Medan hadir sebagai perpanjangan tangan negara untuk mendampingi dan memberikan konsultasi hukum kepada ${s} dalam menjalankan tugas sebagai ${J}. Pengangkatan sumpah ini bukan sekadar formalitas, melainkan bentuk perlindungan hukum bagi ${s}: setelah diambil sumpahnya, kedudukan ${s} sebagai ${J} diakui secara sah, sehingga ${s} dapat bertindak mewakili ${P} di hadapan bank, sekolah, instansi kependudukan, maupun pihak lainnya, serta terlindungi dari kemungkinan prasangka negatif dalam mengelola hak dan harta ${P}. Setelah penyumpahan pun, ${s} tetap dapat berkonsultasi dengan kami apabila menemui kendala dalam mengurus kepentingan ${P}.</p>
+<p>Mengingat Tim Balai Harta Peninggalan Medan berada di Provinsi Kepulauan Riau hanya pada rentang tanggal tersebut, kami mohon dengan hormat kesediaan ${s} untuk memilih hari dan jam yang paling sesuai, kemudian menyampaikannya melalui WhatsApp Layanan Perwalian Pengampuan di nomor ${WA()} sesegera mungkin setelah surat ini diterima. Pengangkatan sumpah dilaksanakan langsung di kediaman ${s}, sehingga ${s} tidak perlu menempuh perjalanan ke kantor kami di Medan. Konfirmasi yang lebih awal akan sangat membantu kami menyusun jadwal kunjungan, sehingga kegiatan dapat berlangsung tepat waktu dan tidak mengganggu aktivitas ${s}.</p>`};
 const yth=(nama,alamat)=>`<p class="ni" style="text-align:left">Yth. <b>${nama}</b><br>di</p><p class="ni" style="margin-left:18pt;max-width:260pt;text-align:left">${alamat}</p><br>`;
 const syarat=(items,after)=>`<ol style="margin-left:36pt;line-height:1.15">${items.map(x=>`<li>${x}</li>`).join('')}</ol>${after.map(x=>`<p class="ni" style="margin-left:54pt;line-height:1.15">${x}</p>`).join('')}`;
-const PNBP='Nominal PNBP ditetapkan secara resmi berdasarkan Peraturan Pemerintah Republik Indonesia Nomor 45 Tahun 2024 tentang Jenis dan Tarif atas Jenis Penerimaan Negara Bukan Pajak yang Berlaku pada Kementerian Hukum dan Hak Asasi Manusia.';
+const PNBP='Nominal PNBP ditetapkan secara resmi berdasarkan Peraturan Pemerintah Republik Indonesia Nomor 30 Tahun 2026 tentang Jenis dan Tarif atas Jenis Penerimaan Negara Bukan Pajak yang Berlaku pada Kementerian Hukum.';
 const BILLING='(Mekanisme pembayaran akan dipandu melalui kode pembayaran/<i>billing</i> kas negara secara elektronik pada saat kegiatan).';
 
 const tabelJadwal=r=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:100pt">Hari / Tanggal</td><td>:</td><td>${hari(r.tglSumpah)}, ${tgl(r.tglSumpah)}</td></tr>
@@ -422,36 +437,30 @@ const DOCS={
 <p class="ni" style="margin-top:12pt">Demikian diajukan permohonan ini, dan atas perhatiannya, diucapkan terima kasih.</p>
 <p class="ni" style="margin-left:262pt;margin-top:24pt;text-align:left">Pemohon,<br><br><br><span style="font-size:7pt">Materai<br>10000</span><br><br><br>${V(r.nama)}</p>`}},
 
-  surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,sty:{line:360},fn:r=>{const d=derive(r),s=d.sapa;
-    if(d.w)return kop()+head(r.nomorSurat,'Pengambilan Sumpah Wali<br>Dan Inventarisasi Harta',r)+yth(`${s} ${V(r.nama)}`,V(r.alamat))+
-`<p>${penetapan(r)}, ${s} telah ditunjuk secara resmi sebagai Wali atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "Anak").</p>
-<p>Berkaitan dengan penetapan tersebut, Balai Harta Peninggalan Medan sangat menghargai serta mendukung penuh kesediaan ${s} dalam menjalankan tugas sebagai Wali. Berdasarkan amanat Pasal 366 Kitab Undang-Undang Hukum Perdata (KUHPerdata), BHP bertugas sebagai Wali Pengawas. Peran kami adalah mendampingi dan memberikan konsultasi hukum kepada ${s} guna memastikan bahwa pengelolaan aset dan perlindungan hak Anak berjalan dengan baik serta melindungi ${s} dari kemungkinan prasangka negatif dari pihak lain.</p>
-<p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap wali diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar ${s} dapat bertindak secara hukum mewakili Anak untuk berbagai keperluan administratif.</p>
-<p>Dalam rangka mewujudkan pelayanan publik, Tim BHP Medan akan melakukan kunjungan untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${s} pada:</p>`+
-    jadwal(r,'Mohon sampaikan kesediaan waktu dengan menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor')+
-`<p>Guna kelengkapan administrasi Berita Acara Penyumpahan dan Pencatatan Harta sesuai ketentuan peraturan perundang-undangan, kami memohon kesediaan ${s} untuk mempersiapkan dokumen pendukung pada saat kegiatan untuk dipindai oleh petugas sebagai dokumen pendukung arsip, yang meliputi:</p>`+
-    syarat(['Kartu Tanda Penduduk (KTP) Wali dan Anak;','Kartu Keluarga (KK);','Akta Kelahiran Anak;','Dokumen Kepemilikan Aset / Harta Kekayaan Yang Menjadi Hak Anak;','Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;',
-      'Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan Perwalian dan Biaya 4 (empat) lembar Meterai senilai Rp 40.000,- (Empat Puluh Ribu Rupiah).'],[PNBP,BILLING])+
-`<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Untuk informasi lebih lanjut, ${s} dapat menghubungi <i>Contact Person</i> (WhatsApp) Layanan Perwalian di nomor: ${WA()}. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r);
-    return kop()+head(r.nomorSurat,'Pengambilan Sumpah Pengampu<br>Dan Inventarisasi Harta',r)+yth(`${s} ${V(r.nama)}`,V(r.alamat))+
-`<p>${penetapan(r)}, ${s} telah ditunjuk secara resmi sebagai Pengampu atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "Terampu").</p>
-<p>Berkaitan dengan penetapan tersebut, Balai Harta Peninggalan Medan sangat menghargai serta mendukung penuh kesediaan ${s} dalam menjalankan tugas sebagai Pengampu. Berdasarkan amanat Pasal 449 Kitab Undang-Undang Hukum Perdata (KUHPerdata), BHP bertugas sebagai Pengampu Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada ${s} guna memastikan bahwa pengelolaan aset dan perlindungan hak Terampu berjalan dengan baik serta melindungi ${s} dari kemungkinan prasangka negatif dari pihak lain.</p>
-<p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap pengampu diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar ${s} dapat bertindak secara hukum mewakili Terampu untuk berbagai keperluan administratif.</p>
-<p>Dalam rangka mewujudkan pelayanan publik, Tim Balai Harta Peninggalan Medan akan melakukan kunjungan untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${s} pada:</p>`+
-    jadwal(r,'Untuk konfirmasi waktu pelaksanaan sumpah, mohon untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor')+
+  surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,sty:{line:360},fn:r=>{const d=derive(r),s=d.sapa,J=d.J,w=d.w,P=d.pihak;
+    return kop()+head(r.nomorSurat,`Pengambilan Sumpah ${J}<br>Dan Inventarisasi Harta`,r)+yth(`${s} ${V(r.nama)}`,V(r.alamat))+
+`<p>${penetapan(r)}, ${s} telah ditunjuk secara resmi sebagai ${J} atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${P}").</p>
+<p>Berkaitan dengan penetapan tersebut, Balai Harta Peninggalan Medan sangat menghargai serta mendukung penuh kesediaan ${s} dalam menjalankan tugas sebagai ${J}. Berdasarkan amanat Pasal ${w?366:449} Kitab Undang-Undang Hukum Perdata (KUHPerdata), BHP bertugas sebagai ${J} Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada ${s} guna memastikan bahwa pengelolaan aset dan perlindungan hak ${P} berjalan dengan baik serta melindungi ${s} dari kemungkinan prasangka negatif dari pihak lain.</p>
+<p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap ${J.toLowerCase()} diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar ${s} dapat bertindak secara hukum mewakili ${P} untuk berbagai keperluan administratif${w?' (misalnya urusan perbankan, pendidikan, atau kependudukan)':''}.</p>
+<p>Dalam rangka mewujudkan pelayanan publik, Tim Balai Harta Peninggalan Medan akan melakukan kunjungan ${kunjKepri(r)?'ke Provinsi Kepulauan Riau ':''}untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${s} pada:</p>`+
+    jadwal(r,`Untuk konfirmasi ${kw(r)} pelaksanaan sumpah, mohon untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor`)+ajakKepri(r,s)+
 `<p>Guna kelengkapan administrasi Berita Acara Penyumpahan dan Pencatatan Harta sesuai ketentuan peraturan perundang-undangan, kami memohon kesediaan ${s} untuk mempersiapkan dokumen pendukung pada saat kegiatan, yang meliputi:</p>`+
-    syarat(['Fotokopi Kartu Tanda Penduduk (KTP) Pengampu dan Terampu;','Fotokopi Kartu Keluarga (KK);','Fotokopi Akta Kelahiran Terampu;','Fotokopi Surat Keterangan Kondisi Medis Terampu;','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan Terampu;','Fotokopi Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;','Meterai senilai Rp 10.000,- (Sepuluh Ribu Rupiah) sebanyak 4 (empat) lembar;',
-      'Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan Pengampuan dan biaya sebesar Rp 40.000,- (Empat Puluh Ribu Rupiah) untuk 4 (empat) lembar meterai Rp 10.000,-'],[PNBP,`<i>${BILLING}</i>`])+
+    syarat([...(w?['Fotokopi Kartu Tanda Penduduk (KTP) Wali dan Kartu Identitas Anak (KIA)/KTP Anak (bila ada);','Fotokopi Kartu Keluarga (KK);','Fotokopi Akta Kelahiran Anak;','Fotokopi Akta Kematian / Surat Keterangan Kematian Orang Tua Anak;','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan Anak;']
+        :['Fotokopi Kartu Tanda Penduduk (KTP) Pengampu dan Terampu;','Fotokopi Kartu Keluarga (KK);','Fotokopi Akta Kelahiran Terampu;','Fotokopi Surat Keterangan Kondisi Medis Terampu;','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan Terampu;']),
+      'Fotokopi Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;','Meterai senilai Rp 10.000,- (Sepuluh Ribu Rupiah) sebanyak 4 (empat) lembar;',
+      `Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt} dan biaya sebesar Rp 40.000,- (Empat Puluh Ribu Rupiah) untuk 4 (empat) lembar meterai Rp 10.000,-`],[PNBP,`<i>${BILLING}</i>`])+
 `<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r)}},
 
-  lurah:{nama:()=>'Surat Antar ke Lurah',sty:{line:360},fn:r=>{const d=derive(r),J=d.J;
+  lurah:{nama:()=>'Surat Antar ke Lurah',sty:{line:360},fn:r=>{const d=derive(r),J=d.J,s=d.sapa,P=d.pihak,kp=kunjKepri(r),desa=/^Desa\s/i.test(String(r.kelurahan||'').trim()),pj=desa?'Kepala Desa':'Lurah',kt=desa?'Desa':'Kelurahan';
     return kop()+head(r.nomorLurah,'Koordinasi Terkait Pengambilan<br>Sumpah dan Inventarisasi Harta',r)+yth(lurahNm(r),esc(r.alamatKelurahan||'Tempat'))+
-`<p>${penetapan(r)}, <b>${V(r.nama)}</b> telah ditunjuk secara resmi sebagai ${J} atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${d.pihak}"). Adapun ${J} tersebut merupakan warga yang berdomisili di lingkungan ${V(r.kelurahan)}.</p>
-<p>Berdasarkan amanat Pasal ${d.w?366:449} Kitab Undang-Undang Hukum Perdata (KUHPerdata), BHP bertugas sebagai ${J} Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada ${J} guna memastikan bahwa pengelolaan aset dan perlindungan hak ${d.pihak} berjalan dengan baik serta melindungi ${J} dari kemungkinan prasangka negatif dari pihak lain.</p>
-<p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap ${d.w?'Wali':'pengampu'} diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar ${J} dapat bertindak secara hukum mewakili ${d.pihak} untuk berbagai keperluan administratif.</p>
-<p>Dalam rangka mewujudkan pelayanan publik, Tim Balai Harta Peninggalan Medan akan melakukan kunjungan untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${J} pada:</p>`+
-    jadwal(r,`Untuk konfirmasi waktu pelaksanaan sumpah, mohon diinformasikan kepada ${J} untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor`)+
-`<p>Sehubungan dengan hal tersebut, Tim Balai Harta Peninggalan Medan akan melakukan koordinasi dengan pihak Kelurahan untuk selanjutnya memohon kesediaan Bapak/Ibu untuk mendampingi Tim dalam pelaksanaan kunjungan ke kediaman <b>${V(r.nama)}</b>.</p>
+`<p>${penetapan(r)}, <b>${d.w?s+' ':''}${V(r.nama)}</b> telah ditunjuk secara resmi sebagai ${J} atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${P}"). Adapun ${J} tersebut merupakan warga yang berdomisili di lingkungan ${V(r.kelurahan)}.</p>`+
+(d.w?`<p>Berdasarkan amanat KUHPerdata, BHP bertugas sebagai Wali Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada Wali guna memastikan bahwa pengelolaan aset dan perlindungan hak Anak berjalan dengan baik serta melindungi Wali dari kemungkinan prasangka negatif dari pihak lain.</p>
+<p>Sebagai tahapan kelengkapan administrasi agar kedudukan perwalian tersebut sah digunakan (misalnya untuk urusan perbankan, pendidikan, atau kependudukan), diperlukan prosesi pengambilan sumpah. Proses ini merupakan standar pelayanan hukum perdata untuk meresmikan secara formal kewenangan ${s} ${V(r.nama)} dalam mewakili Anak berdasarkan Pasal 362 KUHPerdata.</p>`
+:`<p>Berdasarkan amanat Pasal 449 Kitab Undang-Undang Hukum Perdata (KUHPerdata), BHP bertugas sebagai Pengampu Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada Pengampu guna memastikan bahwa pengelolaan aset dan perlindungan hak Terampu berjalan dengan baik serta melindungi Pengampu dari kemungkinan prasangka negatif dari pihak lain.</p>
+<p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap pengampu diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar Pengampu dapat bertindak secara hukum mewakili Terampu untuk berbagai keperluan administratif.</p>`)+
+`<p>Dalam rangka mewujudkan pelayanan publik, Tim Balai Harta Peninggalan Medan akan melakukan kunjungan ${kp?'ke Provinsi Kepulauan Riau ':''}untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${J} pada:</p>`+
+    jadwal(r,`Untuk konfirmasi ${kw(r)} pelaksanaan sumpah, mohon diinformasikan kepada ${J} untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor`)+
+(kp?`<p>Kunjungan ini merupakan wujud kehadiran negara melalui Balai Harta Peninggalan Medan untuk mendampingi dan memberikan konsultasi hukum kepada warga Bapak/Ibu yang menjalankan tugas sebagai ${J}, agar hak dan harta ${P} terlindungi dengan baik. Hari dan jam pelaksanaan dalam rentang tanggal tersebut dipilih oleh ${J} dan akan kami sampaikan kepada pihak ${kt}.</p>`:'')+`<p>Besar harapan kami agar Bapak/Ibu ${pj} berkenan membantu meneruskan surat ini kepada pihak ${J} sesuai data administrasi setempat. Sehubungan dengan hal tersebut, Tim Balai Harta Peninggalan Medan akan berkoordinasi dengan pihak ${kt} untuk memohon kesediaan Bapak/Ibu mendampingi tim dalam pelaksanaan kunjungan ke kediaman <b>${V(r.nama)}</b>.</p>
 <p>Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kesediaan Bapak/Ibu, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,false)}},
 
   bap:{nama:()=>'BA Penghadapan (BAP)',sty:{line:276},fn:r=>{const d=derive(r),p=bapP(r),isi=baris(r.isiBap);
@@ -850,7 +859,7 @@ function kurang(k,r){const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'')
   return m}
 /* isian surat antar yang masih kosong tetapi tidak menghalangi */
 function kosongSurat(k,r){if(!SURAT_ANTAR.includes(k))return[];const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'').trim())m.push(l)};
-  need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');if(k!=='undangan')need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
+  need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');if(k!=='undangan'&&!kunjKepri(r))need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu&&r.terampu.nama,'Nama terampu');return m}
 const kosongGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kosongSurat(k,r)))];
 function infoNomor(k,r){const d=derive(r);return{kurang:kurang(k,r),
@@ -987,7 +996,7 @@ function renderMain(){
     `<div><label>Hari/tanggal di BA (otomatis)</label><input disabled value="${tglBA(cur.tglSumpah)}"></div>
     <div><label>Pejabat penyumpah (Madya)</label><select onchange="setv('madya',this.value)">${pjOpt(cur.madya)}</select></div>
     <div><label>Pejabat inventarisasi harta (Muda)</label><select onchange="setv('muda',this.value)">${pjOpt(cur.muda)}</select></div>
-    <div><label>Pejabat BAP</label><select onchange="setv('bapOleh',this.value)">${pjOpt(cur.bapOleh??cur.muda)}</select></div>`+F('kanwilTembusan',`Tembusan Kanwil (kosong = ${SET.kanwilTembusan})`)+
+    <div><label>Pejabat BAP</label><select onchange="setv('bapOleh',this.value)">${pjOpt(cur.bapOleh??cur.muda)}</select></div>`+F('kanwilTembusan',`Tembusan Kanwil (kosong = ${kanwilDef(cur)})`)+
     F('saksi1','Saksi 1 (opsional)')+F('saksi2','Saksi 2 (opsional)')+`<div class="full"><label>Lafaz sumpah (otomatis sesuai agama)</label><textarea disabled>${esc(d.laf)}</textarea></div>`;
   if(tab==='harta')h+=`<div class="full"><h4 style="margin:4px 0">Harta kekayaan ${w?'anak':'terampu'} (untuk BA Inventarisasi & BAP)</h4></div>`+
     HARTA.map(([k,l,o])=>{if(cur[k]===undefined&&o)cur[k]=cur[o]||'';return F(k,'Aktiva — '+l+' (satu per baris)','area')}).join('')+F('hartaHutang','Passiva — Hutang-hutang (satu per baris)','area')+
@@ -1133,9 +1142,9 @@ function blocksXml(html){
       [...el.children].forEach((li,i)=>x+=para(li,{keep:kp&&i<nli-1,noInd:1,left:18+ptOf(el.style.marginLeft),hang:360,after:0,sz,line:lh&&lh<5?Math.round(lh*240):0,prefix:`<w:r><w:t>${el.tagName==='OL'?(el.type==='a'?'abcdefghijklmnop'[i]:i+1)+'.':dash?'-':'•'}</w:t></w:r><w:r><w:tab/></w:r>`}))}
     else if(el.tagName==='BR')x+=spacer(12)}
   return x}
-async function buatDocx(keys){
+async function buatDocx(keys,r=cur){
   await loadJs(JSZIP);imgId=1;
-  const body=keys.map(k=>{STY=DOCS[k].sty||{};const F=fitDok(k,cur);FIT=F.f;return blocksXml(F.html)}).join('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');STY={};FIT=FIT_LV[0];
+  const body=keys.map(k=>{STY=DOCS[k].sty||{};const F=fitDok(k,r);FIT=F.f;return blocksXml(F.html)}).join('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');STY={};FIT=FIT_LV[0];
   const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http:\/\/schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http:\/\/schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http:\/\/schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http:\/\/schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http:\/\/schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}<w:sectPr>${DX.page}</w:sectPr></w:body></w:document>`;
   const z=new JSZip();
   z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http:\/\/schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
@@ -1348,6 +1357,39 @@ async function msSimpan(btn){const L=MS.file.filter(x=>x.pilih&&x.rec&&!x.disimp
     catch(e){gagal.push(e.message||String(e))}}
   api('apiCatat','IMPOR_MASSAL','','',`${n} berkas diimpor dari PDF (${MS.judul})`).catch(()=>{});renderList();msTampil();
   toast(`${n} berkas disimpan`+(lewat?`, ${lewat} dilewati (sudah ada)`:''));if(gagal.length)alert('Sebagian gagal disimpan: '+[...new Set(gagal)].join('; ')+'\nKlik Simpan lagi — yang sudah masuk tidak dobel.')}
+/* ---------------- surat massal Kepulauan Riau: Surat Antar ke Wali/Pengampu + ke Lurah semua berkas Kepri dalam satu ZIP ---------------- */
+const bersihNama=t=>String(t||'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()||'-';
+const berkasKepri=()=>DB.filter(r=>!r._dihapus&&isKepri(r)).sort((a,b)=>String(lokasiBerkas(a).kota).localeCompare(String(lokasiBerkas(b).kota))||String(a.nama||'').localeCompare(String(b.nama||'')));
+const kurangKepri=r=>[...new Set(['surat','lurah'].flatMap(k=>kurang(k,r)))];
+function dlgKepri(){const L=berkasKepri(),k=KEPRI(),blm=L.filter(r=>kurangKepri(r).length).length;
+  const cb=(id,t,on)=>`<label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="${id}" style="width:auto;margin:0" ${on?'checked':''}> ${t}</label>`;
+  dlg(`<h3>📦 Surat Massal Kepulauan Riau</h3><p class="hint">Surat Antar ke Wali/Pengampu dan Surat Antar ke Lurah untuk semua berkas Provinsi Kepulauan Riau dibuat sekaligus (DOCX, format sama dengan unduhan satuan) dalam satu file ZIP, dikelompokkan per kota/kabupaten, beserta <b>Daftar Pengiriman.csv</b>.<br>Jadwal di surat: <b>${k?esc(rentangHari(k.mulai,k.sampai)+', '+rentangTgl(k.mulai,k.sampai)):'belum diatur'}</b> — hari & jam dipilih sendiri oleh wali/pengampu${isSuper()?' (ubah di ⚙ Pengaturan)':''}.</p>
+  ${L.length?`<div class="card" style="padding:10px"><b>${L.length} berkas</b> · ${L.length-blm} lengkap${blm?` · <span style="color:#b45309">${blm} belum lengkap</span>`:''}
+    <div style="max-height:34vh;overflow:auto;margin-top:6px;font-size:13px">${L.map((r,i)=>{const ku=kurangKepri(r);return`<div>${i+1}. <a onclick="dlgClose();pick('${r.id}')" style="cursor:pointer"><b>${esc(r.nama||'(tanpa nama)')}</b></a> — ${esc(lokasiBerkas(r).kota)}${ku.length?` <span style="color:#b45309">· kurang: ${esc(ku.join(', '))}</span>`:' <span style="color:var(--ok)">✔</span>'}</div>`}).join('')}</div></div>`:'<p>Belum ada berkas Provinsi Kepulauan Riau.</p>'}
+  <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13.5px">${cb('kpS','Surat Antar ke Wali/Pengampu',1)}${cb('kpL','Surat Antar ke Lurah',1)}${cb('kpLewat','Lewati surat yang isian utamanya belum lengkap (dicatat di daftar pengiriman)',1)}
+    ${GAS?cb('kpSps','Ambil nomor SPS untuk surat yang belum bernomor <small class="hint">(nomor yang sudah diambil tidak bisa dibatalkan)</small>',0):''}</div>
+  <div id="kpOut" style="margin-top:8px"></div>
+  <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button onclick="dlgClose()">Tutup</button><button class="pri" onclick="unduhKepri(this)" ${L.length?'':'disabled'}>📦 Unduh ZIP</button></p>`)}
+async function unduhKepri(btn){const L=berkasKepri(),K=[$('#kpS').checked&&'surat',$('#kpL').checked&&'lurah'].filter(Boolean),lewat=$('#kpLewat').checked,sps=!!($('#kpSps')&&$('#kpSps').checked);
+  if(!K.length)return toast('Centang minimal satu jenis surat');
+  const perluNo=sps?L.reduce((a,r)=>a+K.filter(k=>!r[NOMOR[k]]&&!(lewat&&kurang(k,r).length)).length,0):0;
+  if(perluNo&&!confirm(`Ambil ${perluNo} nomor SPS sekarang (tanggal hari ini)?\nNomor yang sudah diambil tidak bisa dibatalkan.`))return;
+  btn.disabled=true;const out=$('#kpOut'),t0=Date.now();if(cur){clearTimeout(saveT);await flush()}
+  try{await loadJs(JSZIP);const zip=new JSZip(),dipakai=new Set(),H=[['No','Nama','Jenis','Kota/Kabupaten','Alamat','Kelurahan','Kantor Kelurahan','Nomor Surat ke Wali/Pengampu','Nomor Surat ke Lurah','Keterangan']],rows=[];let n=0,lw=0;
+    for(let i=0;i<L.length;i++){const r=L[i],kt=bersihNama(lokasiBerkas(r).kota),ket=[];btn.textContent=`Membuat ${i+1}/${L.length}…`;
+      for(const k of K){const nm=DOCS[k].nama(r),ku=kurang(k,r);if(lewat&&ku.length){ket.push(`${nm} dilewati (kurang: ${ku.join(', ')})`);lw++;continue}
+        if(sps&&!r[NOMOR[k]])try{const x=await api('apiAmbilNomor',r.id,NOMOR[k],infoNomor(k,r));r[NOMOR[k]]=x.nomor;r._versi=x.versi;if(x.tanggalSurat)r.tanggalSurat=x.tanggalSurat}catch(e){ket.push(`Nomor SPS ${nm} gagal: ${e.message||e}`)}
+        try{const blob=await buatDocx([k],r),dasar=`${kt}/${bersihNama(r.nama||'tanpa nama')} - ${nm}`;let f=dasar,c=2;while(dipakai.has(f))f=`${dasar} (${c++})`;dipakai.add(f);zip.file(f+'.docx',blob);n++}
+        catch(e){ket.push(`${nm} gagal dibuat: ${e.message||e}`)}}
+      rows.push([i+1,r.nama,r.jenis,kt,alamatLengkap(r),r.kelurahan,r.alamatKelurahan,r.nomorSurat,r.nomorLurah,ket.join('; ')]);
+      if(i%4===3)await new Promise(ok=>setTimeout(ok))}
+    const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';zip.file('Daftar Pengiriman.csv','﻿'+H.concat(rows).map(b=>b.map(q).join(',')).join('\r\n'));
+    btn.textContent='Menyusun ZIP…';const blob=await zip.generateAsync({type:'blob',compression:'STORE'}),fn=`Surat Antar Kepulauan Riau - ${today()}.zip`;
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),6e4);
+    api('apiCatat','UNDUH_DOCX','','',`ZIP ${n} surat antar Kepulauan Riau (${L.length} berkas)`).catch(()=>{});if(sps)renderList();if(cur)renderMain();
+    out.innerHTML=`<p>✅ <b>${n} surat</b> dari ${L.length} berkas diunduh: <b>${esc(fn)}</b> (${((Date.now()-t0)/1000).toFixed(1)} detik).${lw?` <span style="color:#b45309">${lw} surat dilewati karena belum lengkap — lihat kolom Keterangan di Daftar Pengiriman.csv.</span>`:''}</p>`;btn.textContent='📦 Unduh lagi'}
+  catch(e){out.innerHTML=`<p style="color:#c0392b">Gagal: ${esc(e.message||e)}</p>`;btn.textContent='📦 Unduh ZIP'}
+  btn.disabled=false}
 async function screenshot(sel,nama){const el=document.querySelector(sel);if(!el)return;toast('Membuat screenshot…');
   try{await loadJs('https:\/\/cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
     const bg=getComputedStyle(document.body).backgroundColor||'#fff';
@@ -1699,6 +1741,7 @@ function wizard(step){WZ.on=true;$('.wrap').classList.add('wzmode');WZ.step=step
 function openSet(){if(!isSuper())return;const s=SET;const L={instansi:'Instansi',kanwil:'Kantor wilayah',balai:'Nama balai',alamat:'Alamat',telp:'Telepon',web:'Laman & pos-el',kepala:'Nama Kepala',wa:'Nomor WA layanan',kanwilTembusan:'Tembusan kanwil'};
   dlg(`<h3>⚙ Pengaturan <span class="tag">Admin Utama</span></h3><div class="grid">
   ${Object.keys(L).map(k=>`<div><label>${L[k]}</label><input value="${esc(s[k])}" oninput="SET['${k}']=this.value"></div>`).join('')}
+  ${(k=>`<div><label>Kunjungan Kepulauan Riau — mulai</label><input type="date" value="${esc(k.mulai||'')}" onchange="SET.kepri={...(SET.kepri||{}),mulai:this.value}"></div><div><label>Kunjungan Kepulauan Riau — sampai</label><input type="date" value="${esc(k.sampai||'')}" onchange="SET.kepri={...(SET.kepri||{}),sampai:this.value}"></div>`)({...DEF_SET.kepri,...(s.kepri||{})})}
   <div class="full"><label>Logo kop</label><div style="display:flex;gap:10px;align-items:center"><img src="${s.logo||LOGO_DEF}" style="height:48px"><label class="btn" style="margin:0;color:var(--ink)">Ganti logo<input type="file" accept="image/*" hidden onchange="gantiLogo(this)"></label>${s.logo?'<button onclick="delete SET.logo;openSet()">Pakai logo bawaan</button>':''}</div></div>
   <div class="full"><label>Pejabat BHP ${s.pegawaiSumber?`<span class="hint">(sumber: ${esc(s.pegawaiSumber)})</span>`:''}</label>
   <p style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px"><button onclick="sinkronPegawai(this)">🔄 Ambil dari sheet Data Pegawai (Dokumen Otomatis)</button></p>${s.pejabat.map((p,i)=>`<div class="grid child"><input placeholder="Nama" value="${esc(p.nama)}" oninput="SET.pejabat[${i}].nama=this.value"><input placeholder="NIP" value="${esc(p.nip)}" oninput="SET.pejabat[${i}].nip=this.value"><input placeholder="Jabatan" value="${esc(p.jabatan)}" oninput="SET.pejabat[${i}].jabatan=this.value"></div>`).join('')}
