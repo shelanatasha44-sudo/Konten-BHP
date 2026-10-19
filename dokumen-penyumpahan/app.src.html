@@ -997,7 +997,8 @@ function renderList(){const q=($('#q').value||'').toLowerCase();
   const susun=(arr,lv)=>{if(!lv.length)return arr.map(item).join('');const L0=LV[lv[0]],d=MODE.length-lv.length;let g=grupkan(arr,L0.f);if(L0.srt)g.sort((a,b)=>urutB(a[0],b[0]));
     return g.map(([k,a])=>head(L0.t(k),a.length,d>0?(d>1?2:1):0)+susun(a,lv.slice(1))).join('')};
   const h=susun(L,MODE.split(''));LIST_TAMPIL=L.map(r=>r.id);
-  const atas=LIHAT_HAPUS?`<div class="card" style="padding:10px;margin-bottom:8px;background:#fdecea;border-color:#f5c2bd"><b>🗑 Berkas Dihapus (${L.length})</b><br><small class="hint">Tidak ikut di Daftar Berkas, jadwal, maupun hitungan. Buka berkas lalu klik ♻️ Pulihkan, atau pulihkan sekaligus.</small>${L.length?`<br><button style="margin-top:6px" onclick="pulihkanSemua(this)">♻️ Pulihkan ${L.length} berkas yang tampil</button>`:''}</div>`:'';
+  const nL=isSuper()&&!LIHAT_HAPUS?L.filter(perluLengkap).length:0;
+  const atas=nL?`<div class="card" style="padding:8px 10px;margin-bottom:8px"><button onclick="lengkapiTampil()" title="Cari nama yang disamarkan di SIPP lalu isi kolom kosong dari PDF penetapan. Hanya memperbarui berkas yang tampil — tidak membuat berkas baru.">🧩 Lengkapi ${nL} berkas yang tampil</button> <small class="hint">SIPP + PDF penetapan · tanpa data ganda</small></div>`:LIHAT_HAPUS?`<div class="card" style="padding:10px;margin-bottom:8px;background:#fdecea;border-color:#f5c2bd"><b>🗑 Berkas Dihapus (${L.length})</b><br><small class="hint">Tidak ikut di Daftar Berkas, jadwal, maupun hitungan. Buka berkas lalu klik ♻️ Pulihkan, atau pulihkan sekaligus.</small>${L.length?`<br><button style="margin-top:6px" onclick="pulihkanSemua(this)">♻️ Pulihkan ${L.length} berkas yang tampil</button>`:''}</div>`:'';
   $('#list').innerHTML=atas+(h||(LIHAT_HAPUS?'<p class="hint">Tidak ada berkas terhapus.</p>':DB.length?'<p class="hint">Tidak ada berkas yang cocok dengan saringan.</p>':'<p class="hint">Belum ada berkas. Klik “📑 Berkas Baru” di menu kiri untuk memulai.</p>'))}
 function pick(id){PILIH=null;WZ.on=false;setNav(LIHAT_HAPUS?'hapus':'berkas',LIHAT_HAPUS?'Berkas Dihapus':'Daftar Berkas');clearTimeout(saveT);if(cur)flush();cur=DB.find(r=>r.id===id);if(tab==='riw'&&!cur)tab='umum';renderMain();renderList()}
 function newRec(){if(cur){clearTimeout(saveT);flush()}cur=addRec(blank(),'Berkas baru (manual)');tab='umum';renderMain();renderList();flush()}
@@ -1477,6 +1478,21 @@ async function imporOtomatis(btn){const K=$('#impKepri')&&$('#impKepri').checked
     api('apiCatat','IMPOR_OTOMATIS','','',`Impor otomatis ${IMPX.judul||src}: ${n} berkas baru`).catch(()=>{})}
   catch(e){impLog(`⛔ ${esc(e.message||e)}`);if(!$('#impLog'))$('#impOut').insertAdjacentHTML('beforeend',`<p style="color:#c0392b">${esc(e.message||e)}</p>`)}
   finally{btn.disabled=false;btn.textContent='⚡ Impor Otomatis (1 klik)';if(b)b.disabled=false;const k=$('#impKepri');if(k&&!kepriLama().length)k.closest('label').remove()}}
+/* ---- 🧩 lengkapi berkas yang SUDAH ADA (dari daftar yang tampil): hanya mengisi kolom kosong / nama disamarkan, tidak pernah membuat berkas baru ---- */
+function perluLengkap(r){return !r._dihapus&&((r.nomorPenetapan&&fieldSamar(r).length)||(idDrive(r.linkPenetapan)&&kosongAI(r).length))}
+function lengkapiTampil(){const L=DB.filter(r=>LIST_TAMPIL.includes(r.id)&&perluLengkap(r));if(!L.length)return toast('Semua berkas yang tampil sudah lengkap');
+  IMP=null;IMPX=null;IMPL=[];IMP_LOG=[];
+  dlg(`<h3>🧩 Lengkapi ${L.length} berkas</h3><p class="hint" style="margin:0 0 8px">Berkas yang sedang tampil di daftar (gunakan pencarian/saringan, mis. “Batam”). Yang dilakukan: (1) nama yang disamarkan dicari di SIPP pengadilan, (2) kolom yang masih kosong diisi dari PDF penetapan dengan AI hemat. Hanya kolom kosong yang diisi — data yang sudah ada tidak ditimpa dan <b>tidak ada berkas baru</b>, jadi tidak ada data ganda.</p>
+    <button class="pri" onclick="lengkapiJalan(this)">⚡ Jalankan semua</button><div id="impLanjut"></div>`);imporLanjut(L)}
+async function lengkapiJalan(btn){btn.disabled=true;
+  try{if(IMPL.some(r=>r.nomorPenetapan&&fieldSamar(r).length))await imporSipp(tombolProg(btn));
+    if(ADA_AI){if(IMPL.some(r=>idDrive(r.linkPenetapan)&&kosongAI(r).length))await imporLengkapi(tombolProg(btn))}
+    else impLog('<b>AI Claude belum aktif</b> — langkah baca PDF dilewati (isi kunci di Pengaturan).');
+    const sisa=IMPL.filter(r=>r.nomorPenetapan&&fieldSamar(r).length);
+    impLog(`<b>🧩 Selesai.</b>${sisa.length?` ${sisa.length} berkas masih ada nama disamarkan — buka menu <a style="cursor:pointer;text-decoration:underline" onclick="dlgClose();bukaSipp()">Cek SIPP</a>, klik <i>SIPP ↗</i> untuk mencari nomor perkara langsung di situs SIPP, lalu ketik namanya dan klik <i>Pakai</i>.`:''}`);
+    api('apiCatat','LENGKAPI','','',`Lengkapi ${IMPL.length} berkas (SIPP + PDF)`).catch(()=>{});renderList()}
+  catch(e){impLog(`⛔ ${esc(e.message||e)}`)}
+  finally{btn.disabled=false;btn.textContent='⚡ Jalankan semua'}}
 /* ---- impor terjadwal ---- */
 async function jadMuat(){const e=$('#impJad');if(!e)return;e.textContent='Memuat…';
   try{const s=await api('apiImpor','jadwalStatus'),L=s.log||{},R=L.ringkas||{};IMP_JAD=s;
@@ -1605,7 +1621,7 @@ function sippUngkap(x){const r=DB.find(y=>y.id===x.id);if(!r)return'';const fs=f
 function sippBaris(x){const L=SIPP_LBL[x.status]||SIPP_LBL.lewat,tdk=(x.hasil||[]).filter(h=>h.ada===false&&!samar(h.nama));
   return`<tr><td><a onclick="pick('${x.id}')" style="cursor:pointer;font-weight:700">${esc(x.nama||'')}</a><br><small class="hint">${esc(x.nomor||'')}</small></td><td><small>${esc(x.pengadilan||'')}</small></td>
   <td style="color:${L[2]}">${L[0]} <b>${L[1]}</b>${tdk.length?`<br><small>Tidak ada di SIPP: ${tdk.map(h=>`<b>${esc(h.nama)}</b> (${esc(h.peran)})`).join(', ')}</small>`:''}${(r=>r&&fieldSamar(r).length?`<br><small class="sm" style="color:#b45309">🕵️ ${fieldSamar(r).length} nama disamarkan · <a style="cursor:pointer;text-decoration:underline" onclick="dlgSipp('${x.id}')">isi dari SIPP</a></small>`:'')(DB.find(y=>y.id===x.id))}${x.pesan?`<br><small class="hint">${esc(x.pesan)}</small>`:''}</td>
-  <td>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">SIPP ↗</a>`:''}</td></tr>`}
+  <td>${(u=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">SIPP ↗</a>`:'')(x.url||(r=>r&&sippDom(r)?'https://'+sippDom(r)+'/':'')(DB.find(y=>y.id===x.id)))}</td></tr>`}
 function bukaSipp(){WZ.on=false;if(cur){clearTimeout(saveT);flush()}setNav('sipp','Cek SIPP');$('.wrap').classList.add('wzmode');renderSipp()}
 function renderSipp(){const B=DB.filter(r=>!r._dihapus&&r.nomorPenetapan),H=Object.values(SIPP.hasil),F=SIPP.filter,sm=x=>{const r=DB.find(y=>y.id===x.id);return r&&fieldSamar(r).length};
   const tampil=H.filter(x=>F==='semua'||(F==='samar'?sm(x):F==='masalah'?(x.status!=='cocok'||sm(x)):x.status===F));const nSamar=B.filter(r=>fieldSamar(r).length).length;const n=k=>H.filter(x=>x.status===k).length;
