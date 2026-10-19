@@ -15,6 +15,7 @@ ditambah perubahan di bawah. Backend `Code.gs` dan `BapSiap.gs` tidak berubah da
 | `vendor/inflate.min.js` | Pembuka kompresi (fflate, MIT) |
 
 ## Perubahan (19 Okt 2026)
+- **Menu 🗑 Berkas Dihapus** (admin utama): berkas terhapus tidak lagi ikut di Daftar Berkas maupun hitungan provinsi/kota/bulan; dibuka dari menu sendiri dan bisa dipulihkan satu per satu atau sekaligus.
 - **Tembusan tanpa "Pertinggal"** di semua dokumen.
 - **Hubungan perwalian tidak terbalik**: bila kolom Hubungan berisi peran pemohon (Paman/Bibi, Kakek/Nenek, Ayah/Ibu, Kakak — sering dari kolom `Status_Dengan_Wali` spreadsheet), dokumen otomatis menulis hubungan anak terhadap pemohon (keponakan, cucu, anak kandung, adik). Impor spreadsheet berikutnya langsung menyimpan versi yang benar.
 - **Tata letak A4 otomatis** (disimulasikan sebelum DOCX/Google Docs dibuat): (1) spasi **seragam satu dokumen**; (2) dirapatkan seperlunya — pertama baris titik-titik isian BA Harta (24→20 pt), baru spasi teks (paling rapat 0,9×) — hanya bila **pasti** hemat satu halaman atau bila perkiraan normal pas-pasan (dihitung dengan halaman 10% lebih pendek, supaya tanda tangan tidak meluber ke halaman baru); (3) selain itu, bila penutup + tanda tangan pindah halaman dan meninggalkan halaman kosong, spasi seluruh dokumen direnggangkan bertahap (maks. ±1,35) lalu sisa ruang diisi jarak antarparagraf. Tanda tangan selalu ikut kalimat penutupnya; ruang tanda tangan/meterai tidak diubah. Pratinjau memakai hasil yang sama.

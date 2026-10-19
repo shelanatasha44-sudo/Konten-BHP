@@ -223,6 +223,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="brand"><img id="brandLogo" alt=""><div><b>BHP MEDAN</b><small>Dokumen Penyumpahan</small></div></div>
   <div class="sec">DASHBOARD</div>
   <a class="nav on" data-v="berkas" onclick="goBerkas()"><i>🏠</i> <span>Daftar Berkas</span></a>
+  <a class="nav superOnly" data-v="hapus" onclick="bukaTerhapus()"><i>🗑</i> <span>Berkas Dihapus <small id="nHapus" style="opacity:.75"></small></span></a>
   <div class="sec">PENYUMPAHAN</div>
   <a class="nav" data-v="baru" onclick="wizard(1)"><i>📑</i> <span>Berkas Baru</span></a>
   <a class="nav" data-v="kalender" onclick="bukaKalender()"><i>📅</i> <span>Jadwal Sumpah</span></a>
@@ -679,7 +680,15 @@ function renderHeader(){$('#who').innerHTML=`${FOLDER?`<a class="btn" href="${FO
   document.querySelectorAll('.superOnly').forEach(e=>e.hidden=!isSuper());const lg=$('#brandLogo');if(lg)lg.src=SET.logo||LOGO_DEF;
   $('#pgDate').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
 function setNav(v,t){if(v!=='baru')$('.wrap').classList.remove('wzmode');document.querySelectorAll('.side .nav').forEach(n=>n.classList.toggle('on',n.dataset.v===v));$('#pgTitle').textContent=t}
-function goBerkas(){WZ.on=false;setNav('berkas','Daftar Berkas');renderMain();renderList()}
+/* berkas terhapus dipisah ke menu sendiri: Daftar Berkas & semua hitungannya hanya berkas aktif */
+let LIHAT_HAPUS=false;
+function goBerkas(){WZ.on=false;if(LIHAT_HAPUS){LIHAT_HAPUS=false;if(cur&&cur._dihapus)cur=null}setNav('berkas','Daftar Berkas');renderMain();renderList()}
+function bukaTerhapus(){WZ.on=false;LIHAT_HAPUS=true;if(cur&&!cur._dihapus)cur=null;setNav('hapus','Berkas Dihapus');renderMain();renderList()}
+async function pulihkanSemua(btn){const L=DB.filter(r=>r._dihapus&&LIST_TAMPIL.includes(r.id));if(!L.length)return;
+  if(!confirm(`Pulihkan ${L.length} berkas yang sedang tampil ke Daftar Berkas?`))return;btn.disabled=true;let n=0;
+  for(let i=0;i<L.length;i+=4){await Promise.all(L.slice(i,i+4).map(async r=>{try{await api('apiPulihkan',r.id);r._dihapus=false;n++}catch(e){console.warn(e)}}));btn.textContent=`Memulihkan ${n}/${L.length}…`}
+  api('apiCatat','PULIHKAN','','',`${n} berkas dipulihkan sekaligus`).catch(()=>{});toast(`${n} berkas dipulihkan`);if(cur&&!cur._dihapus)cur=null;renderMain();renderList()}
+let LIST_TAMPIL=[];
 function menuUser(){dlg(`<h3>👤 ${esc(ME.nama)}</h3><p class="hint">Username: <b>${esc(ME.username)}</b> · ${isSuper()?'Admin Utama (akses penuh)':'Admin'}</p>
   <p style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="gantiPassword()">🔑 Ganti password</button><button onclick="logout()" style="color:var(--warn)">⎋ Keluar</button><button onclick="dlgClose()">Tutup</button></p>`)}
 function gantiPassword(wajib){dlg(`<form onsubmit="event.preventDefault();simpanPwd(this)"><h3>🔑 ${wajib?'Buat password baru (wajib saat login pertama)':'Ganti password'}</h3>
@@ -966,7 +975,8 @@ function tglDibuat(r){const v=(r._meta&&r._meta.dibuatPada)||r.dibuatPada||'';if
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function hariTgl(s){const d=pd(s);return d?HARI[d.getDay()]+', '+tgl(s):'Tanggal dibuat tidak tercatat'}
 function renderList(){const q=($('#q').value||'').toLowerCase();
-  const semua=DB.filter(r=>(r.nama+' '+derive(r).objek).toLowerCase().includes(q));
+  const nH=DB.filter(r=>r._dihapus).length,eH=$('#nHapus');if(eH)eH.textContent=nH?'('+nH+')':'';
+  const semua=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS&&(r.nama+' '+derive(r).objek).toLowerCase().includes(q));
   /* pilihan saringan (dengan jumlah) */
   const hit=(arr,f)=>arr.reduce((m,r)=>{const k=f(r);m[k]=(m[k]||0)+1;return m},{});
   const provN=hit(semua,provinsiBerkas),lokN=hit(semua.filter(r=>!FIL.prov||provinsiBerkas(r)===FIL.prov),r=>lokasiBerkas(r).kota),blnN=hit(semua,r=>(tglDibuat(r)||'').slice(0,7)||'-');
@@ -986,9 +996,10 @@ function renderList(){const q=($('#q').value||'').toLowerCase();
   const MODE={prov:'PL',plt:'PLT',lok:'L',lt:'LT',tgl:'T','':''}[FIL.grp]??'PL';
   const susun=(arr,lv)=>{if(!lv.length)return arr.map(item).join('');const L0=LV[lv[0]],d=MODE.length-lv.length;let g=grupkan(arr,L0.f);if(L0.srt)g.sort((a,b)=>urutB(a[0],b[0]));
     return g.map(([k,a])=>head(L0.t(k),a.length,d>0?(d>1?2:1):0)+susun(a,lv.slice(1))).join('')};
-  const h=susun(L,MODE.split(''));
-  $('#list').innerHTML=h||(DB.length?'<p class="hint">Tidak ada berkas yang cocok dengan saringan.</p>':'<p class="hint">Belum ada berkas. Klik “📑 Berkas Baru” di menu kiri untuk memulai.</p>')}
-function pick(id){PILIH=null;WZ.on=false;setNav('berkas','Daftar Berkas');clearTimeout(saveT);if(cur)flush();cur=DB.find(r=>r.id===id);if(tab==='riw'&&!cur)tab='umum';renderMain();renderList()}
+  const h=susun(L,MODE.split(''));LIST_TAMPIL=L.map(r=>r.id);
+  const atas=LIHAT_HAPUS?`<div class="card" style="padding:10px;margin-bottom:8px;background:#fdecea;border-color:#f5c2bd"><b>🗑 Berkas Dihapus (${L.length})</b><br><small class="hint">Tidak ikut di Daftar Berkas, jadwal, maupun hitungan. Buka berkas lalu klik ♻️ Pulihkan, atau pulihkan sekaligus.</small>${L.length?`<br><button style="margin-top:6px" onclick="pulihkanSemua(this)">♻️ Pulihkan ${L.length} berkas yang tampil</button>`:''}</div>`:'';
+  $('#list').innerHTML=atas+(h||(LIHAT_HAPUS?'<p class="hint">Tidak ada berkas terhapus.</p>':DB.length?'<p class="hint">Tidak ada berkas yang cocok dengan saringan.</p>':'<p class="hint">Belum ada berkas. Klik “📑 Berkas Baru” di menu kiri untuk memulai.</p>'))}
+function pick(id){PILIH=null;WZ.on=false;setNav(LIHAT_HAPUS?'hapus':'berkas',LIHAT_HAPUS?'Berkas Dihapus':'Daftar Berkas');clearTimeout(saveT);if(cur)flush();cur=DB.find(r=>r.id===id);if(tab==='riw'&&!cur)tab='umum';renderMain();renderList()}
 function newRec(){if(cur){clearTimeout(saveT);flush()}cur=addRec(blank(),'Berkas baru (manual)');tab='umum';renderMain();renderList();flush()}
 function F(path,lbl,type='text',opt){const v=get(path),c=CEK[path],a=` data-f="${path}"${c?` class="${c.lvl==='e'?'bad':'warnf'}"`:''}`,m=c?`<small class="fmsg">${esc(c.msg)}</small>`:'';
   return FX(path,lbl,type,opt,v,a).replace(/<\/div>$/,m+'</div>')}
