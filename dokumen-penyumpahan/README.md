@@ -17,6 +17,17 @@ Folder ini hanya berisi **tampilan** aplikasi Dokumen Penyumpahan. Backend (`Cod
 - **Dokumen yang dibuat**: Surat Antar ke Wali/Pengampu, Surat Antar ke Lurah, Undangan Sumpah (bila sumpah di kantor/Kanwil/Zoom), dan Dokumen Penyumpahan (Permohonan, BAP, BA Sumpah, BA Inventarisasi). *Undangan ke Kepala Desa/Lurah (menyaksikan)* dan *Tanda Terima Berkas* dihapus dari aplikasi.
 - Tampilan desktop tidak berubah.
 
+## Prioritas: nama wali/pengampu + kantor kelurahan
+Surat antar cukup tahu **siapa** dan **ke mana** dikirim.
+- **Surat Antar ke Wali/Pengampu**: wajib *nama + alamat*. **Surat Antar ke Lurah**: wajib *nama + kelurahan tempat tinggal + alamat kantor kelurahan*. **Undangan**: *nama + alamat + tanggal sumpah*. Isian lain yang kosong (nomor/tanggal penetapan, jadwal, dll.) tidak lagi menghalangi pengambilan nomor SPS atau pembuatan surat; di surat tampil "……" kuning dan bisa dilengkapi di Google Docs. Dokumen hari H (Permohonan, BAP, BA Sumpah, BA Inventarisasi) tetap wajib lengkap.
+- Pemeriksaan: kelurahan kosong = **kesalahan** (merah), alamat kantor kelurahan kosong = peringatan (surat ke Lurah hanya bertuliskan "di Tempat").
+- Impor Massal PDF / Spreadsheet / CSV: kelurahan diambil dari alamat bila tidak tertulis terpisah; berkas tanpa kelurahan ditandai **perlu cek** dan nama kelurahan tampil di daftar hasil baca. AI diminta memprioritaskan nama pemohon dan kelurahan.
+
+## Isian baru tidak mengubah/menghapus data lain
+- **Upload PDF penetapan ke berkas yang sudah ada** (tab 1 → *Isi otomatis dari PDF Penetapan*) hanya mengisi kolom yang masih kosong; anak baru ditambahkan tanpa menghapus anak lama. Kolom yang sudah berisi dan berbeda dengan penetapan **tidak diganti** — muncul daftar untuk dicentang bila memang ingin diganti.
+- **Kelurahan** hanya ikut berubah saat alamat diketik bila kelurahan masih kosong atau memang salinan dari alamat sebelumnya.
+- **Berkas diubah dua orang bersamaan**: perubahan Anda digabung ke data terbaru di server (sebelumnya perubahan Anda dibuang). Kolom yang diubah keduanya memakai isian orang lain dan Anda diberi tahu isian Anda supaya bisa diulang.
+
 ## Impor Massal PDF penetapan dari Google Drive (AI Claude, hemat token)
 Menu **📂 Impor Massal PDF** (admin utama): tempel tautan folder Drive → **Ambil daftar PDF** → **Baca** → periksa → **Simpan**.
 - **Pasang sekali**: di proyek Apps Script buat file skrip baru `ImporMassal`, tempel isi `ImporMassal.gs`, lalu deploy **Versi baru**. Kunci Claude yang sudah disimpan di Pengaturan dipakai otomatis. Folder Drive harus bisa dibuka akun pemilik proyek Apps Script.

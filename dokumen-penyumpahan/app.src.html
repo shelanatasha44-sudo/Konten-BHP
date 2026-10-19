@@ -613,7 +613,7 @@ async function doLogin(f){const b=f.querySelector('button');b.disabled=true;b.te
   catch(e){showLogin(e.message||String(e))}}
 async function boot(){
   if(!TOKEN){showLogin();return}
-  try{const r=INIT||await api('apiInit');INIT=null;ME=r.user;USERS=r.users||[];SPS=r.sps||SPS;SET=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),r.settings||{});DB=r.berkas||[];FOLDER=r.folderUrl||'';
+  try{const r=INIT||await api('apiInit');INIT=null;ME=r.user;USERS=r.users||[];SPS=r.sps||SPS;SET=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),r.settings||{});pakaiDB(r.berkas||[]);FOLDER=r.folderUrl||'';
     DB.sort((a,b)=>String(b._meta?.diubahPada||'').localeCompare(String(a._meta?.diubahPada||'')));
     if(r.ai!==undefined)ADA_AI=r.ai;else api('apiAdaAI').then(v=>ADA_AI=v).catch(()=>{});
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
@@ -640,12 +640,30 @@ function dlgClose(){$('#gDlg').close()}
 let saveT=null,saving=false,again=false,listT=null;
 function save(){if(!cur)return;setStat('✎ Belum tersimpan…');clearTimeout(saveT);saveT=setTimeout(flush,900)}
 /* simpan berkas mana pun: yang sedang dibuka lewat save(), selain itu langsung ke server */
-function simpanRec(r){if(r===cur)return save();api('apiSimpan',JSON.parse(JSON.stringify(r)),r._versi).then(x=>{if(x&&!x.konflik)r._versi=x.versi;else if(x&&x.konflik)toast('Berkas '+(r.nama||'')+' diubah orang lain — isi BAP AI tidak tersimpan, ulangi')}).catch(e=>toast(e.message))}
+function simpanRec(r){if(r===cur)return save();const js=JSON.stringify(r);api('apiSimpan',JSON.parse(js),r._versi).then(x=>{if(x&&!x.konflik){r._versi=x.versi;DASAR.set(r,js)}else if(x&&x.konflik)toast('Berkas '+(r.nama||'')+' diubah orang lain — isi BAP AI tidak tersimpan, ulangi')}).catch(e=>toast(e.message))}
+/* DASAR = isi berkas terakhir yang sama dengan server. Bila berkas ternyata diubah orang lain (bentrok), perubahan kita
+   (beda dari DASAR) digabung ke data server — isian orang lain tidak ditimpa dan isian baru kita tidak dibuang */
+const DASAR=new WeakMap();
+const pakaiDB=L=>{DB=L;DB.forEach(r=>DASAR.set(r,JSON.stringify(r)))};
+const samaNilai=(a,b)=>JSON.stringify(a??'')===JSON.stringify(b??'');
+const objPolos=v=>v&&typeof v==='object'&&!Array.isArray(v);
+function gabung3(b,l,s,jalur,bentrok){
+  if(samaNilai(l,b))return s;if(samaNilai(s,b)||samaNilai(s,l))return l;
+  if(objPolos(l)&&objPolos(s)){const o={};new Set([...Object.keys(l),...Object.keys(s)]).forEach(k=>{const v=k[0]==='_'?s[k]:gabung3(objPolos(b)?b[k]:undefined,l[k],s[k],jalur?jalur+'.'+k:k,bentrok);if(v!==undefined)o[k]=v});return o}
+  bentrok.push({path:jalur,lama:l,baru:s});return s}
+function gabungBentrok(r0,s){const b=DASAR.has(r0)?JSON.parse(DASAR.get(r0)):null;if(!b)return{rec:s,bentrok:[],dibuang:true};
+  const L=JSON.parse(JSON.stringify(r0)),bentrok=[];delete L.asal;
+  const m=gabung3(b,L,s,'',bentrok);m._versi=s._versi;m._meta=s._meta;return{rec:m,bentrok}}
 async function flush(){if(!cur)return;if(saving){again=true;return}saving=true;const r0=cur;
-  try{const r=await api('apiSimpan',JSON.parse(JSON.stringify(r0)),r0._versi);
-    if(r.konflik){alert(`Berkas ini baru saja diubah oleh ${r.oleh}. Data terbaru dimuat ulang; ulangi perubahan Anda bila perlu.`);
-      const i=DB.indexOf(r0);const s=r.server;s._meta=r0._meta;DB[i]=s;if(cur===r0)cur=s;renderMain();renderList()}
-    else{r0._versi=r.versi;if(r.diubahOleh)r0._meta={...(r0._meta||{dibuatOleh:ME.nama,dibuatPada:r.diubahPada}),diubahOleh:r.diubahOleh,diubahPada:r.diubahPada};delete r0.asal;setStat('✓ Tersimpan')}}
+  try{const js=JSON.stringify(r0),r=await api('apiSimpan',JSON.parse(js),r0._versi);
+    if(r.konflik){const s=r.server,g=gabungBentrok(r0,s),i=DB.indexOf(r0);DASAR.set(g.rec,JSON.stringify(s));if(i>=0)DB[i]=g.rec;
+      if(g.dibuang)alert(`Berkas ini baru saja diubah oleh ${r.oleh}. Data terbaru dimuat ulang; ulangi perubahan Anda bila perlu.`);
+      else{const perlu=!samaNilai(g.rec,s);
+        if(g.bentrok.length)alert(`Berkas ini juga diubah oleh ${r.oleh} pada saat yang sama. Isian Anda digabung dengan isiannya, tidak ada data yang dihapus.\n\nKolom berikut diubah kalian berdua — dipakai isian ${r.oleh}:\n`+g.bentrok.map(x=>`• ${fLbl(x.path)}: isian Anda "${String(x.lama??'').slice(0,80)}"`).join('\n')+'\n\nUbah lagi bila isian Anda yang benar.');
+        else toast(`Berkas juga diubah oleh ${r.oleh} — isian Anda digabung, tidak ada yang hilang`);
+        if(perlu){if(cur===r0){cur=g.rec;save()}else simpanRec(g.rec)}}
+      if(cur===r0)cur=g.rec;renderMain();renderList()}
+    else{r0._versi=r.versi;DASAR.set(r0,js);if(r.diubahOleh)r0._meta={...(r0._meta||{dibuatOleh:ME.nama,dibuatPada:r.diubahPada}),diubahOleh:r.diubahOleh,diubahPada:r.diubahPada};delete r0.asal;setStat('✓ Tersimpan')}}
   catch(e){setStat('⚠ Gagal menyimpan');toast(e.message)}
   saving=false;if(again){again=false;flush()}}
 function setStat(t){const e=$('#stat');if(e)e.textContent=t}
@@ -653,10 +671,11 @@ function newId(){return Date.now().toString(36)+Math.random().toString(36).slice
 function addRec(r,asal){r.id=r.id||newId();r.asal=asal;r._meta={dibuatOleh:ME.nama,dibuatPada:new Date().toISOString(),diubahOleh:ME.nama,diubahPada:new Date().toISOString()};DB.unshift(r);return r}
 
 /* ---------------- riwayat ---------------- */
-const LBL={jenis:'Jenis perkara',tanggalSurat:'Tanggal surat',nomorSurat:'Nomor surat ke pengampu/wali',nomorLurah:'Nomor surat lurah',nomorBAP:'Nomor BAP',nomorBA:'Nomor BA sumpah',isiBap:'Isi BAP',hp:'No. HP',alamatKelurahan:'Alamat kelurahan',kotaPermohonan:'Kota permohonan',kanwilTembusan:'Tembusan kanwil',bapOleh:'Pejabat BAP',hartaTetap:'Barang tetap',hartaTunai:'Uang/tabungan',hartaEmas:'Emas/perak',hartaSurat:'Surat berharga',hartaPerabot:'Perabot/dagang/ternak',hartaBergerak:'Barang bergerak',hartaHutang:'Hutang',nomorBAHarta:'Nomor BA harta',
+const LBL={jenis:'Jenis perkara',anak:'Data anak',terampu:'Data terampu',tanggalSurat:'Tanggal surat',nomorSurat:'Nomor surat ke pengampu/wali',nomorLurah:'Nomor surat lurah',nomorBAP:'Nomor BAP',nomorBA:'Nomor BA sumpah',isiBap:'Isi BAP',hp:'No. HP',alamatKelurahan:'Alamat kelurahan',kotaPermohonan:'Kota permohonan',kanwilTembusan:'Tembusan kanwil',bapOleh:'Pejabat BAP',hartaTetap:'Barang tetap',hartaTunai:'Uang/tabungan',hartaEmas:'Emas/perak',hartaSurat:'Surat berharga',hartaPerabot:'Perabot/dagang/ternak',hartaBergerak:'Barang bergerak',hartaHutang:'Hutang',nomorBAHarta:'Nomor BA harta',
   nama:'Nama pengampu/wali',nik:'NIK',jk:'Jenis kelamin',tglLahir:'Tanggal lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan',
   'terampu.nama':'Nama terampu','terampu.jk':'JK terampu','terampu.tglLahir':'Tgl lahir terampu','terampu.kondisi':'Kondisi medis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor penetapan',tglPenetapan:'Tanggal penetapan',
-  tglSumpah:'Tanggal sumpah',waktu:'Waktu',tempat:'Tempat',madya:'Pejabat penyumpah',muda:'Pejabat inventarisasi',harta:'Harta lainnya',tanah:'Tanah/bangunan',rekening:'Rekening',saksi1:'Saksi 1',saksi2:'Saksi 2'};
+  tglSumpah:'Tanggal sumpah',waktu:'Waktu',tempat:'Tempat',madya:'Pejabat penyumpah',muda:'Pejabat inventarisasi',harta:'Harta lainnya',tanah:'Tanah/bangunan',rekening:'Rekening',saksi1:'Saksi 1',saksi2:'Saksi 2',
+  pasangan:'Suami/istri',aktaNikah:'Akta nikah',tglMeninggalPasangan:'Tgl meninggal suami/istri',ketMeninggal:'Keterangan kematian',alasan:'Alasan permohonan',saksiKet:'Keterangan saksi',terkaitMiliter:'Terkait TNI/Polri',orangTuaHidup:'Kedua orang tua masih hidup'};
 const AKSI={BUAT:['➕','Membuat berkas'],UBAH:['✏️','Mengubah'],HAPUS:['🗑','Menghapus berkas'],PULIHKAN:['♻️','Memulihkan berkas'],UNDUH_DOCX:['⬇','Mengunduh DOCX'],BUAT_DOKUMEN:['📄','Membuat Google Doc'],AMBIL_NOMOR:['🔢','Mengambil nomor SPS'],
   LOGIN:['🔓','Login'],LOGOUT:['🔒','Logout'],LOGIN_GAGAL:['⛔','Login gagal'],GANTI_PASSWORD:['🔑','Ganti password'],RESET_PASSWORD:['🔑','Reset password'],PENGATURAN:['⚙','Pengaturan'],
   TAMBAH_PENGGUNA:['👤','Tambah pengguna'],UBAH_PENGGUNA:['👤','Ubah pengguna'],BACA_PENETAPAN:['📑','Baca penetapan'],IMPOR_CSV:['⬆','Impor CSV'],SETUP:['🛠','Setup']};
@@ -704,7 +723,7 @@ function cekData(r){const w=[],t=today(),ref=r.tglSumpah||t;
   if(r.jenis==='Perwalian'){(r.anak||[]).filter(a=>a.nama).forEach(a=>{const u=umurPada(a.tglLahir,ref);if(u!==null&&u>=18)w.push(`Anak ${a.nama} sudah ${u} tahun — perwalian untuk anak di bawah umur`);if(!a.tglLahir)w.push(`Tanggal lahir anak ${a.nama} kosong`)});
     if(r.nama&&(r.anak||[]).some(a=>a.nama===r.nama))w.push('Nama wali sama dengan nama anak — periksa')}
   else{const u=umurPada(r.terampu&&r.terampu.tglLahir,ref);if(u!==null&&u<18)w.push('Terampu berumur '+u+' tahun — pengampuan untuk orang dewasa');if(r.terampu&&r.nama&&r.terampu.nama===r.nama)w.push('Nama pengampu sama dengan terampu — periksa')}
-  if(!r.kelurahan)w.push('Kelurahan kosong — Surat ke Lurah tidak lengkap');
+  if(!r.kelurahan)w.push('Kelurahan tempat tinggal '+(r.jenis==='Perwalian'?'wali':'pengampu')+' kosong — Surat ke Lurah belum bisa dibuat');
   return w}
 /* ---- pengecekan otomatis sebelum cetak: {lvl:'e'|'w', msg, tab, f} ---- */
 /* tanggal merah: tetap tiap tahun + daftar 2026 (perkiraan SKB, bisa diubah admin utama di menu Jadwal) */
@@ -736,7 +755,8 @@ function cekCetak(r){const L=[],E=(tab,f,msg)=>L.push({lvl:'e',tab,f,msg}),W=(ta
     if((r.jk==='Perempuan')!==n.perem)W('pihak','jk',`Jenis kelamin tidak cocok dengan NIK (NIK menunjukkan ${n.perem?'perempuan':'laki-laki'})`)}}
   if(!r.tglLahir)E('pihak','tglLahir','Tanggal lahir '+J+' kosong');else{const u=umurPada(r.tglLahir,ref);if(u!==null&&(u<18||u>100))E('pihak','tglLahir','Umur '+J+' '+u+' tahun — periksa tanggal lahir')}
   if(!r.alamat)E('pihak','alamat','Alamat '+J+' kosong');
-  if(!r.kelurahan)W('pihak','kelurahan','Kelurahan kosong — Surat ke Lurah tidak lengkap');
+  if(!r.kelurahan)E('pihak','kelurahan','Kelurahan tempat tinggal '+J+' kosong — Surat ke Lurah belum bisa dibuat');
+  if(!String(r.alamatKelurahan||'').trim())W('pihak','alamatKelurahan','Alamat kantor kelurahan kosong — Surat ke Lurah hanya bertuliskan "di Tempat" (pakai tombol 📍 Google Maps di tab '+(w?'Wali':'Pengampu')+')');
   if(!r.pekerjaan)W('pihak','pekerjaan','Pekerjaan '+J+' kosong');
   // 3. objek
   if(w){const A=(r.anak||[]).filter(a=>a.nama);if(!A.length)E('objek','anak.0.nama','Belum ada data anak');
@@ -787,7 +807,7 @@ function paketBerkas(){const r=cur,P=PILIH||pilihDefault(r);PILIH=P;
   return`<div class="paket"><div class="paket-h"><div><b>🧩 Paket Berkas</b><span class="hint"> — centang dokumen yang diperlukan, lalu buat sekaligus</span></div><div class="prog"><i style="width:${Math.round(siap/tot*100)}%"></i></div><small>${siap}/${tot} dibuat</small></div>
   <div class="paket-g">${[1,2,3].filter(t=>Object.values(GRUP).some(o=>o.tahap===t)).map(t=>`<div class="paket-c"><h5>${t}. ${TAHAP[t]}</h5>${Object.entries(GRUP).filter(([g,o])=>o.tahap===t).map(([g,o])=>{const dk=(r.dokumen||{})[g],ku=kurangGrup(g,r);
     return`<label class="pk ${dk?'ok':''}"><input type="checkbox" ${P.includes(g)?'checked':''} onchange="PILIH=this.checked?[...new Set([...PILIH,'${g}'])]:PILIH.filter(x=>x!=='${g}');$('#pkBtn').textContent='⚡ Buat '+PILIH.length+' dokumen terpilih'">
-      <span><b>${esc(o.nama(r))}</b><small>${dk?`✅ Sudah dibuat · <a href="${dk.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">buka</a>`:ku.length?`<span style="color:#b45309">Kurang: ${esc(ku.slice(0,3).join(', '))}${ku.length>3?'…':''}</span>`:'Siap dibuat'}${NOMOR[g]?(r[NOMOR[g]]?` · No. ${esc(r[NOMOR[g]])}`:' · perlu nomor SPS'):''}</small></span></label>`}).join('')}</div>`).join('')}</div>
+      <span><b>${esc(o.nama(r))}</b><small>${dk?`✅ Sudah dibuat · <a href="${dk.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">buka</a>`:ku.length?`<span style="color:#b45309">Kurang: ${esc(ku.slice(0,3).join(', '))}${ku.length>3?'…':''}</span>`:(ks=>ks.length?`Siap dibuat <span class="hint">· masih kosong (tampil "……"): ${esc(ks.slice(0,3).join(', '))}${ks.length>3?'…':''}</span>`:'Siap dibuat')(kosongGrup(g,r))}${NOMOR[g]?(r[NOMOR[g]]?` · No. ${esc(r[NOMOR[g]])}`:' · perlu nomor SPS'):''}</small></span></label>`}).join('')}</div>`).join('')}</div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px"><button class="pri" id="pkBtn" style="padding:11px 18px;border-radius:12px" onclick="prosesOtomatis()">⚡ Buat ${P.length} dokumen terpilih</button><span class="hint">Otomatis: cek data → ambil nomor SPS (untuk surat) → buat Google Doc di folder berkas.</span></div></div>`}
 async function prosesOtomatis(){if(!cur)return;clearTimeout(saveT);await flush();const P=(PILIH||pilihDefault(cur)).filter(g=>GRUP[g]);if(!P.length){toast('Centang minimal satu dokumen');return}
   const perlu=P.map(g=>[g,kurangGrup(g,cur)]).filter(x=>x[1].length);
@@ -812,7 +832,13 @@ async function jalankanOtomatis(){const P=(PILIH||pilihDefault(cur)).filter(g=>G
 /* ---------------- kelengkapan & nomor SPS ---------------- */
 const NOMOR={surat:'nomorSurat',lurah:'nomorLurah',undangan:'nomorUndangan',desa:'nomorUndDesa'};
 const NOMOR_SEMUA=['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa','nomorBAP','nomorBA','nomorBAHarta'];
+/* surat antar cukup tahu SIAPA dan KE MANA dikirim: yang wajib hanya nama + alamat (surat/undangan ke wali/pengampu)
+   atau kelurahan + alamat kantornya (surat ke lurah). Isian lain yang kosong tidak menghalangi (lihat kosongSurat) —
+   di surat tampil "……" kuning dan bisa dilengkapi di Google Docs. Dokumen hari H (BAP, BA) tetap wajib lengkap. */
+const SURAT_ANTAR=['surat','lurah','undangan','desa'];
 function kurang(k,r){const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'').trim())m.push(l)};
+  if(SURAT_ANTAR.includes(k)){need(r.nama,'Nama '+d.J);if(k==='lurah'||k==='desa'){need(r.kelurahan,'Kelurahan tempat tinggal '+d.J);need(r.alamatKelurahan,'Alamat kantor kelurahan')}else need(r.alamat,'Alamat '+d.J);
+    if(k==='undangan')need(r.tglSumpah,'Tanggal sumpah');need(r.tanggalSurat,'Tanggal surat');return m}
   need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');need(r.nama,'Nama '+d.J);need(r.alamat,'Alamat');need(r.kelurahan,'Kelurahan');need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu.nama,'Nama terampu');
   if(['surat','lurah','undangan','desa'].includes(k))need(r.tanggalSurat,'Tanggal surat');
@@ -822,11 +848,16 @@ function kurang(k,r){const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'')
   if(k==='harta'){need(d.muda.nama,'Nama pejabat inventarisasi');need(d.muda.nip,'NIP pejabat inventarisasi');need(r.tglLahir,'Tgl lahir '+d.J);need(r.pekerjaan,'Pekerjaan')}
   if(k==='bap'){const p=bapP(r);need(p.nama,'Nama pejabat BAP');need(p.nip,'NIP pejabat BAP');need(r.tglLahir,'Tgl lahir '+d.J);need(r.pekerjaan,'Pekerjaan')}
   return m}
+/* isian surat antar yang masih kosong tetapi tidak menghalangi */
+function kosongSurat(k,r){if(!SURAT_ANTAR.includes(k))return[];const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'').trim())m.push(l)};
+  need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');if(k!=='undangan')need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
+  if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu&&r.terampu.nama,'Nama terampu');return m}
+const kosongGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kosongSurat(k,r)))];
 function infoNomor(k,r){const d=derive(r);return{kurang:kurang(k,r),
   perihal:{surat:`Pengambilan Sumpah ${d.J} dan Inventarisasi Harta`,lurah:'Koordinasi Terkait Pengambilan Sumpah dan Inventarisasi Harta',undangan:`Undangan Pengambilan Sumpah ${d.J} an. ${r.nama}`,desa:`Undangan Menghadiri Pengambilan Sumpah ${d.J} an. ${r.nama}`,bap:`Berita Acara Penghadapan ${d.jenisTxt} an. ${r.nama}`,ba:`Berita Acara Penyumpahan ${d.jenisTxt} an. ${r.nama}`,harta:`Berita Acara Pencatatan Harta ${d.jenisTxt} an. ${r.nama}`}[k],
   tujuan:k==='lurah'||k==='desa'?'Lurah '+r.kelurahan:r.nama,tanggal:['surat','lurah','undangan','desa'].includes(k)?r.tanggalSurat:r.tglSumpah}}
-async function ambilNomor(k,btn){const inf=infoNomor(k,cur);if(inf.kurang.length){alert('Lengkapi dulu: '+inf.kurang.join(', '));return}
-  if(!confirm(`Ambil nomor SPS (${cur.jenis==='Perwalian'?'AH.06.02':'AH.06.03'}, tanggal hari ini ${tgl(today())}${k==='surat'||k==='lurah'?' — tanggal surat ikut disesuaikan':''}) untuk "${DOCS[k].nama(cur)}"?\nPerihal: ${inf.perihal}\n\nNomor yang sudah diambil tidak bisa dibatalkan dari aplikasi ini.`))return;
+async function ambilNomor(k,btn){const inf=infoNomor(k,cur);if(inf.kurang.length){alert('Lengkapi dulu: '+inf.kurang.join(', '));return}const ks=kosongSurat(k,cur);
+  if(!confirm(`Ambil nomor SPS (${cur.jenis==='Perwalian'?'AH.06.02':'AH.06.03'}, tanggal hari ini ${tgl(today())}${k==='surat'||k==='lurah'?' — tanggal surat ikut disesuaikan':''}) untuk "${DOCS[k].nama(cur)}"?\nPerihal: ${inf.perihal}${ks.length?`\n\nMasih kosong (tampil "……" di surat, bisa dilengkapi nanti): ${ks.join(', ')}`:''}\n\nNomor yang sudah diambil tidak bisa dibatalkan dari aplikasi ini.`))return;
   btn.disabled=true;btn.textContent='Menghubungi SPS…';clearTimeout(saveT);await flush();
   try{const r=await api('apiAmbilNomor',cur.id,NOMOR[k],inf);cur[NOMOR[k]]=r.nomor;cur._versi=r.versi;if(r.tanggalSurat)cur.tanggalSurat=r.tanggalSurat;toast('Nomor: '+r.nomor);renderMain()}
   catch(e){alert('Gagal mengambil nomor: '+(e.message||e));btn.disabled=false;btn.textContent='🔢 Ambil nomor SPS'}}
@@ -920,8 +951,12 @@ function FX(path,lbl,type,opt,v,a){
   if(type==='area')return`<div class="full"${a}><label>${lbl}</label><textarea oninput="setv('${path}',this.value)">${esc(v)}</textarea></div>`;
   return`<div${a}><label>${lbl}</label><input type="${type}" value="${esc(v)}" oninput="setv('${path}',this.value)"${type==='date'?` onchange="renderMain()"`:''}></div>`}
 function get(p){return p.split('.').reduce((o,k)=>o?.[k],cur)??''}
-function setv(p,v){if(cur._dihapus){toast('Berkas terhapus tidak bisa diubah');return}const ks=p.split('.');let o=cur;ks.slice(0,-1).forEach(k=>o=o[k]);o[ks.at(-1)]=v;
-  if(p==='alamat'&&!cur._kelManual){const m=v.match(/Kelurahan[^,]*,\s*Kecamatan[^,]*(,[^,]*){0,2}/i);if(m){cur.kelurahan=m[0];const i=document.querySelector('[data-kel]');if(i)i.value=cur.kelurahan}}
+const lebar=(h,f)=>h.replace(new RegExp(`^<div data-f="${f}"(?: class="([^"]*)")?`),(m,c)=>`<div data-f="${f}" class="full ${c||''}"`);
+/* "…, Kelurahan X, Kecamatan Y, Kota Z" di dalam alamat → isi kolom kelurahan */
+function kelDariAlamat(a){const m=String(a||'').match(/\b(?:Kelurahan|Kel\.|Desa)\s[^,]*,\s*(?:Kecamatan|Kec\.)[^,]*(,[^,]*){0,2}/i);return m?m[0].trim().replace(/[\s.,;]+$/,''):''}
+function setv(p,v){if(cur._dihapus){toast('Berkas terhapus tidak bisa diubah');return}const ks=p.split('.');let o=cur;ks.slice(0,-1).forEach(k=>o=o[k]);const lama=o[ks.at(-1)];o[ks.at(-1)]=v;
+  /* kelurahan ikut alamat hanya bila masih kosong atau memang hasil salinan alamat sebelumnya — isian kelurahan lain tidak ditimpa */
+  if(p==='alamat'&&!cur._kelManual&&(!cur.kelurahan||cur.kelurahan===kelDariAlamat(lama))){const k=kelDariAlamat(v);if(k){cur.kelurahan=k;const i=document.querySelector('[data-kel]');if(i)i.value=cur.kelurahan}}
   if(p==='kelurahan')cur._kelManual=true;
   save();clearTimeout(listT);listT=setTimeout(renderList,300);if(p==='jenis')renderMain()}
 function renderMain(){
@@ -943,7 +978,7 @@ function renderMain(){
   if(tab==='pihak')h+=F('nama',`Nama ${d.J}`)+F('nik','NIK')+F('jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
     F('status',`Hubungan: ${d.pihak} adalah … pemohon (mis. Adik Kandung, Ibu Kandung, Anak Kandung)`)+F('hp','No. HP (surat permohonan)')+F('alamat','Alamat lengkap','area')+
-    `<div class="full"><label>Kelurahan, Kecamatan, Kota (terisi otomatis dari alamat)</label><input data-kel value="${esc(cur.kelurahan)}" oninput="setv('kelurahan',this.value)"></div>`+F('alamatKelurahan','Nama kantor lurah/kepala desa + alamat (surat lurah)').replace(/^<div data-f="alamatKelurahan"(?: class="([^"]*)")?/,(m,c)=>`<div data-f="alamatKelurahan" class="full ${c||''}"`)+`<div class="full lurah-box" id="lurahBox">${lurahBoxHtml()}</div>`+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
+    lebar(F('kelurahan',`Kelurahan, Kecamatan, Kota tempat tinggal ${d.J} — wajib, tujuan Surat ke Lurah (terisi otomatis dari alamat)`).replace('<input ','<input data-kel '),'kelurahan')+lebar(F('alamatKelurahan','Nama kantor lurah/kepala desa + alamat — wajib untuk Surat ke Lurah'),'alamatKelurahan')+`<div class="full lurah-box" id="lurahBox">${lurahBoxHtml()}</div>`+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
   if(tab==='objek'){if(w){const refU=cur.tglSumpah||today();h+=`<div class="full"><p class="hint">Usia anak dihitung otomatis pada ${cur.tglSumpah?'tanggal sumpah ('+tgl(cur.tglSumpah)+')':'hari ini (tanggal sumpah belum diisi)'}. Anak yang sudah <b>${BATAS_DEWASA} tahun ke atas</b> otomatis tidak diwalikan dan tidak dicantumkan di dokumen.</p>${cur.anak.map((a,i)=>{const u=umurTh(a.tglLahir,refU),dw=anakDewasa(a,cur);return `<div class="child grid${dw?' dewasa':''}">${F(`anak.${i}.nama`,`Nama Anak ${i+1}`)}${F(`anak.${i}.jk`,'Jenis Kelamin','select',['Laki-laki','Perempuan'])}${F(`anak.${i}.tglLahir`,'Tanggal Lahir','date')}<div><label>Usia (otomatis)</label><input disabled value="${u===null?'—':u+' Tahun'}"></div>${dw?`<div><label>Diwalikan?</label><input disabled value="Tidak — sudah ${u} tahun"></div>`:F(`anak.${i}.wali`,'Diwalikan?','select',['Ya','Tidak'])}<div><label>&nbsp;</label><button onclick="cur.anak.splice(${i},1);save();renderMain()">Hapus</button></div>${dw?`<span class="badge-dw">${BATAS_DEWASA}+ · tidak diwalikan otomatis</span>`:''}</div>`}).join('')}
     <button onclick="cur.anak.push({nama:'',jk:'Laki-laki',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
     else h+=F('terampu.nama','Nama Terampu')+F('terampu.jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('terampu.tglLahir','Tanggal Lahir','date')+
@@ -1145,14 +1180,14 @@ function importCsv(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{cons
     const nama=g(w?'Nama_Wali':'Nama_Pengampu');if(!nama)return;const r=blank();
     Object.assign(r,{jenis:w?'Perwalian':'Pengampuan',nama,nik:g(w?'NIK_Wali':'NIK_Pengampu'),jk:/laki/i.test(g(w?'Jenis_Kelamin_Wali':'Jenis_Kelamin_Pengampu'))?'Laki-laki':'Perempuan',
       tglLahir:toISO(g(w?'Tanggal_Lahir_Wali':'Tanggal_Lahir_Pengampu')),agama:g(w?'Agama_Wali':'Agama_Pengampu')||'Islam',pekerjaan:g(w?'Pekerjaan_Wali':'Pekerjaan_Pengampu'),
-      alamat:g(w?'Alamat_Wali':'Alamat_Pengampu'),kelurahan:g('Kel_Kec_Kota'),status:g(w?'Status_Dengan_Wali':'Status_Dengan_Pengampu'),
+      alamat:g(w?'Alamat_Wali':'Alamat_Pengampu'),kelurahan:g('Kel_Kec_Kota')||kelDariAlamat(g(w?'Alamat_Wali':'Alamat_Pengampu')),status:g(w?'Status_Dengan_Wali':'Status_Dengan_Pengampu'),
       nomorSurat:g(w?'Nomor_Surat_Wali':'Nomor_Surat_Pengampu'),nomorLurah:g('Nomor_Surat_Lurah'),tanggalSurat:toISO(g('Tanggal_Surat'))||today(),
       nomorPenetapan:g('Nomor_Penetapan'),tglPenetapan:toISO(g('Tanggal_Penetapan')),tglSumpah:toISO(g('Hari_Tanggal_Sumpah')),waktu:g('Waktu_Sumpah')||r.waktu,tempat:g('Tempat_Sumpah'),
       pengadilan:g('Lokasi_Pengadilan')||r.pengadilan,tanah:g('Daftar_Tanah'),rekening:g('Daftar_Rekening'),
       nomorBA:g(w?'Nomor_BA_Sumpah_Wali':'Nomor_BA_Sumpah_Pengampu'),nomorBAHarta:g(w?'Nomor_BA_Harta_Wali':'Nomor_BA_Harta_Pengampu')});
     if(w){r.anak=[{nama:g('Nama_Anak')||g('Nama_Anak_1'),jk:/perem/i.test(g('Jenis_Kelamin_Anak'))?'Perempuan':'Laki-laki',tglLahir:toISO(g('Tanggal_Lahir_Anak'))}]}
     else r.terampu={nama:g('Nama_Terampu'),jk:/perem/i.test(g('Jenis_Kelamin_Terampu'))?'Perempuan':'Laki-laki',tglLahir:toISO(g('Tanggal_Lahir_Terampu')),kondisi:g('Kondisi_Medis_Terampu')};
-    addRec(r,'Impor CSV: '+f.name);n++;api('apiSimpan',JSON.parse(JSON.stringify(r))).then(x=>{r._versi=x.versi}).catch(e=>toast(e.message))});renderList();toast(n+' berkas diimpor');api('apiCatat','IMPOR_CSV','','',n+' berkas dari '+f.name).catch(()=>{});inp.value=''})}
+    addRec(r,'Impor CSV: '+f.name);n++;api('apiSimpan',JSON.parse(JSON.stringify(r))).then(x=>{r._versi=x.versi;DASAR.set(r,JSON.stringify(r))}).catch(e=>toast(e.message))});renderList();toast(n+' berkas diimpor');api('apiCatat','IMPOR_CSV','','',n+' berkas dari '+f.name).catch(()=>{});inp.value=''})}
 /* ---------------- impor dari sheet AutoCrat (Dokumen Otomatis: PERWALIAN RIAU / PENGAMPUAN RIAU) ---------------- */
 const BLN_ALIAS={jan:1,januari:1,feb:2,februari:2,pebruari:2,mar:3,maret:3,apr:4,april:4,mei:5,may:5,jun:6,juni:6,jul:7,juli:7,agu:8,agus:8,agustus:8,aug:8,sep:9,sept:9,september:9,okt:10,oktober:10,oct:10,nov:11,nop:11,nopember:11,november:11,des:12,desember:12,dec:12};
 function tglISO(v){v=String(v||'').trim();if(!v)return'';let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
@@ -1163,7 +1198,7 @@ function recDariBaris(H,v,w){const idx={};H.forEach((h,i)=>{const k=normH(h);if(
   const g=(...ks)=>{for(const k of ks){const i=idx[normH(k)];if(i!==undefined&&String(v[i]||'').trim())return String(v[i]).trim()}return''};
   const J=w?'Wali':'Pengampu',r=blank();
   Object.assign(r,{jenis:w?'Perwalian':'Pengampuan',nama:g('Nama_'+J).toUpperCase(),nik:g('NIK_'+J).replace(/\D/g,''),jk:/laki|pria/i.test(g('Jenis_Kelamin_'+J,'Jenis_Kelamin'))?'Laki-laki':'Perempuan',
-    tglLahir:tglISO(g('Tanggal_Lahir_'+J)),agama:g('Agama_'+J)||'Islam',pekerjaan:g('Pekerjaan_'+J),alamat:g('Alamat_'+J),kelurahan:g('Kel_Kec_Kota'),status:g('Status_Dengan_'+J),hp:g('No_HP','No_HP_'+J,'HP'),
+    tglLahir:tglISO(g('Tanggal_Lahir_'+J)),agama:g('Agama_'+J)||'Islam',pekerjaan:g('Pekerjaan_'+J),alamat:g('Alamat_'+J),kelurahan:g('Kel_Kec_Kota')||kelDariAlamat(g('Alamat_'+J)),status:g('Status_Dengan_'+J),hp:g('No_HP','No_HP_'+J,'HP'),
     pengadilan:g('Lokasi_Pengadilan')||r.pengadilan,nomorPenetapan:g('Nomor_Penetapan'),tglPenetapan:tglISO(g('Tanggal_Penetapan')),
     nomorSurat:g('Nomor_Surat_'+J),nomorLurah:g('Nomor_Surat_Lurah'),tanggalSurat:tglISO(g('Tanggal_Surat'))||today(),
     tglSumpah:tglISO(g('Hari_Tanggal_Sumpah','Tanggal_Sumpah')),waktu:g('Waktu_Sumpah')||r.waktu,tempat:g('Tempat_Sumpah'),
@@ -1181,19 +1216,19 @@ function imporSheetDlg(){dlg(`<h3>📥 Impor dari Spreadsheet</h3><p class="hint
   <div><label>Sheet Perwalian</label><input id="impW" value="PERWALIAN RIAU"></div><div><label>Sheet Pengampuan</label><input id="impP" value="PENGAMPUAN RIAU"></div></div>
   <div id="impOut" style="margin-top:10px"></div><p style="text-align:right;display:flex;gap:8px;justify-content:flex-end"><button onclick="dlgClose()">Tutup</button><button class="pri" id="impBtn" onclick="imporCek(this)">🔍 Periksa data</button></p>`)}
 async function imporCek(btn){btn.disabled=true;btn.textContent='Membaca sheet…';const out=$('#impOut');IMP=[];
-  try{if(GAS){const r=await api('apiInit');DB=r.berkas||DB;renderList()}const ada=new Set(DB.filter(x=>!x._dihapus).map(x=>(x.nomorPenetapan+'|'+x.nama).toUpperCase()));let html='';
+  try{if(GAS){const r=await api('apiInit');if(r.berkas)pakaiDB(r.berkas);renderList()}const ada=new Set(DB.filter(x=>!x._dihapus).map(x=>(x.nomorPenetapan+'|'+x.nama).toUpperCase()));let html='';
     for(const [id,w] of [['impW',true],['impP',false]]){const nm=$('#'+id).value.trim();if(!nm)continue;
       const d=await api('apiBacaSheet',$('#impSs').value.trim(),nm);
       const recs=d.rows.map(v=>recDariBaris(d.header,v,w)).filter(r=>r.nama);const semuaBaru=recs.filter(r=>!ada.has((r.nomorPenetapan+'|'+r.nama).toUpperCase())),ditolak=semuaBaru.filter(r=>cekKelayakan(r).tolak.length),baru=semuaBaru.filter(r=>!cekKelayakan(r).tolak.length);IMP.push(...baru);
       html+=`<div class="card" style="padding:10px;margin-bottom:8px"><b>${esc(d.judul)}</b><br><span class="hint">${recs.length} baris berisi · <b>${baru.length}</b> baru · ${recs.length-semuaBaru.length} sudah ada${ditolak.length?` · <b style="color:#c0392b">${ditolak.length} ditolak</b> (${ditolak.map(r=>esc(r.nama)+': '+esc(cekKelayakan(r).tolak.join(' '))).join('; ')})`:''}</span>
-        <div style="max-height:180px;overflow:auto;margin-top:6px;font-size:13px">${baru.map((r,i)=>`<div>${i+1}. <b>${esc(r.nama)}</b> — ${esc(r.nomorPenetapan||'tanpa nomor')} · ${esc(derive(r).objek||'-')}${r.tglLahir?'':' <span style="color:var(--warn)">(tgl lahir pemohon kosong)</span>'}${(r.anak||[]).some(a=>a.nama&&!a.tglLahir)?' <span style="color:var(--warn)">(tgl lahir anak kosong)</span>':''}</div>`).join('')||'<i>Tidak ada data baru</i>'}</div></div>`}
+        <div style="max-height:180px;overflow:auto;margin-top:6px;font-size:13px">${baru.map((r,i)=>`<div>${i+1}. <b>${esc(r.nama)}</b> — ${esc(r.nomorPenetapan||'tanpa nomor')} · ${esc(derive(r).objek||'-')}${r.kelurahan?'':' <b style="color:#c0392b">(kelurahan kosong)</b>'}${r.tglLahir?'':' <span style="color:var(--warn)">(tgl lahir pemohon kosong)</span>'}${(r.anak||[]).some(a=>a.nama&&!a.tglLahir)?' <span style="color:var(--warn)">(tgl lahir anak kosong)</span>':''}</div>`).join('')||'<i>Tidak ada data baru</i>'}</div></div>`}
     out.innerHTML=html;btn.disabled=false;if(IMP.length){btn.textContent=`⬇ Impor ${IMP.length} berkas`;btn.onclick=()=>imporJalan(btn)}else btn.textContent='🔍 Periksa lagi'}
   catch(e){out.innerHTML=`<p style="color:#c0392b">${esc(e.message||e)}</p>`;btn.disabled=false;btn.textContent='🔍 Periksa data'}}
 async function imporJalan(btn){btn.disabled=true;let n=0,lewat=0;const gagal=[],semua=IMP.slice(),PAKET=40;
   semua.forEach(r=>{r.asal='Impor dari sheet '+(r.jenis==='Perwalian'?$('#impW').value:$('#impP').value)});
   for(let i=0;i<semua.length;i+=PAKET){const pk=semua.slice(i,i+PAKET);btn.textContent=`Menyimpan ${Math.min(i+PAKET,semua.length)}/${semua.length}…`;
     try{const x=await api('apiSimpanBanyak',pk.map(r=>JSON.parse(JSON.stringify(r))));const ok=new Set(x.ids||[]);lewat+=x.lewat||0;
-      pk.forEach(r=>{if(ok.has(r.id)){addRec(r,r.asal);r._versi=1;n++}})}
+      pk.forEach(r=>{if(ok.has(r.id)){addRec(r,r.asal);r._versi=1;DASAR.set(r,JSON.stringify(r));n++}})}
     catch(e){gagal.push(e.message||String(e))}}
   api('apiCatat','IMPOR_CSV','','',`${n} berkas diimpor dari spreadsheet`).catch(()=>{});renderList();
   $('#impOut').innerHTML=`<p>✅ <b>${n}</b> berkas baru diimpor${lewat?` · ${lewat} dilewati karena sudah ada di database`:''}.</p>${gagal.length?`<p style="color:#c0392b">Sebagian gagal: ${esc([...new Set(gagal)].join('; '))}<br>Klik <b>Periksa lagi</b> lalu impor ulang — yang sudah masuk otomatis dilewati.</p>`:''}<p class="hint">Periksa tiap berkas (tab 1–5) sebelum membuat dokumen.</p>`;
@@ -1244,7 +1279,7 @@ async function msHapusProv(btn){const p=$('#msProv').value,L=DB.filter(r=>!r._di
   api('apiCatat','HAPUS_MASSAL','','',`${n} berkas provinsi ${p} dipindah ke arsip terhapus`).catch(()=>{});
   renderList();if(cur&&cur._dihapus)renderMain();btn.textContent=`✔ ${n} berkas dihapus`;toast(`${n} berkas provinsi ${p} dihapus`+(gagal.length?`, ${gagal.length} gagal`:''));if(gagal.length)alert('Sebagian gagal dihapus:\n'+gagal.slice(0,20).join('\n'))}
 async function msDaftar(btn){const f=$('#msFolder').value.trim();if(!f)return toast('Isi tautan folder Drive');msSet('folder',f);btn.disabled=true;btn.textContent='Membaca folder…';
-  try{if(GAS){const r=await api('apiInit');DB=r.berkas||DB;renderList()}
+  try{if(GAS){const r=await api('apiInit');if(r.berkas)pakaiDB(r.berkas);renderList()}
     const d=await api('apiDaftarPdfDrive',f,$('#msSub').checked);MS.judul=d.judul;msMulai(d.file.map(x=>({...x})));}
   catch(e){$('#msOut').innerHTML=`<p style="color:#c0392b">${bukanTerpasang(e)?'Fitur Drive belum terpasang di server: tempel file <b>ImporMassal.gs</b> ke proyek Apps Script lalu deploy Versi baru (lihat README).':esc(e.message||e)}</p>`}
   finally{btn.disabled=false;btn.textContent='🔍 Ambil daftar PDF dari Drive'}}
@@ -1257,7 +1292,7 @@ const MS_WARNA={antre:'var(--mut)',jalan:'#2980b9',ok:'var(--ok)',kurang:'#d6891
 function msBaris(x,i){const r=x.rec;
   return`<tr id="msR${i}"><td><input type="checkbox" style="width:auto" ${x.pilih?'checked':''} ${MS.jalan?'disabled':''} onchange="MS.file[${i}].pilih=this.checked;msRingkas()"></td>
     <td style="max-width:240px;overflow-wrap:anywhere">${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nama)}</a>`:esc(x.nama)}<br><small class="hint">${x.jalur?esc(x.jalur)+' · ':''}${msUkuran(x.ukuran||0)}</small></td>
-    <td>${r?`<b>${esc(r.nama||'-')}</b><br><small>${esc(r.jenis)} · ${esc(r.nomorPenetapan||'tanpa nomor')}${r.jenis==='Perwalian'?' · '+(r.anak||[]).filter(a=>a.nama).length+' anak':r.terampu&&r.terampu.nama?' · terampu '+esc(r.terampu.nama):''}</small>`:''}</td>
+    <td>${r?`<b>${esc(r.nama||'-')}</b><br><small>${r.kelurahan?'📍 '+esc(r.kelurahan):'<b style="color:#c0392b">⚠ kelurahan tidak terbaca</b>'}</small><br><small>${esc(r.jenis)} · ${esc(r.nomorPenetapan||'tanpa nomor')}${r.jenis==='Perwalian'?' · '+(r.anak||[]).filter(a=>a.nama).length+' anak':r.terampu&&r.terampu.nama?' · terampu '+esc(r.terampu.nama):''}</small>`:''}</td>
     <td style="color:${MS_WARNA[x.st.k]};font-size:12.5px">${esc(x.st.t)}</td></tr>`}
 function msTampil(){const n=MS.file.length;
   $('#msOut').innerHTML=!n?'<p class="hint">Tidak ada PDF di folder ini.</p>':`<div class="card" style="padding:10px"><b>${esc(MS.judul)}</b> — ${n} file <span id="msRing" class="hint"></span>
@@ -1297,7 +1332,7 @@ async function msBaca(i){const x=MS.file[i],S=t=>msSet1(i,'jalan',t);
   if(k&&msAda().has(k)){x.pilih=false;return msSet1(i,'dup','Sudah ada di aplikasi ('+r.nomorPenetapan+')')}
   if(k&&MS.file.some((y,j)=>j!==i&&y.rec&&!y.disimpan&&y.pilih&&(kunciNomor(y.rec.nomorPenetapan)||y.kunci)===k)){x.pilih=false;return msSet1(i,'dup','Ganda dengan file lain di daftar')}
   if(tolak.length){x.pilih=false;return msSet1(i,'tolak','Ditolak: '+tolak.join(' '))}
-  const kurang=[!r.nama&&'nama pemohon',!r.nomorPenetapan&&'nomor penetapan',!r.tglPenetapan&&'tgl penetapan',r.jenis==='Perwalian'?!(r.anak||[]).some(a=>a.nama)&&'anak':!(r.terampu&&r.terampu.nama)&&'terampu'].filter(Boolean);
+  const kurang=[!r.kelurahan&&'kelurahan tempat tinggal',!r.nomorPenetapan&&'nomor penetapan',!r.tglPenetapan&&'tgl penetapan',r.jenis==='Perwalian'?!(r.anak||[]).some(a=>a.nama)&&'anak':!(r.terampu&&r.terampu.nama)&&'terampu'].filter(Boolean);
   if(!r.nama){x.pilih=false;return msSet1(i,'kurang','Nama pemohon tidak terbaca — isi manual')}
   msSet1(i,kurang.length?'kurang':'ok',(kurang.length?'Perlu cek: '+kurang.join(', ')+' kosong · ':'✔ ')+cara)}
 async function msJalankan(){const antre=MS.file.map((x,i)=>i).filter(i=>MS.file[i].pilih&&(MS.file[i].st.k==='antre'||MS.file[i].st.k==='gagal'));if(!antre.length)return;
@@ -1309,7 +1344,7 @@ async function msJalankan(){const antre=MS.file.map((x,i)=>i).filter(i=>MS.file[
 async function msSimpan(btn){const L=MS.file.filter(x=>x.pilih&&x.rec&&!x.disimpan);if(!L.length)return;btn.disabled=true;let n=0,lewat=0;const gagal=[],PAKET=40;
   for(let i=0;i<L.length;i+=PAKET){const pk=L.slice(i,i+PAKET);btn.textContent=`Menyimpan ${Math.min(i+PAKET,L.length)}/${L.length}…`;
     try{const x=await api('apiSimpanBanyak',pk.map(y=>JSON.parse(JSON.stringify(y.rec))));const ok=new Set(x.ids||[]);lewat+=x.lewat||0;
-      pk.forEach(y=>{if(ok.has(y.rec.id)){addRec(y.rec,y.rec.asal);y.rec._versi=1;y.disimpan=true;y.pilih=false;y.st={k:y.st.k,t:'💾 Tersimpan · '+y.st.t};n++}})}
+      pk.forEach(y=>{if(ok.has(y.rec.id)){addRec(y.rec,y.rec.asal);y.rec._versi=1;DASAR.set(y.rec,JSON.stringify(y.rec));y.disimpan=true;y.pilih=false;y.st={k:y.st.k,t:'💾 Tersimpan · '+y.st.t};n++}})}
     catch(e){gagal.push(e.message||String(e))}}
   api('apiCatat','IMPOR_MASSAL','','',`${n} berkas diimpor dari PDF (${MS.judul})`).catch(()=>{});renderList();msTampil();
   toast(`${n} berkas disimpan`+(lewat?`, ${lewat} dilewati (sudah ada)`:''));if(gagal.length)alert('Sebagian gagal disimpan: '+[...new Set(gagal)].join('; ')+'\nKlik Simpan lagi — yang sudah masuk tidak dobel.')}
@@ -1549,6 +1584,7 @@ function normAI(d){if(Array.isArray(d))d=d[0]||{};d=d||{};
   if(d.jenis&&!/^(Pengampuan|Perwalian)$/.test(d.jenis))d.jenis=/wali/i.test(d.jenis)?'Perwalian':'Pengampuan';return d}
 const PROMPT_DATA=`Anda asisten Balai Harta Peninggalan (BHP) Medan. Baca seluruh PENETAPAN PENGADILAN terlampir (perwalian anak atau pengampuan orang dewasa) dengan teliti, termasuk bagian duduk perkara, keterangan saksi, pertimbangan hukum, dan amar.
 Data WALI/PENGAMPU = PEMOHON (identitas di halaman pertama setelah "diajukan oleh"/"Pemohon:"). Jangan ambil kuasa hukum, hakim, panitera, atau saksi sebagai pemohon.
+PRIORITAS UTAMA (dipakai untuk mengirim surat): NAMA PEMOHON dan KELURAHAN/DESA TEMPAT TINGGAL PEMOHON — baca paling teliti. Bila kelurahan/desa tidak ditulis terpisah, ambil dari alamat pemohon (Kelurahan/Desa …, Kecamatan …, Kota/Kabupaten …); bila memang tidak tertulis, kosongkan.
 ATURAN KETAT: hanya isi data yang benar-benar tertulis di dokumen; bila tidak ada, isi string kosong. Jangan mengarang atau menebak. Semua tanggal format YYYY-MM-DD. Nama orang HURUF KAPITAL tanpa gelar sapaan.
 Balas satu objek JSON dengan kunci:
 {"jenis":"Perwalian|Pengampuan","pengadilan":"mis. Pengadilan Agama Lubuk Pakam","nomorPenetapan":"","tglPenetapan":"YYYY-MM-DD (tanggal 'Demikianlah ditetapkan')",
@@ -1572,12 +1608,12 @@ async function aiExtract(file){
 
 const PEN_LBL={jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan (terampu/anak adalah … pemohon)'};
 let PEN=null;
-function reviewHtml(d){PEN=d;const w=d.jenis==='Perwalian';
+function reviewHtml(d){PEN=d;const w=d.jenis==='Perwalian';if(!d.kelurahan)d.kelurahan=kelDariAlamat(d.alamat);
   const row=(k,lbl,v,type='text')=>`<div><label>${lbl}</label><input type="${type}" value="${esc(v||'')}" data-pk="${k}" style="${v?'':'background:#fff6db;border-color:#f6c343'}"></div>`;
   let h=`<div class="grid">`;
   h+=`<div><label>Jenis</label><select data-pk="jenis">${['Pengampuan','Perwalian'].map(j=>`<option ${j===d.jenis?'selected':''}>${j}</option>`).join('')}</select></div>`;
   ['pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tglLahir','agama','pekerjaan','status'].forEach(k=>h+=row(k,PEN_LBL[k],d[k],/^tgl/.test(k)?'date':'text'));
-  h+=`<div class="full">${row('alamat','Alamat',d.alamat)}</div><div class="full">${row('kelurahan','Kelurahan, Kecamatan, Kota',d.kelurahan)}</div>`;
+  h+=`<div class="full">${row('alamat','Alamat',d.alamat)}</div><div class="full">${row('kelurahan','Kelurahan, Kecamatan, Kota tempat tinggal — wajib, tujuan Surat ke Lurah',d.kelurahan)}</div>`;
   if(w)(d.anak||[]).forEach((a,i)=>h+=row(`anak.${i}.nama`,`Anak ${i+1}`,a.nama)+row(`anak.${i}.tglLahir`,'Tgl lahir',a.tglLahir,'date')+row(`anak.${i}.jk`,'JK',a.jk));
   else{const t=d.terampu||{};h+=row('terampu.nama','Nama Terampu',t.nama)+row('terampu.tglLahir','Tgl Lahir Terampu',t.tglLahir,'date')+row('terampu.jk','JK Terampu',t.jk)+`<div class="full">${row('terampu.kondisi','Kondisi medis',t.kondisi)}</div>`}
   return h+`</div>${d._text?`<details style="margin-top:10px"><summary class="hint">Lihat teks hasil baca</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto;font-size:11px">${esc(d._text)}</pre></details>`:''}`}
@@ -1594,16 +1630,45 @@ function terapkanTambahan(P,r){
 function isiDariPen(P,r){
   ['jenis','pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tglLahir','agama','pekerjaan','alamat','kelurahan','status','pasangan','aktaNikah','tglMeninggalPasangan','ketMeninggal','alasan','terkaitMiliter'].forEach(k=>{if(P[k])r[k]=typeof P[k]==='string'?P[k]:String(P[k])});
   if(typeof P.orangTuaHidup==='boolean')r.orangTuaHidup=P.orangTuaHidup;terapkanTambahan(P,r);if(typeof P.isiBap==='string'&&P.isiBap.trim())r.isiBap=P.isiBap;
-  if(P.kelurahan)r._kelManual=true;
+  if(P.kelurahan)r._kelManual=true;else if(!r.kelurahan&&kelDariAlamat(r.alamat))r.kelurahan=kelDariAlamat(r.alamat);
   if(P.jenis==='Perwalian'){const a=(P.anak||[]).filter(x=>x&&x.nama).map(x=>({nama:String(x.nama).toUpperCase(),jk:/perem/i.test(x.jk)?'Perempuan':'Laki-laki',tglLahir:x.tglLahir||'',wali:x.diwalikan===false||x.wali==='Tidak'?'Tidak':'Ya'}));if(a.length)r.anak=a}
   else if(P.terampu){const t=P.terampu;r.terampu={nama:t.nama||'',jk:/perem/i.test(t.jk)?'Perempuan':'Laki-laki',tglLahir:t.tglLahir||'',kondisi:t.kondisi||''}}
   return r}
+/* penetapan diunggah ke berkas yang SUDAH ADA: hanya mengisi kolom yang kosong, anak baru ditambahkan tanpa menghapus anak lama.
+   Kolom yang sudah berisi tidak diganti — bedanya dikembalikan untuk dipilih petugas (yang masih nilai bawaan berkas baru, mis. agama
+   Islam / jenis kelamin awal, sudah dicentang sebagai saran tetapi tetap menunggu persetujuan). */
+const kosong=v=>v===undefined||v===null||String(v).trim()==='';
+const ISIAN_PEN=['jenis','pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tglLahir','agama','pekerjaan','alamat','kelurahan','status','pasangan','aktaNikah','tglMeninggalPasangan','ketMeninggal','alasan','terkaitMiliter','orangTuaHidup','isiBap','saksiKet',...Object.values(JENIS_HARTA)];
+function gabungKeBerkas(P,r){const t=isiDariPen(P,{}),B=blank(),beda=[];
+  const isi=(o,k,v,path,bawaan,ganti)=>{const lama=o[k],bwn=bawaan!==undefined&&String(lama)===String(bawaan);if(kosong(v)||String(lama??'')===String(v))return false;
+    if(kosong(lama)||(ganti&&bwn)){o[k]=v;return true}beda.push({path,lama,baru:v,saran:bwn});return false};
+  ISIAN_PEN.forEach(k=>{if(isi(r,k,t[k],k,B[k],k==='pengadilan')&&k==='kelurahan')r._kelManual=true});
+  const pt=P.terampu||{};if(t.terampu&&t.terampu.nama){if(!objPolos(r.terampu))r.terampu={...B.terampu};const baru=kosong(r.terampu.nama);
+    ['nama','jk','tglLahir','kondisi'].forEach(k=>{if(k!=='jk'||!kosong(pt.jk))isi(r.terampu,k,t.terampu[k],'terampu.'+k,B.terampu[k],baru)})}
+  const nm=x=>String(x||'').toUpperCase().replace(/[^A-Z]/g,''),mentah=a=>(P.anak||[]).find(x=>x&&nm(x.nama)===nm(a.nama))||{};
+  if(t.jenis==='Perwalian'&&Array.isArray(t.anak)){if(!Array.isArray(r.anak))r.anak=[];
+    t.anak.forEach(a=>{let i=r.anak.findIndex(x=>x&&nm(x.nama)===nm(a.nama));
+      if(i<0){i=r.anak.findIndex(x=>!x||kosong(x.nama));if(i<0)r.anak.push({...a});else r.anak[i]={...(r.anak[i]||{}),...a};return}
+      const x=r.anak[i];isi(x,'tglLahir',a.tglLahir,`anak.${i}.tglLahir`);if(!kosong(mentah(a).jk))isi(x,'jk',a.jk,`anak.${i}.jk`,B.anak[0].jk)})}
+  return beda}
+const labelKolom=f=>PEN_LBL[f]||fLbl(f);
+const nilaiTampil=v=>{v=typeof v==='boolean'?(v?'Ya':'Tidak'):String(v??'');return v.length>160?v.slice(0,160)+'…':v||'(kosong)'};
+let BEDA=null;
+function dlgBeda(r,L){BEDA={r,L};
+  dlg(`<h3>📑 Isian lama tidak diubah</h3><p class="hint">Kolom yang masih kosong sudah diisi dari penetapan. <b>${L.length} kolom</b> berikut sudah berisi dan berbeda dengan penetapan — <b>isian lama tetap dipakai</b>. Centang hanya bila ingin menggantinya dengan isi penetapan.</p>
+  <div style="max-height:50vh;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left"><th></th><th>Kolom</th><th>Isian sekarang (dipakai)</th><th>Dari penetapan</th></tr></thead>
+  <tbody>${L.map((x,i)=>`<tr style="border-top:1px solid var(--line);vertical-align:top"><td><input type="checkbox" style="width:auto" data-beda="${i}" ${x.saran?'checked':''}></td><td><b>${esc(labelKolom(x.path))}</b></td><td>${esc(nilaiTampil(x.lama))}${x.saran?' <small class="hint">(nilai bawaan berkas baru)</small>':''}</td><td>${esc(nilaiTampil(x.baru))}</td></tr>`).join('')}</tbody></table></div>
+  <p style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="BEDA=null;dlgClose()">Biarkan isian lama</button><button class="pri" onclick="pakaiBeda()">Ganti yang dicentang</button></p>`)}
+function pakaiBeda(){if(!BEDA)return;const{r,L}=BEDA,pilih=[...document.querySelectorAll('[data-beda]:checked')].map(e=>L[+e.dataset.beda]);BEDA=null;dlgClose();if(!pilih.length)return;
+  pilih.forEach(x=>{const ks=x.path.split('.');let o=r;ks.slice(0,-1).forEach(k=>o=o[k]);o[ks.at(-1)]=x.baru;if(x.path==='kelurahan')r._kelManual=true});
+  simpanRec(r);renderMain();renderList();api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Diganti dengan isi penetapan: '+pilih.map(x=>labelKolom(x.path)).join(', ')).catch(()=>{});toast(pilih.length+' kolom diganti dengan isi penetapan')}
 function applyPenetapan(root,next){
   (root||$('#penBody')).querySelectorAll('[data-pk]').forEach(e=>{const ks=e.dataset.pk.split('.');let o=PEN;ks.slice(0,-1).forEach((k,i)=>{o[k]=o[k]??(/^\d+$/.test(ks[i+1])?[]:{});o=o[k]});o[ks.at(-1)]=e.value.trim()});
   {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));api('apiCatat','TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
-  let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;if(!r)r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||''));
-  isiDariPen(PEN,r);
-  cur=r;tab='jadwal';if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();if(baru)flush();else save();api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Isian diambil dari penetapan '+(PEN.nomorPenetapan||'')+(PEN._ai?' (AI)':'')).catch(()=>{});toast('Data penetapan diterapkan — lanjut isi jadwal sumpah')}
+  let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;let beda=[];
+  if(baru)isiDariPen(PEN,r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||'')));else beda=gabungKeBerkas(PEN,r);
+  cur=r;tab=baru?'jadwal':tab;if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();if(baru)flush();else save();api('apiCatat','BACA_PENETAPAN',r.id,r.nama,(baru?'Isian diambil dari penetapan ':'Kolom kosong diisi dari penetapan ')+(PEN.nomorPenetapan||'')+(PEN._ai?' (AI)':'')+(beda.length?` · ${beda.length} kolom berbeda tidak diubah`:'')).catch(()=>{});
+  if(beda.length)dlgBeda(r,beda);toast(baru?'Data penetapan diterapkan — lanjut isi jadwal sumpah':'Kolom kosong diisi dari penetapan — isian lama tidak diubah')}
 
 
 /* ---------------- wizard Berkas Baru (3 bagian) ---------------- */
