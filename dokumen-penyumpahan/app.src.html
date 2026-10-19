@@ -403,8 +403,8 @@ const HARTA=[['hartaTetap','BARANG-BARANG TETAP','tanah'],['hartaTunai','UANG TU
   ['hartaPerabot','PERABOT RUMAH TANGGA, BARANG DAGANG, TERNAK'],['hartaBergerak','BARANG BERGERAK','harta']];
 const hv=(r,k,old)=>r[k]??(old?r[old]:'')??'';
 const baris=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
-/* kosong → baris titik-titik bernomor untuk diisi tangan oleh petugas di lapangan */
-const garis=(n,left,i)=>`<p class="ni" data-n="${i+1}." data-line="1"${i<n-1?' data-keep="1"':''} style="margin-left:${left}pt;margin-top:${i?0:2}pt;margin-bottom:0">&nbsp;</p>`;
+/* kosong → baris titik-titik bernomor untuk diisi tangan oleh petugas di lapangan; 4 pt dari subjudul, 2 pt antarbaris (jarak tetap) */
+const garis=(n,left,i)=>`<p class="ni" data-n="${i+1}." data-line="1"${i<n-1?' data-keep="1"':''} style="margin-left:${left}pt;margin-top:${i?2:4}pt;margin-bottom:0">&nbsp;</p>`;
 const daftarHarta=(t,n=3)=>{const b=baris(t);return b.length?b.map((x,i)=>NP((i+1)+'.',54,esc(x))).join(''):[...Array(n)].map((_,i)=>garis(n,54,i)).join('')};
 function head(no,hal,r){return `<table class="hd" style="width:100%;margin-bottom:12pt"><tr><td style="width:70pt">Nomor</td><td>:</td><td>${V(no)}</td><td style="text-align:right">${tgl(r.tanggalSurat)}</td></tr>
 <tr><td>Sifat</td><td>:</td><td>Segera</td><td></td></tr><tr><td>Lampiran</td><td>:</td><td>-</td><td></td></tr>
@@ -1064,8 +1064,9 @@ let STY={};
    bertahap kalau dengan itu semuanya muat; (2) kalau tetap tidak muat, spasi di halaman yang kosong itu direnggangkan
    supaya halaman terisi wajar, sedangkan tanda tangan tetap pindah bersama kalimat penutupnya (tidak pernah sendirian).
    Ruang tanda tangan/meterai tidak pernah dikecilkan. */
-/* tingkat rapat — pertama hanya baris titik-titik isian (BA Harta) 24→20 pt, baru teks; paling rapat 0,9× spasi / 0,5× jarak */
-const FIT_LV=[{line:1,gap:1,dot:24},{line:1,gap:1,dot:20},{line:.94,gap:.7,dot:20},{line:.9,gap:.5,dot:20}];
+/* tingkat rapat — pertama hanya baris titik-titik isian kosong (BA Harta) 24→20→18 pt (jarak antarbaris tetap 2 pt), baru teks;
+   paling rapat 0,9× spasi / 0,5× jarak */
+const FIT_LV=[{line:1,gap:1,dot:24},{line:1,gap:1,dot:20},{line:1,gap:1,dot:18},{line:.94,gap:.7,dot:18},{line:.9,gap:.5,dot:18}];
 /* tingkat renggang (seragam satu dokumen): spasi baris 1,15 → paling renggang ±1,35, jarak antarparagraf ikut melebar —
    lebih dari itu dokumen tampak seperti spasi ganda */
 const FIT_RENGGANG=[{line:1.06,gap:1.25},{line:1.12,gap:1.5},{line:1.18,gap:1.75}];
@@ -1076,7 +1077,7 @@ let FIT=FIT_LV[0];
 function terapkanFit(box,sty,f){const lh0=(sty.line||360)/240*1.15;box.style.lineHeight=String(lh0*f.line);
   box.querySelectorAll('*').forEach(e=>{const s=e.style,ttd=!!e.closest('[data-keep="ttd"]'),lx=parseFloat(e.dataset.lx)||1;
     const lh=parseFloat(s.lineHeight);if(lh&&lh<5)s.lineHeight=String(lh*1.15*(ttd?1:f.line*lx));else if(ttd)s.lineHeight=String(lh0);else if(lx!==1)s.lineHeight=String(lh0*f.line*lx);
-    const fg=e.tagName==='TABLE'&&e.classList.contains('ttd')?gapTtd(f.gap):f.gap;for(const m of['marginTop','marginBottom'])if(ptOf(s[m]))s[m]=ptOf(s[m])*fg+'pt';
+    const fg=e.dataset.line?1:e.tagName==='TABLE'&&e.classList.contains('ttd')?gapTtd(f.gap):f.gap;for(const m of['marginTop','marginBottom'])if(ptOf(s[m]))s[m]=ptOf(s[m])*fg+'pt';
     if(e.dataset.gx)s.marginTop=(ptOf(s.marginTop)+parseFloat(e.dataset.gx))+'pt'});
   box.querySelectorAll('p[data-line]').forEach(e=>{e.style.lineHeight=e.style.minHeight=(f.dot||24)+'pt'});
   /* DOCX: daftar bernomor tanpa jarak bawah (CSS pratinjau memberi 8pt) */
@@ -1156,7 +1157,7 @@ function para(el,o={}){
   const r=(o.prefix?o.prefix.replace('<w:r><w:t>','<w:r>'+rPr(base)+'<w:t>'):'')+runs(tk);
   const ind=left||first||right||o.hang?`<w:ind w:left="${left}" w:right="${right}"${o.hang?` w:hanging="${o.hang}"`:` w:firstLine="${first}"`}/>`:'';
   const ln=el.dataset&&el.dataset.line;
-  return `<w:p><w:pPr>${o.keep?'<w:keepNext/><w:keepLines/>':(o.utuh||tk.some(k=>k.br))?'<w:keepLines/>':''}<w:widowControl/>${ln?'<w:pBdr><w:bottom w:val="dotted" w:sz="6" w:space="1" w:color="000000"/><w:between w:val="dotted" w:sz="6" w:space="1" w:color="000000"/></w:pBdr>':''}<w:spacing w:before="${tw(ptOf(s.marginTop)*FIT.gap+(parseFloat(el.dataset&&el.dataset.gx)||0))}" w:after="${o.after??tw(ptOf(s.marginBottom)*FIT.gap)}" ${ln?`w:line="${tw(FIT.dot||24)}" w:lineRule="exact"`:`w:line="${line}" w:lineRule="auto"`}/>${ind}<w:jc w:val="${jc}"/></w:pPr>${r}</w:p>`}
+  return `<w:p><w:pPr>${o.keep?'<w:keepNext/><w:keepLines/>':(o.utuh||tk.some(k=>k.br))?'<w:keepLines/>':''}<w:widowControl/>${ln?'<w:pBdr><w:bottom w:val="dotted" w:sz="6" w:space="1" w:color="000000"/><w:between w:val="dotted" w:sz="6" w:space="1" w:color="000000"/></w:pBdr>':''}<w:spacing w:before="${tw(ptOf(s.marginTop)*(ln?1:FIT.gap)+(parseFloat(el.dataset&&el.dataset.gx)||0))}" w:after="${o.after??tw(ptOf(s.marginBottom)*(ln?1:FIT.gap))}" ${ln?`w:line="${tw(FIT.dot||24)}" w:lineRule="exact"`:`w:line="${line}" w:lineRule="auto"`}/>${ind}<w:jc w:val="${jc}"/></w:pPr>${r}</w:p>`}
 const spacer=(pt,keep)=>`<w:p><w:pPr>${keep?'<w:keepNext/>':''}<w:spacing w:before="0" w:after="0" w:line="${Math.max(20,tw(pt))}" w:lineRule="exact"/></w:pPr><w:r><w:rPr><w:sz w:val="2"/></w:rPr><w:t></w:t></w:r></w:p>`;
 const noBorders='<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders>';
 function kopXml(){
