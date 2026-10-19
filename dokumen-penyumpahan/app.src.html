@@ -677,6 +677,24 @@ function showLogin(msg){
 async function doLogin(f){const b=f.querySelector('button');b.disabled=true;b.textContent='Memeriksa… (±5 detik)';
   try{const ing=f.ing&&f.ing.checked;const r=await apiLoginCall(f.u.value,f.p.value,ing);TOKEN=r.token;simpanTok(TOKEN,ing);INIT=r.init||null;await boot()}
   catch(e){showLogin(e.message||String(e))}}
+/* ===== Tambahan data Kepri dari GitHub (hasil telaah penetapan + SIPP). Hanya MENGISI kolom kosong;
+   kolom yang sudah berisi tidak diubah — kecuali bila isinya hanya nama kota/provinsi dan isian baru memuatnya (tidak ada yang hilang). ===== */
+const TAMBAH_DATA=[
+  {nomor:'173/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Tanjung Buntung, Kecamatan Bengkong, Kota Batam'},
+  {nomor:'48/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Belian, Kecamatan Batam Kota, Kota Batam'},
+  {nomor:'184/Pdt.P/2026/PA.Btm',kelurahan:'Kecamatan Sagulung, Kota Batam'},
+  {nomor:'174/Pdt.P/2026/PA.Btm',kelurahan:'Kecamatan Batu Aji, Kota Batam'},
+  {nomor:'195/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Sekanak Raya, Kecamatan Belakang Padang, Kota Batam'},
+  {nomor:'58/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Duriangkang, Kecamatan Sei Beduk, Kota Batam'},
+];
+function bolehTambah(lama,baru){lama=String(lama??'').trim();if(!lama)return true;if(/\b(Kel\.?|Kelurahan|Desa|Kec\.?|Kecamatan)\b/i.test(lama))return false;
+  const k=x=>String(x).toLowerCase().replace(/provinsi|kepulauan riau|[^a-z]/g,'');return k(baru).includes(k(lama))}
+function tambahDataGithub(){if(!DB||!DB.length)return;const isi=[];
+  TAMBAH_DATA.forEach(t=>{const kn=nomorKunci(t.nomor);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn).forEach(r=>{let ubah=false;
+    Object.keys(t).forEach(f=>{if(f==='nomor'||samaNilai(r[f],t[f]))return;if(bolehTambah(r[f],t[f])){r[f]=t[f];ubah=true}});
+    if(ubah){isi.push(r);simpanRec(r)}})});
+  if(isi.length){api('apiCatat','TAMBAH_DATA','','',`${isi.length} berkas Kepri dilengkapi (kolom kosong saja): `+isi.map(r=>r.nomorPenetapan).join(', ')).catch(()=>{});
+    toast(`${isi.length} berkas Kepri dilengkapi kelurahan/kecamatan (kolom kosong saja, data lain tidak diubah)`);renderList()}}
 async function boot(){
   if(!TOKEN){showLogin();return}
   try{const r=INIT||await api('apiInit');INIT=null;ME=r.user;USERS=r.users||[];SPS=r.sps||SPS;SET=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),r.settings||{});lengkapiPejabat();pakaiDB(r.berkas||[]);FOLDER=r.folderUrl||'';
@@ -684,6 +702,7 @@ async function boot(){
     if(r.ai!==undefined)ADA_AI=r.ai;else api('apiAdaAI').then(v=>ADA_AI=v).catch(()=>{});
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
   $('#login').hidden=true;document.body.classList.remove('locked');renderHeader();cur=null;renderList();renderMain();
+  setTimeout(()=>{try{tambahDataGithub()}catch(e){console.warn('Tambah data:',e)}},1500);
   if(isSuper())setTimeout(()=>imporAntrean().catch(e=>console.warn('Antrean impor:',e)),3000);
   if(ME.wajibGanti)gantiPassword(true)}
 async function logout(){await api('apiLogout').catch(()=>{});TOKEN=null;ss('bhpTok',null);urlSesi(null);ME=null;DB=[];cur=null;showLogin('Anda sudah keluar.')}
@@ -2172,7 +2191,8 @@ function tujuanSurat(r){const w=wilayahLurah(r),K=kotaKantor(r),bersih=x=>String
   const kL=K&&kel&&cariKantor(K.lurah,kel),L=kL&&K.lurah[kL];
   const kec=(L&&L[2])||kecN;
   /* isian kantor yang menyebut kelurahan/kecamatan lain (salah salin dari Maps) diabaikan */
-  if(isi&&isKepri(r)&&isianBentrok(isi,kel,kec))isi='',kC=K&&kec&&cariKantor(K.camat,kec),C=kC&&K.camat[kC],kota=(K&&K.kota)||w.kota||'';
+  if(isi&&isKepri(r)&&isianBentrok(isi,kel,kec))isi='';
+  const kC=K&&kec&&cariKantor(K.camat,kec),C=kC&&K.camat[kC],kota=(K&&K.kota)||w.kota||'';
   const di=(nama,a,pos,kc)=>`${esc(nama)}<br>${esc(a)}${kc?', Kecamatan '+esc(kc):''}${kota?'<br>'+esc(kota)+(pos?' '+esc(pos):''):''}`;
   const lurah=x=>({camat:false,desa,pj:desa?'Kepala Desa':'Lurah',kt:desa?'Desa':'Kelurahan',jab:L?`Lurah ${kL}, Kecamatan ${kC||kec}${kota?', '+kota:''}`:r.kelurahan?lurahNm(r).replace(/<[^>]+>/g,''):`${desa?'Kepala Desa':'Lurah'} ${kel}${kec?', Kecamatan '+kec:''}${kota?', '+kota:''}`,...x});
   const camat=x=>({camat:true,pj:'Camat',kt:'Kecamatan',jab:`Camat ${kC||kec}${kota?', '+kota:''}`,...x});
