@@ -1373,7 +1373,12 @@ const kotaBerkas=r=>((kotaKantor(r)||{}).kota)||lokasiBerkas(r).kota;
 const berkasKepri=()=>DB.filter(r=>!r._dihapus&&isKepri(r)).sort((a,b)=>String(kotaBerkas(a)).localeCompare(String(kotaBerkas(b)))||String(a.nama||'').localeCompare(String(b.nama||'')));
 const kurangKepri=r=>[...new Set(['surat','lurah'].flatMap(k=>kurang(k,r)))];
 /* berkas yang tidak perlu disurati: ditolak (kelayakan) atau perwalian tanpa anak di bawah umur pada hari pertama kunjungan */
-function alasanLewat(r){const t=cekKelayakan(r).tolak;if(t.length)return'ditolak: '+t.map(x=>x.split('. Alasan')[0]).join('; ');
+/* rekaman ganda: nomor penetapan sama — yang dipakai berkas paling lengkap (bernama, paling banyak isian) */
+const skorIsi=r=>(r.nama?100:0)+Object.values(r).filter(v=>typeof v==='string'&&v.trim()).length;
+function dupDari(r){const k=kunciNomor(r.nomorPenetapan);if(!k)return null;const L=DB.filter(x=>!x._dihapus&&kunciNomor(x.nomorPenetapan)===k);if(L.length<2)return null;
+  const best=L.slice().sort((a,b)=>skorIsi(b)-skorIsi(a)||String(a.id).localeCompare(String(b.id)))[0];return best===r?null:best}
+function alasanLewat(r){const dp=dupDari(r);if(dp)return`ganda dengan berkas ${dp.nama||'(tanpa nama)'} (nomor ${r.nomorPenetapan}) — hapus salah satu`;
+  if(!String(r.nama||'').trim())return'nama wali/pengampu kosong — lengkapi atau hapus berkas ini';const t=cekKelayakan(r).tolak;if(t.length)return'ditolak: '+t.map(x=>x.split('. Alasan')[0]).join('; ');
   if(r.jenis==='Perwalian'&&(r.anak||[]).some(a=>a&&a.nama)&&!anakWali(r).length)return`semua anak sudah ${BATAS_DEWASA} tahun ke atas pada tanggal kunjungan`;return''}
 function dlgKepri(){const L=berkasKepri(),k=KEPRI(),blm=L.filter(r=>!alasanLewat(r)&&kurangKepri(r).length).length,lw=L.filter(r=>alasanLewat(r)).length;
   const cb=(id,t,on)=>`<label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="${id}" style="width:auto;margin:0" ${on?'checked':''}> ${t}</label>`;
