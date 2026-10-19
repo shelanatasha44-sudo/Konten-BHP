@@ -16,6 +16,7 @@ ditambah perubahan di bawah. Backend `Code.gs` dan `BapSiap.gs` tidak berubah da
 
 ## Perubahan (19 Okt 2026)
 - **Tembusan tanpa "Pertinggal"** di semua dokumen.
+- **Hubungan perwalian tidak terbalik**: bila kolom Hubungan berisi peran pemohon (Paman/Bibi, Kakek/Nenek, Ayah/Ibu, Kakak — sering dari kolom `Status_Dengan_Wali` spreadsheet), dokumen otomatis menulis hubungan anak terhadap pemohon (keponakan, cucu, anak kandung, adik). Impor spreadsheet berikutnya langsung menyimpan versi yang benar.
 - **Tata letak A4 otomatis**: sebelum DOCX/Google Docs dibuat, pemecahan halaman disimulasikan. Bila kalimat penutup + tanda tangan (+ saksi) terdorong ke halaman baru dan meninggalkan halaman banyak kosong: spasi dirapatkan bertahap bila dokumen jadi hemat satu halaman; bila tidak, spasi di halaman yang kosong direnggangkan agar terisi wajar. Tanda tangan selalu ikut kalimat penutupnya; ruang tanda tangan/meterai tidak dikecilkan. Pratinjau memakai hasil yang sama.
 - **⚡ Impor Otomatis (1 klik)** di menu *Impor Spreadsheet / PDF*: (sekali) hapus berkas lama Kepulauan Riau → periksa sumber → impor baris spreadsheet (0 token) → SIPP (gratis) → lengkapi dari PDF (AI hemat) → baca PDF tanpa baris data (AI hemat; teliti hanya bila cek silang gagal; scan opsional). Langkah sama dengan tombol manual.
 - **Hapus Kepulauan Riau sekali saja**: waktunya disimpan di Pengaturan (`kepriDihapus`) untuk semua admin; berkas yang dibuat sesudahnya (hasil impor ulang) tidak pernah ikut terhapus. Berkas masuk arsip terhapus, bisa dipulihkan.

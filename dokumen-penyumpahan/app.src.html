@@ -345,7 +345,7 @@ function derive(r){
   const sapa=r.jk==='Laki-laki'?'Bapak':'Ibu';
   const anak=w?anakWali(r):[];
   const objek=w?anak.map(a=>a.nama).join(', '):r.terampu.nama;
-  const statusRel=r.status||(w?'Anak':'Keluarga');
+  const statusRel=(w?hubAnak(r.status):r.status)||(w?'Anak':'Keluarga');
   const kel=r.kelurahan||'';
   let laf=(SET.lafaz[r.agama]||SET.lafaz.Islam).replace('{JENIS}',w?'Perwalian':'Pengampuan')
     .replace('{STATUS}',statusRel.toLowerCase()).replace('{PENGADILAN}',r.pengadilan);
@@ -537,7 +537,15 @@ const kurangGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kurang(k,r)))];
    format teks: baris biasa = butir utama; "- " = sub-butir (a., b.); "-- " = sub-sub-butir (1), 2)) */
 const TERBILANG=['nol','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas','dua belas'];
 const nTxt=n=>`${n} (${TERBILANG[n]||n})`;
-function peranPemohon(status,jk,w){const s=String(status||'').toLowerCase(),P=jk==='Perempuan';
+/* Perwalian: "Hubungan" = anak itu SIAPANYA pemohon (Anak Kandung, Cucu, Keponakan, Adik …). Data impor/manual sering berisi
+   peran PEMOHON (mis. "Paman") — dibalik supaya dokumen menulis "terhadap keponakannya", bukan "terhadap pamannya". */
+function hubAnak(s){const h=String(s||'').trim(),l=h.toLowerCase().replace(/\s+/g,' '),k=/tiri/.test(l)?' Tiri':/angkat/.test(l)?' Angkat':' Kandung';
+  if(/^(paman|bibi|om|tante|pakde|bude|pakcik|makcik|uwak|wak|tulang|amangboru|namboru|nantulang)\b/.test(l))return'Keponakan';
+  if(/^(kakek|nenek|opung|oppung|ompung|datuk|atok|mbah|eyang)\b/.test(l))return'Cucu';
+  if(/^(ayah|ibu|bapak|bapa|mama|papa|orang ?tua)\b/.test(l))return'Anak'+k;
+  if(/^kakak\b/.test(l))return'Adik'+(/tiri/.test(l)?' Tiri':' Kandung');
+  return h}
+function peranPemohon(status,jk,w){const s=String((w?hubAnak(status):status)||'').toLowerCase(),P=jk==='Perempuan';
   if(w){if(/anak kandung|anak$/.test(s))return P?'ibu kandung':'ayah kandung';if(/cucu/.test(s))return P?'nenek':'kakek';if(/keponakan/.test(s))return P?'bibi':'paman';
     if(/adik/.test(s))return P?'kakak kandung perempuan':'kakak kandung laki-laki';if(/anak tiri/.test(s))return P?'ibu tiri':'ayah tiri';return s?`keluarga (${s})`:''}
   if(/suami/.test(s))return'istri';if(/istri/.test(s))return'suami';if(/ibu|ayah|orang ?tua/.test(s))return'anak kandung';if(/anak/.test(s))return P?'ibu kandung':'ayah kandung';
@@ -1232,7 +1240,7 @@ function importCsv(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{cons
     const nama=g(w?'Nama_Wali':'Nama_Pengampu');if(!nama)return;const r=blank();
     Object.assign(r,{jenis:w?'Perwalian':'Pengampuan',nama,nik:g(w?'NIK_Wali':'NIK_Pengampu'),jk:/laki/i.test(g(w?'Jenis_Kelamin_Wali':'Jenis_Kelamin_Pengampu'))?'Laki-laki':'Perempuan',
       tglLahir:toISO(g(w?'Tanggal_Lahir_Wali':'Tanggal_Lahir_Pengampu')),agama:g(w?'Agama_Wali':'Agama_Pengampu')||'Islam',pekerjaan:g(w?'Pekerjaan_Wali':'Pekerjaan_Pengampu'),
-      alamat:g(w?'Alamat_Wali':'Alamat_Pengampu'),kelurahan:g('Kel_Kec_Kota'),status:g(w?'Status_Dengan_Wali':'Status_Dengan_Pengampu'),
+      alamat:g(w?'Alamat_Wali':'Alamat_Pengampu'),kelurahan:g('Kel_Kec_Kota'),status:w?hubAnak(g('Status_Dengan_Wali')):g('Status_Dengan_Pengampu'),
       nomorSurat:g(w?'Nomor_Surat_Wali':'Nomor_Surat_Pengampu'),nomorLurah:g('Nomor_Surat_Lurah'),tanggalSurat:toISO(g('Tanggal_Surat'))||today(),
       nomorPenetapan:g('Nomor_Penetapan'),tglPenetapan:toISO(g('Tanggal_Penetapan')),tglSumpah:toISO(g('Hari_Tanggal_Sumpah')),waktu:g('Waktu_Sumpah')||r.waktu,tempat:g('Tempat_Sumpah'),
       pengadilan:g('Lokasi_Pengadilan')||r.pengadilan,tanah:g('Daftar_Tanah'),rekening:g('Daftar_Rekening'),
@@ -1250,7 +1258,7 @@ function recDariBaris(H,v,w){const idx={};H.forEach((h,i)=>{const k=normH(h);if(
   const g=(...ks)=>{for(const k of ks){const i=idx[normH(k)];if(i!==undefined&&String(v[i]||'').trim())return String(v[i]).trim()}return''};
   const J=w?'Wali':'Pengampu',r=blank();
   Object.assign(r,{jenis:w?'Perwalian':'Pengampuan',nama:g('Nama_'+J).toUpperCase(),nik:g('NIK_'+J).replace(/\D/g,''),jk:jkDari(g('Jenis_Kelamin_'+J,'Jenis_Kelamin'),g('Panggilan'))||r.jk,linkPenetapan:g('Link Penetapan','Link_Penetapan','Link_PDF_Penetapan'),
-    tglLahir:tglISO(g('Tanggal_Lahir_'+J)),agama:normAgama(g('Agama_'+J,'Agama'))||'Islam',pekerjaan:g('Pekerjaan_'+J),alamat:g('Alamat_'+J),kelurahan:g('Kel_Kec_Kota'),status:g('Status_Dengan_'+J),hp:g('No_HP','No_HP_'+J,'HP'),
+    tglLahir:tglISO(g('Tanggal_Lahir_'+J)),agama:normAgama(g('Agama_'+J,'Agama'))||'Islam',pekerjaan:g('Pekerjaan_'+J),alamat:g('Alamat_'+J),kelurahan:g('Kel_Kec_Kota'),status:w?hubAnak(g('Status_Dengan_'+J)):g('Status_Dengan_'+J),hp:g('No_HP','No_HP_'+J,'HP'),
     pengadilan:g('Lokasi_Pengadilan')||r.pengadilan,nomorPenetapan:g('Nomor_Penetapan'),tglPenetapan:tglISO(g('Tanggal_Penetapan')),
     nomorSurat:g('Nomor_Surat_'+J),nomorLurah:g('Nomor_Surat_Lurah'),tanggalSurat:tglISO(g('Tanggal_Surat'))||today(),
     tglSumpah:tglISO(g('Hari_Tanggal_Sumpah','Tanggal_Sumpah')),waktu:g('Waktu_Sumpah')||r.waktu,tempat:g('Tempat_Sumpah'),
