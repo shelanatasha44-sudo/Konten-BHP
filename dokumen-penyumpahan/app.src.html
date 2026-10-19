@@ -683,13 +683,16 @@ const TAMBAH_DATA=[
   {nomor:'173/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Tanjung Buntung, Kecamatan Bengkong, Kota Batam'},
   {nomor:'48/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Belian, Kecamatan Batam Kota, Kota Batam'},
   {nomor:'184/Pdt.P/2026/PA.Btm',kelurahan:'Kecamatan Sagulung, Kota Batam'},
-  {nomor:'174/Pdt.P/2026/PA.Btm',kelurahan:'Kecamatan Batu Aji, Kota Batam'},
   {nomor:'195/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Sekanak Raya, Kecamatan Belakang Padang, Kota Batam'},
   {nomor:'58/Pdt.P/2026/PA.Btm',kelurahan:'Kelurahan Duriangkang, Kecamatan Sei Beduk, Kota Batam'},
 ];
 function bolehTambah(lama,baru){lama=String(lama??'').trim();if(!lama)return true;if(/\b(Kel\.?|Kelurahan|Desa|Kec\.?|Kecamatan)\b/i.test(lama))return false;
   const k=x=>String(x).toLowerCase().replace(/provinsi|kepulauan riau|[^a-z]/g,'');return k(baru).includes(k(lama))}
+/* isian yang pernah dikirim lalu ternyata tidak terbukti: dikosongkan lagi HANYA bila isinya masih persis sama (tidak diubah orang) */
+const TARIK_DATA=[{nomor:'174/Pdt.P/2026/PA.Btm',kelurahan:'Kecamatan Batu Aji, Kota Batam'}];
 function tambahDataGithub(){if(!DB||!DB.length)return;const isi=[];
+  TARIK_DATA.forEach(t=>{const kn=nomorKunci(t.nomor);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn).forEach(r=>{let ubah=false;
+    Object.keys(t).forEach(f=>{if(f!=='nomor'&&r[f]===t[f]){r[f]='';ubah=true}});if(ubah){isi.push(r);simpanRec(r)}})});
   TAMBAH_DATA.forEach(t=>{const kn=nomorKunci(t.nomor);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn).forEach(r=>{let ubah=false;
     Object.keys(t).forEach(f=>{if(f==='nomor'||samaNilai(r[f],t[f]))return;if(bolehTambah(r[f],t[f])){r[f]=t[f];ubah=true}});
     if(ubah){isi.push(r);simpanRec(r)}})});
@@ -1193,11 +1196,42 @@ function alamatEf(r){if(!isKepri(r)||(alamatRinci(r.alamat)&&!alamatSamar(r.alam
   return[w.kel,kec,(K&&K.kota)||w.kota].filter(Boolean).join(', ')}
 /* Alamat di surat: huruf awal tiap kata kapital (RT, RW, singkatan & angka Romawi tetap kapital). Data berkas tidak diubah. */
 const AL_KAP=/^(RT|RW|KM|BTN|KPR|PT|CV|TNI|POLRI|ABRI|DKI|NTT|NTB|BPN|PLN|PDAM|BTB|YKP|BP|SMA|SMP|SD|SMK|MTS|MAN|RSUD|II|III|IV|VI|VII|VIII|IX|XI|XII|XIII|XIV|XV)$/i,AL_KECIL=/^(dan|di|ke|dari|atau|s\.?d)$/i;
-function rapiAlamat(s){s=String(s||'').replace(/\b(RT|RW)\.?(?=\d)/gi,'$1 ');if(!/[a-z]/i.test(s))return s;const besar=!/[a-z]/.test(s.replace(/x{3,}/g,''));let i=0;
+function rapiAlamat(s){s=String(s||'').replace(/\bRT\s*\/?\s*RW\s*[:.]?\s*(\d+)\s*\/\s*(\d+)/gi,'RT $1 RW $2').replace(/\bRT\.?\s*(\d+)\s*\/\s*RW\.?\s*(\d+)/gi,'RT $1 RW $2').replace(/\bRT\s*\/\s*RW\s*[:.]?\s*(\d+)\s*\/\s*(\d+)/gi,'RT $1 RW $2').replace(/\b(RT|RW)\s*[:.]?\s*(?=\d)/gi,'$1 ').replace(/\s*-\s*(?=(Kota|Kabupaten|Kab\.)\s)/gi,', ');if(!/[a-z]/i.test(s))return s;const besar=!/[a-z]/.test(s.replace(/x{3,}/g,''));let i=0;
   return s.replace(/[A-Za-zÀ-ÿ']+/g,(w,o)=>{const j=i++;if(/^x{3,}$/i.test(w))return w;if(AL_KAP.test(w))return w.toUpperCase();
     if(!besar&&w.length>1&&w.length<=4&&w===w.toUpperCase())return w;const pre=s.charAt(o-1);if(/\d/.test(pre)||/\d/.test(s.charAt(o+w.length)))return w.toUpperCase();
     if(j&&AL_KECIL.test(w))return w.toLowerCase();return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()})}
-const recDok=r=>{const a=alamatEf(r),o={...r,alamat:rapiAlamat(a||r.alamat),kelurahan:rapiAlamat(r.kelurahan)};if(r.alamatKelurahan)o.alamatKelurahan=rapiAlamat(r.alamatKelurahan);return o};
+/* Pembagian resmi Kota Batam: 12 kecamatan, 64 kelurahan (Perda Kota Batam No. 2 Tahun 2005) */
+const WIL_BATAM=(()=>{const m={},d={'Batam Kota':'Baloi Permai|Belian|Sukajadi|Sungai Panas|Taman Baloi|Teluk Tering','Batu Aji':'Bukit Tempayan|Buliang|Kibing|Tanjung Uncang',
+  'Batu Ampar':'Batu Merah|Kampung Seraya|Sungai Jodoh|Tanjung Sengkuang','Belakang Padang':'Kasu|Pecong|Pemping|Pulau Terong|Sekanak Raya|Tanjung Sari',
+  'Bengkong':'Bengkong Indah|Bengkong Laut|Sadai|Tanjung Buntung','Bulang':'Batu Legong|Bulang Lintang|Pantai Gelam|Pulau Buluh|Pulau Setokok|Temoyong',
+  'Galang':'Air Raja|Galang Baru|Karas|Pulau Abang|Rempang Cate|Sembulang|Sijantung|Subang Mas','Lubuk Baja':'Baloi Indah|Batu Selicin|Kampung Pelita|Lubuk Baja Kota|Tanjung Uma',
+  'Nongsa':'Batu Besar|Kabil|Ngenang|Sambau','Sagulung':'Sagulung Kota|Sungai Binti|Sungai Langkai|Sungai Lekop|Sungai Pelunggut|Tembesi',
+  'Sei Beduk':'Duriangkang|Mangsang|Muka Kuning|Tanjung Piayu','Sekupang':'Patam Lestari|Sungai Harapan|Tanjung Pinggir|Tanjung Riau|Tiban Baru|Tiban Indah|Tiban Lama'};
+  for(const k in d)d[k].split('|').forEach(l=>m[l]=k);return{kel:m,kec:Object.keys(d)}})();
+/* nama baku: cocokkan awalan terpanjang ("Sagulung Kota Batam" → Sagulung Kota; "Sei Beduk"/"Sungai Beduk"; "Batu Basar" → Batu Besar) */
+function bakuWil(daftar,raw){const w=String(raw||'').replace(/[^A-Za-z' ]+/g,' ').trim().split(/\s+/).filter(Boolean);
+  for(let n=Math.min(w.length,4);n>0;n--){const k=kunciW(w.slice(0,n).join(' ')),f=daftar.find(x=>kunciW(x)===k);if(f)return f}return''}
+const isBatam=r=>{const K=kotaKantor(r);return !!(K&&/Batam/.test(K.kota))};
+/* Kepri/Batam: wilayah tempat tinggal dari kolom kelurahan + alamat → {kel, kec} baku (kecamatan mengikuti kelurahan bila bertentangan) */
+function wilBaku(r){const t=[r.kelurahan,r.alamat].filter(Boolean).join(', ').replace(/\bx{3,}\b/gi,' ');const g=re=>(t.match(re)||[])[1]||'';
+  const kr=g(/\b(?:Kelurahan|Kel\.|Kel\b)\s*([^,;\-]+)/i),cr=g(/\b(?:Kecamatan|Kec\.|Kec\b)\s*([^,;\-]+)/i);
+  let kel=bakuWil(Object.keys(WIL_BATAM.kel),kr),kec=kel?WIL_BATAM.kel[kel]:bakuWil(WIL_BATAM.kec,cr);
+  if(!kel&&kr){const c=bakuWil(WIL_BATAM.kec,kr);if(c){const ko=Object.keys(WIL_BATAM.kel).find(x=>x===c+' Kota');if(ko){kel=ko;kec=c}else if(!kec)kec=c}}
+  return{kel,kec,kelRaw:kr.trim(),kecRaw:cr.trim()}}
+/* alamat surat disusun rapi: jalan/perumahan, RT RW, Kelurahan, Kecamatan, Kota Batam, Provinsi Kepulauan Riau. Bila ada bagian yang tidak dikenali, alamat dibiarkan (hanya dirapikan) */
+function susunAlamatBatam(a,w){a=String(a||'');const rt=a.match(/\bRT\s*(\d+)\s*[,/]?\s*(?:RW\s*(\d+))?/i);
+  const i=a.search(/\b(RT\s*\d|RW\s*\d|Kelurahan\b|Kel\.|Kel\b|Kecamatan\b|Kec\.|Kec\b|Desa\b|Kota\s+Batam|Provinsi\b|Kepulauan\s+Riau|Batam\b)/i);
+  const jalan=(i<0?a:a.slice(0,i)).replace(/[\s,;\-]+$/,'').trim();
+  let sisa=(i<0?'':a.slice(i)).replace(/\bRT\s*\d+\s*[,/]?\s*(RW\s*\d+)?/i,' ').replace(/\b(Kelurahan|Kel\.?|Kecamatan|Kec\.?)\s*/gi,' ').replace(/\b(Kota\s+)?Batam\b|\bProvinsi\b|\bKepulauan\s+Riau\b|\bx{3,}\b/gi,' ');
+  [w.kel,w.kec,w.kelRaw,w.kecRaw,w.kel==='Sagulung Kota'?'Sagulung':''].filter(Boolean).forEach(n=>{sisa=sisa.replace(new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),' ')});
+  if(/[A-Za-z]{2,}/.test(sisa.replace(/\b(Sei|Sungai|Beduk|Basar|Besar|Kota)\b/gi,'')))return null;
+  return[jalan,rt?('RT '+rt[1]+(rt[2]?' RW '+rt[2]:'')):'',w.kel?'Kelurahan '+w.kel:'',w.kec?'Kecamatan '+w.kec:'','Kota Batam','Provinsi Kepulauan Riau'].filter(Boolean).join(', ')}
+/* kolom kelurahan versi baku untuk menentukan tujuan surat (data berkas tidak diubah) */
+function kelBaku(r){if(!r||!isKepri(r)||!isBatam(r))return r;const w=wilBaku(r);if(!w.kel&&!w.kec)return r;
+  return{...r,kelurahan:[w.kel?'Kelurahan '+w.kel:'',w.kec?'Kecamatan '+w.kec:'','Kota Batam'].filter(Boolean).join(', ')}}
+const recDok=r=>{const a=alamatEf(r),o={...r,alamat:rapiAlamat(a||r.alamat),kelurahan:rapiAlamat(r.kelurahan)};
+  if(isKepri(r)&&isBatam(r)){const w=wilBaku(o);if(w.kel||w.kec){const s=susunAlamatBatam(o.alamat,w);if(s)o.alamat=s;
+    o.kelurahan=[w.kel?'Kelurahan '+w.kel:'',w.kec?'Kecamatan '+w.kec:'','Kota Batam'].filter(Boolean).join(', ')}}if(r.alamatKelurahan)o.alamatKelurahan=rapiAlamat(r.alamatKelurahan);return o};
 function fitDok(k,r){r=recDok(r);const D=DOCS[k],sty=D.sty||{},html=D.fn(r);
   try{const R=FIT_LV.map(f=>ukurDok(html,sty,f)),R0=R[0];
     /* 1) jumlah halaman yang PASTI tercapai (dihitung dengan halaman 10% lebih pendek dari perkiraan). Dirapatkan seperlunya saja:
@@ -1658,7 +1692,7 @@ async function unduhKepri(btn){const L=berkasKepri(),K=[$('#kpS').checked&&'sura
         if(sps&&!r[NOMOR[k]])try{const x=await api('apiAmbilNomor',r.id,NOMOR[k],infoNomor(k,r));r[NOMOR[k]]=x.nomor;r._versi=x.versi;if(x.tanggalSurat)r.tanggalSurat=x.tanggalSurat}catch(e){ket.push(`Nomor SPS ${nm} gagal: ${e.message||e}`)}
         try{const blob=await buatDocx([k],r),dasar=`${kt}/${bersihNama(r.nama||'tanpa nama')} - ${nm}`;let f=dasar,c=2;while(dipakai.has(f))f=`${dasar} (${c++})`;dipakai.add(f);zip.file(f+'.docx',blob);n++}
         catch(e){ket.push(`${nm} gagal dibuat: ${e.message||e}`)}}
-      rows.push([i+1,r.nama,r.jenis,r.nomorPenetapan,kt,r.alamat,r.kelurahan,tj?tj.jab:'',tj?tj.di.replace(/<br>/g,', ').replace(/&amp;/g,'&'):'',r.nomorSurat,r.nomorLurah,ket.join('; ')]);
+      const rd=recDok(r);rows.push([i+1,r.nama,r.jenis,r.nomorPenetapan,kt,rd.alamat,rd.kelurahan,tj?tj.jab:'',tj?tj.di.replace(/<br>/g,', ').replace(/&amp;/g,'&'):'',r.nomorSurat,r.nomorLurah,ket.join('; ')]);
       if(i%4===3)await new Promise(ok=>setTimeout(ok))}
     const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';zip.file('Daftar Pengiriman.csv','﻿'+H.concat(rows).map(b=>b.map(q).join(',')).join('\r\n'));
     btn.textContent='Menyusun ZIP…';const blob=await zip.generateAsync({type:'blob',compression:'STORE'}),fn=`Surat Antar Kepulauan Riau - ${today()}.zip`;
@@ -2163,15 +2197,15 @@ const KANTOR={
   'kota batam':{kota:'Kota Batam',
     camat:{'Batam Kota':['Jl. Raja Ali Kelana No. 1'],'Batu Aji':['Jl. Sri Beni No. 1, Batu Aji'],'Batu Ampar':['Jl. Kuda Laut No. 1, Batu Ampar'],'Belakang Padang':['Jl. Raya Sekanak, Kelurahan Sekanak Raya'],
       'Bengkong':['Jl. Raya Bengkong Batam Centre No. 1'],'Bulang':['Jl. Temenggung Abdul Jamal No. 1, Kelurahan Bulang Lintang','29471'],'Galang':['Jl. Batin Limat No. 24, Kelurahan Sembulang'],
-      'Lubuk Baja':['Jl. Bunga Raya No. 03, Baloi Indah','29444'],'Nongsa':['Jl. Hasanuddin, Kabil'],'Sagulung':['Jl. Putri Hijau No. 1, Sagulung'],'Sekupang':['Jl. R. Soeprapto No. 1, Sungai Harapan'],'Sei Beduk':['Jl. Raya Kampung Bagan, Tanjung Piayu']},
-    lurah:{'Sukajadi':['Jl. Bukit Indah Raya III','29462','Batam Kota'],'Taman Baloi':['Perumahan Orchid Park','29464','Batam Kota'],'Belian':['Perumahan Cendana Tahap V','29464','Batam Kota'],
+      'Lubuk Baja':['Jl. Bunga Raya No. 03, Baloi Indah','29444'],'Nongsa':['Ruko Summerland, Kelurahan Batu Besar','29466'/* kantor sementara sejak Maret 2026 (Batam Pos 10-3-2026) */],'Sagulung':['Jl. Putri Hijau No. 1, Sagulung'],'Sekupang':['Jl. R. Soeprapto No. 1, Sungai Harapan'],'Sei Beduk':['Jl. Raya Kampung Bagan, Tanjung Piayu']},
+    lurah:{'Sukajadi':['Jl. Bukit Indah Raya III','','Batam Kota'],'Taman Baloi':['Perumahan Orchid Park','','Batam Kota'],'Belian':['Perumahan Cendana Tahap V','29464','Batam Kota'],
       'Teluk Tering':['Jl. Dang Merdu','29461','Batam Kota'],'Sungai Panas':['Jl. Laksamana Bintan','29456','Batam Kota'],'Kabil':['Jl. Patimura Teluk Nipah No. 100','29467','Nongsa'],
-      'Batu Besar':['Jl. Hang Jebat KM. 1','','Nongsa'],'Buliang':['Komp. Pemda 2, Jl. Bunguran Timur','29424','Batu Aji'],'Bukit Tempayan':['Jl. Pendidikan, Bukit Tempayan','','Batu Aji'],
+      'Batu Besar':['Jl. Hang Jebat KM. 1','','Nongsa'],'Buliang':['Komp. Pemda 2, Jl. Bunguran Timur','','Batu Aji'],'Bukit Tempayan':['Jl. Pendidikan, Bukit Tempayan','','Batu Aji'],
       'Duriangkang':['Jl. Pancur Baru, Tanjung Piayu','','Sei Beduk'],'Tanjung Piayu':['Jl. Jenderal S. Parman','29437','Sei Beduk'],'Muka Kuning':['Perum Dam, Jl. Ahmad Yani, Muka Kuning','29433','Sei Beduk'],
-      'Sungai Binti':['Jl. Utama Sei Binti','29434','Sagulung'],'Sungai Langkai':['Perumahan Griya Permata','29434','Sagulung'],'Sagulung Kota':['Komp. Puri Brata, Kav. Lama','29439','Sagulung'],
+      'Sungai Binti':['Jl. Utama Sei Binti','','Sagulung'],'Sungai Langkai':['Perumahan Griya Permata','','Sagulung'],'Sagulung Kota':['Komp. Puri Brata, Kav. Lama','29439','Sagulung'],
       'Sungai Lekop':['Jl. Dapur 12','29434','Sagulung'],'Sungai Pelunggut':['Jl. Raya Dapur 12','29439','Sagulung'],'Tembesi':['Jl. Letjen Suprapto','','Sagulung'],
       'Tanjung Riau':['Jl. KH Ahmad Dahlan','','Sekupang'],'Tiban Baru':['Perumahan Tiban Koperasi Blok K No. 85','29425','Sekupang'],'Tiban Indah':['Jl. Gajah Mada No. 01','29426','Sekupang'],
-      'Patam Lestari':['Jl. Tiban 2','29427','Sekupang'],'Tanjung Pinggir':['Jl. RE Martadinata No. 3','29428','Sekupang'],'Tanjung Sengkuang':['Jl. Tamalatea No. 1','29432','Batu Ampar'],
+      'Patam Lestari':['Jl. Tiban 2','29427','Sekupang'],'Tanjung Pinggir':['Jl. RE Martadinata No. 3','29428','Sekupang'],'Tanjung Sengkuang':['Jl. Tamalatea No. 1','','Batu Ampar'],
       'Kampung Seraya':['Jl. Yos Sudarso','29454','Batu Ampar'],'Bengkong Laut':['Jl. Bengkong Laut','29458','Bengkong'],'Kampung Pelita':['Jl. Sriwijaya No. 20','29443','Lubuk Baja'],'Lubuk Baja Kota':['Jl. Utama No. 1','29444','Lubuk Baja']}},
   'kota tanjungpinang':{kota:'Kota Tanjungpinang',camat:{'Tanjungpinang Timur':['Jl. D.I. Panjaitan'],'Bukit Bestari':['Jl. Aisyah Sulaiman, Kelurahan Dompak','29124']},lurah:{}}};
 const kunciW=t=>String(t||'').toLowerCase().replace(/\b(sei|sui)\b/g,'sungai').replace(/\btj\.?\s*/g,'tanjung ').replace(/\bbatu basar\b/,'batu besar').replace(/\bsungai beduk\b/,'sei beduk').replace(/[^a-z]/g,'');
@@ -2184,7 +2218,7 @@ function isianBentrok(isi,kel,kec){const a=kunciW(isi),f=re=>{const m=isi.match(
   const ik=f(/\b(?:Kec\.?|Kecamatan)\s*([A-Za-z .]+?)(?=[,;]|\s+(?:Kota|Kab|Kel|Prov|Kepulauan)|$)/i),il=f(/\b(?:Kel\.?|Kelurahan)\s*([A-Za-z .]+?)(?=[,;]|\s+(?:Kota|Kab|Kec|Prov|Kepulauan)|$)/i);
   return !!(kec&&ik&&ik!==kunciW(kec))||!!(kel&&il&&il!==kunciW(kel)&&!a.includes(kunciW(kel)))}
 /* tujuan Surat Antar ke Lurah: isian petugas → kantor lurah (data) → kantor camat (bila kantor lurah tidak diketahui / hanya tahu kecamatan) */
-function tujuanSurat(r){const w=wilayahLurah(r),K=kotaKantor(r),bersih=x=>String(x||'').replace(/^(Kelurahan|Desa|Kecamatan)\s+/i,'').trim();
+function tujuanSurat(r){r=kelBaku(r);const w=wilayahLurah(r),K=kotaKantor(r),bersih=x=>String(x||'').replace(/^(Kelurahan|Desa|Kecamatan)\s+/i,'').trim();
   let isi=rapiAlamat(bersihIsianKantor(r.alamatKelurahan));const desa=/^Desa\b/i.test(w.kel);let kel=bersih(w.kel);
   /* "Kelurahan Sagulung" = nama kecamatan (di Batam tidak ada kelurahan yang namanya sama dengan kecamatan) → kirim ke Camat */
   let kecN=bersih(w.kec);if(K&&kel&&!cariKantor(K.lurah,kel)&&cariKantor(K.camat,kel)){if(!kecN)kecN=kel;kel=''}
