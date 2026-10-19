@@ -1383,7 +1383,14 @@ function dlgKepri(){const L=berkasKepri(),k=KEPRI(),blm=L.filter(r=>!alasanLewat
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13.5px">${cb('kpS','Surat Antar ke Wali/Pengampu',1)}${cb('kpL','Surat Antar ke Lurah',1)}${cb('kpLewat','Lewati surat yang isian utamanya belum lengkap (dicatat di daftar pengiriman)',1)}
     ${GAS?cb('kpSps','Ambil nomor SPS untuk surat yang belum bernomor <small class="hint">(nomor yang sudah diambil tidak bisa dibatalkan)</small>',0):''}</div>
   <div id="kpOut" style="margin-top:8px"></div>
-  <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button onclick="dlgClose()">Tutup</button><button class="pri" onclick="unduhKepri(this)" ${L.length?'':'disabled'}>📦 Unduh ZIP</button></p>`)}
+  <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="dlgClose()">Tutup</button><button onclick="eksporKepri()" ${L.length?'':'disabled'}>⬇ Data Kepri (CSV)</button><button class="pri" onclick="unduhKepri(this)" ${L.length?'':'disabled'}>📦 Unduh ZIP</button></p>`)}
+/* data lengkap berkas Kepulauan Riau untuk dicek / dilengkapi di luar aplikasi */
+function eksporKepri(){const q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
+  const H=['No','Jenis','Nama','NIK','Jenis_Kelamin','Agama','Pekerjaan','Alamat','Kel_Kec_Kota','Alamat_Kelurahan','Tujuan_Surat','Alamat_Kantor_Tujuan','Kota','Pengadilan','Nomor_Penetapan','Tanggal_Penetapan','Anak/Terampu','No_HP','Nomor_Surat','Nomor_Surat_Lurah','Status','Keterangan','ID'];
+  const rows=berkasKepri().map((r,i)=>{const tj=tujuanSurat(r),al=alasanLewat(r),ku=kurangKepri(r);
+    return[i+1,r.jenis,r.nama,r.nik,r.jk,r.agama,r.pekerjaan,r.alamat,r.kelurahan,r.alamatKelurahan,tj?tj.jab:'',tj?tj.di.replace(/<br>/g,', ').replace(/&amp;/g,'&'):'',kotaBerkas(r),r.pengadilan,r.nomorPenetapan,r.tglPenetapan,
+      r.jenis==='Perwalian'?(r.anak||[]).filter(a=>a&&a.nama).map(a=>a.nama+(a.tglLahir?' ('+a.tglLahir+')':'')).join('; '):(r.terampu||{}).nama,r.hp,r.nomorSurat,r.nomorLurah,al?'Tidak disurati':ku.length?'Belum lengkap':'Siap',al||ku.join(', '),r.id]});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+[H].concat(rows).map(b=>b.map(q).join(',')).join('\r\n')],{type:'text/csv'}));a.download='Data Kepri - '+today()+'.csv';a.click()}
 async function unduhKepri(btn){const L=berkasKepri(),K=[$('#kpS').checked&&'surat',$('#kpL').checked&&'lurah'].filter(Boolean),lewat=$('#kpLewat').checked,sps=!!($('#kpSps')&&$('#kpSps').checked);
   if(!K.length)return toast('Centang minimal satu jenis surat');
   const perluNo=sps?L.reduce((a,r)=>a+K.filter(k=>!r[NOMOR[k]]&&!(lewat&&kurang(k,r).length)).length,0):0;
