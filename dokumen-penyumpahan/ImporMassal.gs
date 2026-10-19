@@ -1,19 +1,21 @@
 /**
- * PEMASANG IMPOR MASSAL PDF (tempel SEKALI saja, selanjutnya memperbarui diri dari GitHub)
+ * PEMASANG IMPOR TERJADWAL (tempel SEKALI saja, selanjutnya memperbarui diri dari GitHub)
  *
  * Cara pasang di proyek Apps Script "Dokumen Penyumpahan":
  *   1. File → + → Skrip, beri nama  ImporMassal , tempel SELURUH isi file ini, lalu Simpan.
- *   2. Pilih fungsi  pasangImporMassal  di bilah atas → Jalankan → izinkan akses (sekali saja).
- *   3. Terapkan → Kelola deployment → Edit → Versi baru → Terapkan.
+ *   2. ⚙ Setelan proyek → centang "Tampilkan file manifes appsscript.json" → buka appsscript.json, ganti isinya
+ *      dengan dokumen-penyumpahan/appsscript.json dari GitHub (menambah izin pemicu waktu), Simpan.
+ *   3. Pilih fungsi  pasangImporMassal  di bilah atas → Jalankan → izinkan akses (sekali saja).
+ *   4. Terapkan → Kelola deployment → Edit → Versi baru → Terapkan.
  *   Folder Drive sumber PDF harus bisa dibuka akun pemilik proyek ini (minimal Pelihat).
  *
- * Isi sebenarnya (baca PDF, panggil Claude, impor terjadwal) ada di file
+ * Isi sebenarnya (OCR PDF, panggil Claude lewat claudeJson_ di Code.gs, antrean) ada di file
  * dokumen-penyumpahan/impor-massal-inti.js di GitHub dan dimuat otomatis (di-cache 10 menit,
  * cadangan terakhir disimpan di Script Properties bila GitHub tidak bisa dihubungi).
  * Jadi perbaikan berikutnya cukup di-push ke GitHub — file ini tidak perlu ditempel ulang.
  * Perhatian: siapa pun yang bisa push ke branch tersebut dapat mengubah kode server ini.
  *
- * Kunci API Claude memakai kunci yang sudah disimpan lewat Pengaturan → AI Claude.
+ * Kunci API Claude memakai kunci yang sudah disimpan lewat Pengaturan → AI Claude (CLAUDE_KEY).
  */
 const IMPOR_INTI_URL = 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/ccr-82a96c14-ey9957/dokumen-penyumpahan/impor-massal-inti.js';
 const IMPOR_POTONG_PROP = 8000;
@@ -64,11 +66,11 @@ function imporTerjadwal() {
 function pasangImporMassal() {
   izinImpor_();
   const m = intiImpor_(true);
-  Logger.log('Impor massal siap. Versi inti: ' + m.versi + ' · akun: ' + Session.getEffectiveUser().getEmail());
+  Logger.log('Impor terjadwal siap. Versi inti: ' + m.versi);
   return m.versi;
 }
 
-/* Tidak dipanggil — hanya supaya Apps Script meminta izin yang dipakai kode inti (Drive, pemicu, internet, cache). */
+/* Dipanggil pasangImporMassal supaya Apps Script meminta semua izin yang dipakai kode inti (Drive, pemicu, internet, cache). */
 function izinImpor_() {
   DriveApp.getRootFolder();
   ScriptApp.getProjectTriggers();
@@ -77,5 +79,4 @@ function izinImpor_() {
   CacheService.getScriptCache();
   PropertiesService.getScriptProperties();
   LockService.getScriptLock();
-  Session.getEffectiveUser();
 }
