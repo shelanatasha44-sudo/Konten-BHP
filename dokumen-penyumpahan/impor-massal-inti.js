@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-10-19.5-aktif';
+  var VERSI = '2026-10-19.6-sipp';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -192,8 +192,114 @@
     });
   }
 
+  /* ---------- SIPP: ambil data perkara (Data Umum + Amar Putusan) dengan nomor yang PERSIS sama ----------
+   * Pencarian SIPP bersifat "mengandung" (48/Pdt.P/2026 juga menemukan 148 & 248) dan berhalaman 20 baris,
+   * jadi baris dipilih dengan pola nomor utuh dan halaman berikutnya ikut ditelusuri. Halaman detail & amar
+   * butuh cookie sesi dari show_detil. Situs yang dilindungi verifikasi Cloudflare dilaporkan apa adanya. */
+  var BLN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  var BLN_PENDEK = { jan: 0, feb: 1, peb: 1, mar: 2, apr: 3, mei: 4, may: 4, jun: 5, jul: 6, agu: 7, agt: 7, aug: 7, sep: 8, okt: 9, oct: 9, nov: 10, nop: 10, des: 11, dec: 11 };
+  function teksSipp(h) {
+    return String(h || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<br\s*\/?>|<\/(p|tr|li|div|h\d)>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#039;|&rsquo;/g, "'").replace(/&quot;/g, '"').replace(/&copy;/g, '©')
+      .replace(/[ \t ]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
+  }
+  /* "30 Jun. 2026" → "30 Juni 2026", "30 April tahun 2010" → "30 April 2010" (agar cocok dengan cek tanggal di aplikasi) */
+  function rapiTgl(t) {
+    return String(t || '').replace(/\b(\d{1,2}) (Jan|Feb|Peb|Mar|Apr|Mei|May|Jun|Jul|Agu|Agt|Aug|Sep|Okt|Oct|Nov|Nop|Des|Dec)[a-z]*\.? (\d{4})\b/g, function (m, d, b, y) {
+      return d + ' ' + BLN_ID[BLN_PENDEK[b.toLowerCase()]] + ' ' + y;
+    }).replace(new RegExp('\\b(\\d{1,2} (?:' + BLN_ID.join('|') + ')) tahun (\\d{4})\\b', 'gi'), '$1 $2');
+  }
+  function polaNomor(no) {
+    var e = String(no).trim().replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&').replace(/\s+/g, '\\s*');
+    return new RegExp('(^|[^0-9])' + e + '(?![0-9])', 'i');
+  }
+  function cfBlok(h) { return /Just a moment|Tunggu sebentar|challenge-platform|cf-chl-|Melakukan verifikasi keamanan/i.test(h); }
+  function cookieDari(res) {
+    var h = res.getAllHeaders(), c = h['Set-Cookie'] || h['set-cookie'] || [];
+    if (!Array.isArray(c)) c = [c];
+    return c.map(function (x) { return String(x).split(';')[0]; }).join('; ');
+  }
+  function ambilSipp(dom, nomor) {
+    var base = 'https://' + dom, ua = 'Mozilla/5.0 (BHP Medan cek perkara)', pola = polaNomor(nomor);
+    var buka = function (url, o) {
+      o = o || {};
+      var hd = { 'User-Agent': ua }; if (o.cookie) hd.Cookie = o.cookie;
+      var p = { muteHttpExceptions: true, followRedirects: o.ikut !== false, validateHttpsCertificates: false, headers: hd, method: o.post ? 'post' : 'get' };
+      if (o.post) p.payload = o.post;
+      return UrlFetchApp.fetch(url, p);
+    };
+    var cari = function (h) {
+      var rows = String(h).match(/<tr[\s\S]*?<\/tr>/gi) || [];
+      for (var i = 0; i < rows.length; i++) {
+        if (!pola.test(teksSipp(rows[i]))) continue;
+        var m = rows[i].match(/href="([^"]*show_detil\/([^"\/]+))"/i) || rows[i].match(/href="([^"]*detil[^"]*)"/i);
+        if (m) return { href: /^https?:/.test(m[1]) ? m[1] : base + '/' + m[1].replace(/^\//, ''), tok: m[2] || '' };
+      }
+      return null;
+    };
+    var r = buka(base + '/list_perkara/search', { post: { search_keyword: nomor } }), h = r.getContentText();
+    if (cfBlok(h)) throw new Error('SIPP ' + dom + ' dilindungi verifikasi Cloudflare — buka SIPP ↗ di browser untuk mencari nomor ini');
+    if (r.getResponseCode() >= 400) throw new Error('SIPP ' + dom + ' tidak bisa dibuka (HTTP ' + r.getResponseCode() + ')');
+    var hit = cari(h), pg = h.match(/window\.open\('([^']*\/list_perkara\/page\/)'\+pageNumber\+'([^']*)'/), tot = Number((h.match(/totalPage = '(\d+)'/) || [])[1] || 0);
+    for (var n = 2; !hit && pg && (n - 1) * 20 < tot && n <= 15; n++) hit = cari(buka(pg[1] + n + pg[2]).getContentText());
+    if (!hit) return { ada: false, url: base + '/list_perkara/search' };
+    var r1 = buka(hit.href, { ikut: false }), ck = cookieDari(r1), loc = (r1.getAllHeaders().Location || r1.getAllHeaders().location || ''), dh;
+    if (r1.getResponseCode() >= 300 && r1.getResponseCode() < 400 && loc) { loc = /^https?:/.test(loc) ? loc : base + '/' + String(loc).replace(/^\//, ''); dh = buka(loc, { cookie: ck }).getContentText(); }
+    else dh = r1.getContentText();
+    var tok = hit.tok || ((dh.match(/show_putusan\/([^'"\/]+)/) || [])[1] || ''), ph = '';
+    if (tok) try { ph = buka(base + '/show_putusan/' + tok, { cookie: ck }).getContentText(); } catch (e) { }
+    return { ada: true, url: hit.href, detail: rapiTgl(teksSipp(dh)), putusan: rapiTgl(teksSipp(ph)) };
+  }
+  /* teks ringkas untuk dibaca AI aplikasi: amar (resmi) didahulukan; petitum hanya bila amar belum ada */
+  function ringkasSipp(no, s) {
+    var d = s.detail || '', p = s.putusan || '';
+    var sub = function (t, a, b) { var i = t.search(a); if (i < 0) return ''; var r = t.slice(i), j = r.slice(5).search(b); return (j < 0 ? r : r.slice(0, j + 5)).trim(); };
+    var klas = (d.match(/Klasifikasi Perkara\s*\n?([^\n]+)/) || [])[1] || '';
+    var pem = sub(d, /\nPemohon\s*\nNo/, /\n(Kuasa Hukum Pemohon|Termohon)\b/);
+    var tglP = (p.match(/Tanggal Putusan\s*\n?(?:[A-Za-z]+, )?([^\n]+)/) || [])[1] || '';
+    var amar = sub(p, /Amar Putusan/, /\n(Pemberitahuan Putusan|Tanggal Minutasi)\b/);
+    var pet = sub(d, /\nPetitum\b/, /\n(Pihak Dipublikasikan|Prodeo)\b/);
+    return ['DATA SIPP PENGADILAN — PERKARA ' + no, klas ? 'Klasifikasi: ' + klas.trim() : '', tglP ? 'Tanggal penetapan/putusan: ' + tglP.trim() : '', pem,
+      amar ? 'AMAR PENETAPAN (resmi):\n' + amar.replace(/^Amar Putusan\s*/, '') : (pet ? 'PETITUM (isi permohonan; amar belum dipublikasikan):\n' + pet.replace(/^\n?Petitum\s*/, '') : '')]
+      .filter(Boolean).join('\n').slice(0, 14000);
+  }
+  function cekSipp(d) {
+    var nomor = String(d.nomorPenetapan || '').trim();
+    if (!nomor) return { status: 'lewat', pesan: 'Nomor penetapan kosong' };
+    var dom = String(d.sippDomain || '').trim() || sippDomain_(d.pengadilan, nomor);
+    if (!dom) return { status: 'lewat', pesan: 'Nama pengadilan tidak dikenali' };
+    var cache = CacheService.getScriptCache(), ck = 'sipp3_' + Utilities.base64EncodeWebSafe(dom + nomor).slice(0, 200), s = null;
+    try { s = JSON.parse(cache.get(ck) || 'null'); } catch (e) { }
+    if (!s) { s = ambilSipp(dom, nomor); try { cache.put(ck, JSON.stringify(s).slice(0, 95000), 21600); } catch (e) { } }
+    if (!s.ada) return { status: 'tidak_ada', domain: dom, url: s.url, pesan: 'Nomor perkara tidak ditemukan di SIPP ' + dom };
+    var teks = ringkasSipp(nomor, s), T = normNama_(s.detail + ' ' + s.putusan), temu = namaSipp_(s.detail), nama = [];
+    /* tabel "Pemohon — No | Nama" di Data Umum (nama ditulis huruf biasa, tidak tertangkap namaSipp_) */
+    var blok = (s.detail.match(/\nPemohon\s*\nNo Nama\n([\s\S]*?)\n(?:Kuasa Hukum Pemohon|Termohon)\b/) || [])[1] || '';
+    var pm = blok.split('\n').map(function (l) { var m = l.match(/^\d+\.?\s+(.+)$/); return m ? m[1].trim() : ''; }).filter(function (n) { return n && !/disamarkan|\*|x{3}/i.test(n); });
+    if (pm.length) temu.pemohon = pm;
+    if (d.nama) nama.push({ peran: 'Pemohon', nama: d.nama });
+    if (d.jenis === 'Perwalian') (d.anak || []).forEach(function (a) { if (a && a.nama) nama.push({ peran: 'Anak', nama: a.nama }); });
+    else if (d.terampu && d.terampu.nama) nama.push({ peran: 'Terampu', nama: d.terampu.nama });
+    var hasil = nama.map(function (x) { return { peran: x.peran, nama: x.nama, ada: adaNama_(x.nama, T) }; });
+    return { status: hasil.some(function (x) { return x.ada === false; }) ? 'beda' : 'cocok', domain: dom, url: s.url, hasil: hasil, pemohon: temu.pemohon, kandidat: temu.kandidat, petitum: temu.petitum, teks: teks };
+  }
+  function sipp(t, ids) {
+    var u = user_(t), semua = berkas_(false), mulai = Date.now();
+    var pilih = semua.filter(function (d) { return (ids || []).indexOf(d.id) >= 0; });
+    var out = pilih.map(function (d) {
+      var r;
+      if (Date.now() - mulai > 240000) r = { status: 'lewat', pesan: 'Waktu habis — jalankan lagi' };
+      else try { r = cekSipp(d); } catch (e) { r = { status: 'gagal', pesan: String(e.message || e).slice(0, 220) }; }
+      r.id = d.id; r.nama = d.nama; r.nomor = d.nomorPenetapan; r.pengadilan = d.pengadilan;
+      return r;
+    });
+    log_(u, 'CEK_SIPP', '', '', pilih.length + ' berkas dicek ke SIPP');
+    return out;
+  }
+
   return {
     versi: VERSI,
+    sipp: sipp,
     jadwalStatus: jadwalStatus,
     jadwalAtur: jadwalAtur,
     jadwalJalan: function (t) { super_(t); return terjadwal(240000); },

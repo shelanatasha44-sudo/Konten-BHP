@@ -1304,7 +1304,7 @@ function recDariBaris(H,v,w){const idx={};H.forEach((h,i)=>{const k=normH(h);if(
   if(!w&&samar(r.terampu.nama))r.terampu.nama='';
   return r}
 /* ---------------- impor massal dari folder Google Drive / Google Sheet / .xlsx ----------------
-   Hemat token: data diambil dari kolom spreadsheet (0 token) → nama disamarkan dicari di SIPP (gratis)
+   Hemat token: data diambil dari kolom spreadsheet (0 token) → data dari SIPP (amar resmi)
    → hanya kolom yang MASIH kosong dibaca AI model hemat dari teks PDF, dan hanya nilai yang benar-benar tertulis di penetapan yang dipakai. */
 const idDrive=s=>{s=String(s||'');const m=s.match(/\/(?:folders|d)\/([\w-]{20,})/)||s.match(/[?&]id=([\w-]{20,})/)||s.match(/^\s*([\w-]{25,})\s*$/);return m?m[1]:''};
 const nomorKunci=n=>String(n||'').toUpperCase().replace(/[\s.]/g,'').replace(/^0+/,'');
@@ -1393,23 +1393,33 @@ async function imporJalan(btn){btn.disabled=true;let n=0,lewat=0;const gagal=[],
   imporLanjut(masuk.concat(IMPX.lama));IMP=null;btn.disabled=false;btn.textContent='🔍 Periksa lagi';btn.onclick=()=>imporCek(btn)}
 function impLog(t){IMP_LOG.push(t);const e=$('#impLog');if(e){e.innerHTML=IMP_LOG.map(x=>`<div>${x}</div>`).join('');e.scrollTop=e.scrollHeight}}
 function imporLanjut(recs){if(recs)IMPL=[...new Set(recs)].filter(r=>r&&!r._dihapus);const el=$('#impLanjut');if(!el)return;
-  const nS=IMPL.filter(r=>r.nomorPenetapan&&fieldSamar(r).length).length,nK=IMPL.filter(r=>idDrive(r.linkPenetapan)&&kosongAI(r).length).length,nY=(IMPX&&IMPX.yatim||[]).length,nP=IMPL.filter(r=>!idDrive(r.linkPenetapan)&&kosongAI(r).length).length;
+  const nS=IMPL.filter(perluSipp).length,nK=IMPL.filter(r=>idDrive(r.linkPenetapan)&&kosongAI(r).length).length,nY=(IMPX&&IMPX.yatim||[]).length,nP=IMPL.filter(r=>!idDrive(r.linkPenetapan)&&kosongAI(r).length).length;
   el.innerHTML=`<div class="card" style="padding:10px;margin-top:8px"><b>Langkah lanjutan</b> <span class="hint">— urutan paling hemat: SIPP dulu (gratis), baru AI untuk yang masih kosong.</span>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-   <button ${nS?'':'disabled'} onclick="imporSipp(this)">🕵️ 1. Cari ${nS} nama disamarkan di SIPP (gratis)</button>
+   <button ${nS?'':'disabled'} onclick="imporSipp(this)">🕵️ 1. Lengkapi ${nS} berkas dari SIPP (amar resmi)</button>
    <button ${nK&&ADA_AI?'':'disabled'} onclick="imporLengkapi(this)">🤖 2. Lengkapi ${nK} berkas dari PDF (AI hemat)</button>
    ${nY?`<button ${ADA_AI?'':'disabled'} onclick="imporYatim(this)">📄 3. Baca ${nY} PDF tanpa baris data (AI hemat)</button>`:''}</div>
    <label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-weight:400;cursor:pointer"><input type="checkbox" id="impScan" style="width:auto"> Ikutkan PDF hasil scan (tanpa lapisan teks) — dibaca visual oleh model teliti, biaya lebih besar</label>
    <p class="hint" style="margin:6px 0 0">AI hanya mengisi kolom yang <b>kosong</b>; tanggal, NIK, dan nama baru dipakai bila tertulis persis di teks penetapan. Nama yang disamarkan di penetapan tidak bisa dibaca AI — gunakan SIPP.${nP?` ${nP} berkas tanpa PDF penetapan tidak bisa dilengkapi AI.`:''}${ADA_AI?'':' <b>AI Claude belum aktif</b> — isi kunci di Pengaturan untuk langkah 2–3.'}</p>
    <div id="impLog" class="hint" style="margin-top:8px;max-height:240px;overflow:auto"></div></div>`;impLog('')}
-async function imporSipp(b){const ids=IMPL.filter(r=>r.nomorPenetapan&&fieldSamar(r).length).map(r=>r.id);if(!ids.length||SIPP.jalan)return;b.disabled=true;let isi=0,penuh=0,tdk=0;
-  for(let k=0;k<ids.length;k+=4){const pk=ids.slice(k,k+4);b.textContent=`SIPP ${Math.min(k+4,ids.length)}/${ids.length}…`;
-    let hasil=[];try{hasil=(await jalankanSipp(pk))||[]}catch(e){}
-    hasil.forEach(x=>{const r=x&&DB.find(y=>y.id===x.id);if(!r)return;if(!['cocok','beda'].includes(x.status)){tdk++;return}
-      const s=isiOtomatisSipp(r,x);if(s.length){isi++;simpanRec(r);if(!fieldSamar(r).length)penuh++;impLog(`🕵️ ${esc(r.nomorPenetapan)}: ${esc(s.join(', '))}`)}})}
-  api('apiCatat','ISI_DARI_SIPP','','',`${isi} berkas impor diisi dari SIPP`).catch(()=>{});renderList();
-  impLog(`<b>SIPP selesai:</b> ${isi} berkas terisi (${penuh} lengkap)${tdk?` · ${tdk} tidak ditemukan/gagal`:''}${ids.length-isi-tdk>0?` · ${ids.length-isi-tdk} perlu dipilih manual di menu Cek SIPP`:''}.`);
-  const L=IMP_LOG.slice();imporLanjut();IMP_LOG=L;impLog('')}
+/* SIPP: data perkara (amar resmi) dibaca AI hemat → isiDariPen mengisi kolom KOSONG saja, nama & tanggal harus tertulis persis di teks SIPP */
+function perluSipp(r){return !!r.nomorPenetapan&&!r._dihapus&&(fieldSamar(r).length>0||kosongAI(r).length>0)}
+async function sippServer(pk){try{return await api('apiImpor','sipp',pk)}catch(e){if(/tidak dikenal|apiImpor|not a function|not found|deploy/i.test(e.message||e))return api('apiCekSipp',pk);throw e}}
+async function imporSipp(b){const L=IMPL.filter(perluSipp);if(!L.length||SIPP.jalan)return;b.disabled=true;let isi=0,penuh=0,tdk=0,cf=0;const H=[];SIPP.jalan=true;
+  try{for(let k=0;k<L.length;k+=3){const pk=L.slice(k,k+3).map(r=>r.id);b.textContent=`SIPP ${Math.min(k+3,L.length)}/${L.length}…`;
+      try{(await sippServer(pk)).forEach(x=>{SIPP.hasil[x.id]=x;H.push(x)})}catch(e){pk.forEach(id=>H.push({id,status:'gagal',pesan:e.message||String(e)}))}}}
+  finally{SIPP.jalan=false}
+  await kerjakan(H,3,async x=>{const r=DB.find(y=>y.id===x.id);if(!r)return;
+    if(!['cocok','beda'].includes(x.status)){tdk++;if(/cloudflare/i.test(x.pesan||''))cf++;else impLog(`❓ ${esc(r.nomorPenetapan)}: ${esc(x.pesan||'tidak ditemukan di SIPP')}`);return}
+    let s=[],tahan=[];
+    if(ADA_AI&&x.teks)try{const h=isiDariPen(r,await aiExtract(null,x.teks,'hemat'),x.teks);s=h.isi;tahan=h.tahan}catch(e){impLog(`⛔ ${esc(r.nomorPenetapan)}: ${esc(e.message||e)}`)}
+    if(fieldSamar(r).length)s=s.concat(isiOtomatisSipp(r,x));
+    if(s.length){isi++;simpanRec(r);if(!fieldSamar(r).length)penuh++}
+    impLog(`${s.length?'🕵️':'➖'} ${esc(r.nomorPenetapan)}: ${s.length?'terisi dari SIPP — '+esc(s.join(', ')):'tidak ada data tambahan di SIPP'}${tahan.length?` · <span style="color:var(--warn)">ditahan (tidak tertulis persis di SIPP): ${esc(tahan.join(', '))}</span>`:''}`)},b,'SIPP');
+  if(cf)impLog(`⛔ ${cf} berkas tidak bisa dibuka server karena SIPP pengadilannya (mis. PN Batam) memakai verifikasi Cloudflare — cari manual: menu <i>Cek SIPP</i> → <i>SIPP ↗</i>, lalu ketik nama dan klik <i>Pakai</i>.`);
+  api('apiCatat','ISI_DARI_SIPP','','',`${isi} berkas diisi dari SIPP`).catch(()=>{});renderList();
+  impLog(`<b>SIPP selesai:</b> ${isi} berkas terisi (${penuh} tanpa nama disamarkan lagi)${tdk?` · ${tdk} tidak ditemukan/gagal`:''}${ADA_AI?'':' · <b>AI Claude belum aktif</b>: hanya nama yang diisi'}.`);
+  const LG=IMP_LOG.slice();imporLanjut();IMP_LOG=LG;impLog('')}
 /* satu PDF: teks dibaca di browser (gratis) → AI hemat → bila tidak lolos cek silang, AI teliti */
 async function bacaPdfImpor(id,scan){const x=await api('apiAmbilPdf',id),file=fileDariB64(x);let teks='';try{teks=bersihTeks(await teksPdfBersih(file))}catch(e){}
   const adaTeks=teks.replace(/\s/g,'').length>1500;if(!adaTeks&&!scan)return{scan:true};
@@ -1439,7 +1449,7 @@ async function imporYatim(b){const L=(IMPX&&IMPX.yatim||[]).slice();if(!L.length
   impLog(`<b>PDF selesai:</b> ${n} berkas baru${tolak?` · ${tolak} ditolak`:''}${scanL?` · ${scanL} hasil scan dilewati`:''}${gagal?` · ${gagal} gagal`:''}.`);
   const LG=IMP_LOG.slice();imporLanjut();IMP_LOG=LG;impLog('')}
 /* ---------------- ⚡ impor otomatis (1 klik) + impor terjadwal ----------------
-   1 klik: (sekali) hapus berkas lama Kepulauan Riau → Periksa data → Impor baris spreadsheet → SIPP (gratis) → lengkapi dari PDF (AI hemat)
+   1 klik: (sekali) hapus berkas lama Kepulauan Riau → Periksa data → Impor baris spreadsheet → SIPP → lengkapi dari PDF (AI hemat)
    → baca PDF tanpa baris data (AI hemat; teliti hanya bila cek silang gagal). Langkah-langkahnya sama dengan tombol manual di bawah.
    Terjadwal: server (ImporMassal.gs → impor-massal-inti.js dari GitHub) memeriksa folder sendiri, membaca PDF baru (OCR Drive gratis →
    AI hemat; scan → AI teliti), hasilnya antrean; antrean disimpan otomatis saat admin utama membuka aplikasi. */
@@ -1463,12 +1473,12 @@ async function hapusKepri(lap){const L=kepriLama();let n=0;const gagal=[];
   renderList();if(cur&&cur._dihapus)renderMain();if(gagal.length)throw new Error(`${gagal.length} berkas ${KEPRI} gagal dihapus: `+gagal.slice(0,3).join('; '));return n}
 async function imporOtomatis(btn){const K=$('#impKepri')&&$('#impKepri').checked?kepriLama().length:0,scan=!!($('#impScanOto')&&$('#impScanOto').checked),src=$('#impSs').value.trim();
   if(!src)return toast('Isi tautan folder / spreadsheet');
-  if(!confirm(`Impor otomatis dari:\n${src}\n\n${K?`• Hapus dulu ${K} berkas lama ${KEPRI} (bisa dipulihkan)\n`:''}• Impor baris spreadsheet (0 token)\n• Cari nama disamarkan di SIPP (gratis)\n• Lengkapi & baca PDF penetapan dengan AI hemat${scan?' (termasuk scan)':''}\n\nYang sudah ada di aplikasi dilewati. Lanjut?`))return;
+  if(!confirm(`Impor otomatis dari:\n${src}\n\n${K?`• Hapus dulu ${K} berkas lama ${KEPRI} (bisa dipulihkan)\n`:''}• Impor baris spreadsheet (0 token)\n• Lengkapi dari SIPP (amar resmi)\n• Lengkapi & baca PDF penetapan dengan AI hemat${scan?' (termasuk scan)':''}\n\nYang sudah ada di aplikasi dilewati. Lanjut?`))return;
   const b=$('#impBtn'),p=tombolProg(btn),n0=DB.filter(r=>!r._dihapus).length;btn.disabled=true;if(b)b.disabled=true;
   try{if(K){p.textContent='Menyegarkan data…';if(GAS){const r=await api('apiInit');DB=r.berkas||DB}await hapusKepri(t=>p.textContent=t)}
     IMPX=null;p.textContent='Memeriksa folder…';await imporCek(b);if(!IMPX)throw new Error(($('#impOut')||{}).textContent||'Gagal membaca sumber');
     if(imporPilih().length){p.textContent='Menyimpan baris spreadsheet…';await imporJalan(b)}else{IMPX.taut.forEach(simpanRec);IMPX.taut=[];imporLanjut(IMPX.lama)}
-    if(IMPL.some(r=>r.nomorPenetapan&&fieldSamar(r).length))await imporSipp(tombolProg(btn));
+    if(IMPL.some(perluSipp))await imporSipp(tombolProg(btn));
     const sc=()=>{const e=$('#impScan');if(e)e.checked=scan};
     if(ADA_AI){if(IMPL.some(r=>idDrive(r.linkPenetapan)&&kosongAI(r).length)){sc();await imporLengkapi(tombolProg(btn))}
       if((IMPX.yatim||[]).length){sc();await imporYatim(tombolProg(btn))}}
@@ -1479,13 +1489,13 @@ async function imporOtomatis(btn){const K=$('#impKepri')&&$('#impKepri').checked
   catch(e){impLog(`⛔ ${esc(e.message||e)}`);if(!$('#impLog'))$('#impOut').insertAdjacentHTML('beforeend',`<p style="color:#c0392b">${esc(e.message||e)}</p>`)}
   finally{btn.disabled=false;btn.textContent='⚡ Impor Otomatis (1 klik)';if(b)b.disabled=false;const k=$('#impKepri');if(k&&!kepriLama().length)k.closest('label').remove()}}
 /* ---- 🧩 lengkapi berkas yang SUDAH ADA (dari daftar yang tampil): hanya mengisi kolom kosong / nama disamarkan, tidak pernah membuat berkas baru ---- */
-function perluLengkap(r){return !r._dihapus&&((r.nomorPenetapan&&fieldSamar(r).length)||(idDrive(r.linkPenetapan)&&kosongAI(r).length))}
+function perluLengkap(r){return !r._dihapus&&(perluSipp(r)||(idDrive(r.linkPenetapan)&&kosongAI(r).length>0))}
 function lengkapiTampil(){const L=DB.filter(r=>LIST_TAMPIL.includes(r.id)&&perluLengkap(r));if(!L.length)return toast('Semua berkas yang tampil sudah lengkap');
   IMP=null;IMPX=null;IMPL=[];IMP_LOG=[];
-  dlg(`<h3>🧩 Lengkapi ${L.length} berkas</h3><p class="hint" style="margin:0 0 8px">Berkas yang sedang tampil di daftar (gunakan pencarian/saringan, mis. “Batam”). Yang dilakukan: (1) nama yang disamarkan dicari di SIPP pengadilan, (2) kolom yang masih kosong diisi dari PDF penetapan dengan AI hemat. Hanya kolom kosong yang diisi — data yang sudah ada tidak ditimpa dan <b>tidak ada berkas baru</b>, jadi tidak ada data ganda.</p>
+  dlg(`<h3>🧩 Lengkapi ${L.length} berkas</h3><p class="hint" style="margin:0 0 8px">Berkas yang sedang tampil di daftar (gunakan pencarian/saringan, mis. “Batam”). Yang dilakukan: (1) data perkara diambil dari SIPP pengadilan — nama asli, tanggal lahir anak, dan yang meninggal dari amar resmi — dibaca AI hemat, (2) kolom yang masih kosong diisi dari PDF penetapan dengan AI hemat. Hanya kolom kosong yang diisi — data yang sudah ada tidak ditimpa dan <b>tidak ada berkas baru</b>, jadi tidak ada data ganda.</p>
     <button class="pri" onclick="lengkapiJalan(this)">⚡ Jalankan semua</button><div id="impLanjut"></div>`);imporLanjut(L)}
 async function lengkapiJalan(btn){btn.disabled=true;
-  try{if(IMPL.some(r=>r.nomorPenetapan&&fieldSamar(r).length))await imporSipp(tombolProg(btn));
+  try{if(IMPL.some(perluSipp))await imporSipp(tombolProg(btn));
     if(ADA_AI){if(IMPL.some(r=>idDrive(r.linkPenetapan)&&kosongAI(r).length))await imporLengkapi(tombolProg(btn))}
     else impLog('<b>AI Claude belum aktif</b> — langkah baca PDF dilewati (isi kunci di Pengaturan).');
     const sisa=IMPL.filter(r=>r.nomorPenetapan&&fieldSamar(r).length);
@@ -1635,7 +1645,7 @@ function renderSipp(){const B=DB.filter(r=>!r._dihapus&&r.nomorPenetapan),H=Obje
 async function jalankanSipp(ids){if(!GAS){toast('Cek SIPP hanya bisa di aplikasi online');return}if(SIPP.jalan)return;
   const semua=ids||DB.filter(r=>!r._dihapus&&r.nomorPenetapan).map(r=>r.id);SIPP.jalan=true;if(!ids)renderSipp();let sel=0;
   try{for(let i=0;i<semua.length;i+=4){const pk=semua.slice(i,i+4);const p=$('#sippProg');if(p&&!ids)p.textContent=`Memeriksa ${Math.min(i+4,semua.length)}/${semua.length}…`;
-      try{(await api('apiCekSipp',pk)).forEach(x=>{SIPP.hasil[x.id]=x})}catch(e){pk.forEach(id=>{const r=DB.find(x=>x.id===id)||{};SIPP.hasil[id]={id,nama:r.nama,nomor:r.nomorPenetapan,pengadilan:r.pengadilan,status:'gagal',pesan:e.message||String(e)}})}
+      try{(await sippServer(pk)).forEach(x=>{SIPP.hasil[x.id]=x})}catch(e){pk.forEach(id=>{const r=DB.find(x=>x.id===id)||{};SIPP.hasil[id]={id,nama:r.nama,nomor:r.nomorPenetapan,pengadilan:r.pengadilan,status:'gagal',pesan:e.message||String(e)}})}
       sel+=pk.length;if(!ids&&$('#sippBtn'))renderSipp()}}
   finally{SIPP.jalan=false}if(!ids)renderSipp();return semua.map(id=>SIPP.hasil[id])}
 async function cekSippBerkas(){if(!cur)return;clearTimeout(saveT);await flush();toast('Menghubungi SIPP '+(sippDom(cur)||'')+'…');
