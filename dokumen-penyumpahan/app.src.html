@@ -698,6 +698,11 @@ function tambahDataGithub(){if(!DB||!DB.length)return;const isi=[];
     if(ubah){isi.push(r);simpanRec(r)}})});
   if(isi.length){api('apiCatat','TAMBAH_DATA','','',`${isi.length} berkas Kepri dilengkapi (kolom kosong saja): `+isi.map(r=>r.nomorPenetapan).join(', ')).catch(()=>{});
     toast(`${isi.length} berkas Kepri dilengkapi kelurahan/kecamatan (kolom kosong saja, data lain tidak diubah)`);renderList()}}
+/* Data SIPP (nama wali, anak, tanggal) dari file Drive pribadi lewat server: hanya kolom kosong / nama disamarkan yang diisi */
+async function tambahDataSipp(){if(!GAS||!DB||!DB.length)return;let D;try{D=await api('apiImpor','tambahData')}catch(e){return}if(!D)return;const isi=[];
+  Object.keys(D).forEach(no=>{const kn=nomorKunci(no);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn&&perluSipp(r)).forEach(r=>{const h=isiDariPen(r,D[no],'');if(h.isi.length){isi.push(r.nomorPenetapan+': '+h.isi.join(', '));simpanRec(r)}})});
+  if(isi.length){api('apiCatat','ISI_DARI_SIPP','','',`${isi.length} berkas dilengkapi dari data SIPP (kolom kosong saja): `+isi.join('; ')).catch(()=>{});
+    toast(`${isi.length} berkas dilengkapi dari SIPP (nama wali/anak/tanggal — kolom kosong saja)`);renderList()}}
 async function boot(){
   if(!TOKEN){showLogin();return}
   try{const r=INIT||await api('apiInit');INIT=null;ME=r.user;USERS=r.users||[];SPS=r.sps||SPS;SET=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),r.settings||{});lengkapiPejabat();pakaiDB(r.berkas||[]);FOLDER=r.folderUrl||'';
@@ -705,7 +710,7 @@ async function boot(){
     if(r.ai!==undefined)ADA_AI=r.ai;else api('apiAdaAI').then(v=>ADA_AI=v).catch(()=>{});
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
   $('#login').hidden=true;document.body.classList.remove('locked');renderHeader();cur=null;renderList();renderMain();
-  setTimeout(()=>{try{tambahDataGithub()}catch(e){console.warn('Tambah data:',e)}},1500);
+  setTimeout(()=>{try{tambahDataGithub()}catch(e){console.warn('Tambah data:',e)}tambahDataSipp().catch(e=>console.warn('Tambah SIPP:',e))},1500);
   if(isSuper())setTimeout(()=>imporAntrean().catch(e=>console.warn('Antrean impor:',e)),3000);
   if(ME.wajibGanti)gantiPassword(true)}
 async function logout(){await api('apiLogout').catch(()=>{});TOKEN=null;ss('bhpTok',null);urlSesi(null);ME=null;DB=[];cur=null;showLogin('Anda sudah keluar.')}
