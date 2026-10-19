@@ -302,7 +302,7 @@ function umurTh(s,ref){const d=pd(s);if(!d)return null;const r=pd(ref)||new Date
 const BATAS_DEWASA=17;
 const MILITER=/\b(TNI|ABRI|tentara|prajurit|militer|angkatan\s+(darat|laut|udara)|kodim|korem|kodam|koramil|lanud|lantamal|yonif|kostrad|ASABRI|polri|kepolisian|polisi|bhayangkara|brimob|bintara|tamtama|perwira)\b/i;
 /* usia dihitung pada tanggal sumpah (atau hari ini bila belum dijadwalkan) */
-function anakDewasa(a,r){const u=umurTh(a&&a.tglLahir,(r&&r.tglSumpah)||today());return u!==null&&u>=BATAS_DEWASA}
+function anakDewasa(a,r){const u=umurTh(a&&a.tglLahir,(r&&r.tglSumpah)||(r&&(k=>k&&k.mulai)(kunjKepri(r)))||today());return u!==null&&u>=BATAS_DEWASA}
 function anakWali(r){if(r.jenis!=='Perwalian')return[];
   return (r.anak||[]).filter(a=>a.nama&&a.wali!=='Tidak'&&!anakDewasa(a,r))}
 function cekKelayakan(r){const tolak=[],info=[];if(!r||r.jenis!=='Perwalian')return{tolak,info};
@@ -350,7 +350,7 @@ const lurahNm=r=>{const k=String(r.kelurahan||'').trim().replace(/^(Lurah|Kelura
 /* tembusan kanwil mengikuti provinsi tempat tinggal (seperti format surat Padang → Kanwil Sumatera Barat); Sumatera Utara / tidak diketahui = Pengaturan */
 const kanwilDef=r=>{const p=provinsiBerkas(r);return PROV_DATA[p]&&p!=='Sumatera Utara'?'Kepala Kantor Wilayah Kementerian Hukum '+p:SET.kanwilTembusan};
 const kanwil=r=>r.kanwilTembusan||kanwilDef(r);
-const tembusan=(r,lurah=true)=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:10pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:10pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${lurahNm(r)}</li>`:''}</ol>`;
+const tembusan=(r,lurah=true)=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:10pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:10pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${(t=>t?esc(t.jab):lurahNm(r))(tujuanSurat(r))}</li>`:''}</ol>`;
 const penetapan=r=>`Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap`;
 const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'};
 /* kota/kabupaten dari teks wilayah: hanya segmen yang diawali Kota/Kabupaten — nama kelurahan seperti "Kota Matsum I" tidak terambil */
@@ -451,16 +451,16 @@ const DOCS={
       `Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt} dan biaya sebesar Rp 40.000,- (Empat Puluh Ribu Rupiah) untuk 4 (empat) lembar meterai Rp 10.000,-`],[PNBP,`<i>${BILLING}</i>`])+
 `<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r)}},
 
-  lurah:{nama:()=>'Surat Antar ke Lurah',sty:{line:360},fn:r=>{const d=derive(r),J=d.J,s=d.sapa,P=d.pihak,kp=kunjKepri(r),desa=/^Desa\s/i.test(String(r.kelurahan||'').trim()),pj=desa?'Kepala Desa':'Lurah',kt=desa?'Desa':'Kelurahan';
-    return kop()+head(r.nomorLurah,'Koordinasi Terkait Pengambilan<br>Sumpah dan Inventarisasi Harta',r)+yth(lurahNm(r),esc(r.alamatKelurahan||'Tempat'))+
-`<p>${penetapan(r)}, <b>${d.w?s+' ':''}${V(r.nama)}</b> telah ditunjuk secara resmi sebagai ${J} atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${P}"). Adapun ${J} tersebut merupakan warga yang berdomisili di lingkungan ${V(r.kelurahan)}.</p>`+
+  lurah:{nama:r=>(t=>t&&t.camat?'Surat Antar ke Camat':'Surat Antar ke Lurah')(r&&tujuanSurat(r)),sty:{line:360},fn:r=>{const d=derive(r),J=d.J,s=d.sapa,P=d.pihak,kp=kunjKepri(r),t=tujuanSurat(r)||{pj:'Lurah',kt:'Kelurahan',jab:'',di:'Tempat'},pj=t.pj,kt=t.kt;
+    return kop()+head(r.nomorLurah,'Koordinasi Terkait Pengambilan<br>Sumpah dan Inventarisasi Harta',r)+yth(t.jab?esc(t.jab):'Lurah '+V(''),t.di)+
+`<p>${penetapan(r)}, <b>${d.w?s+' ':''}${V(r.nama)}</b> telah ditunjuk secara resmi sebagai ${J} atas <b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${P}"). Adapun ${J} tersebut merupakan warga yang berdomisili di lingkungan ${V(r.kelurahan||(t.jab||'').replace(/^(Lurah|Camat|Kepala Desa)\s+/,(m,x)=>x==='Camat'?'Kecamatan ':'Kelurahan '))}.</p>`+
 (d.w?`<p>Berdasarkan amanat KUHPerdata, BHP bertugas sebagai Wali Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada Wali guna memastikan bahwa pengelolaan aset dan perlindungan hak Anak berjalan dengan baik serta melindungi Wali dari kemungkinan prasangka negatif dari pihak lain.</p>
 <p>Sebagai tahapan kelengkapan administrasi agar kedudukan perwalian tersebut sah digunakan (misalnya untuk urusan perbankan, pendidikan, atau kependudukan), diperlukan prosesi pengambilan sumpah. Proses ini merupakan standar pelayanan hukum perdata untuk meresmikan secara formal kewenangan ${s} ${V(r.nama)} dalam mewakili Anak berdasarkan Pasal 362 KUHPerdata.</p>`
 :`<p>Berdasarkan amanat Pasal 449 Kitab Undang-Undang Hukum Perdata (KUHPerdata), BHP bertugas sebagai Pengampu Pengawas dalam rangka mendampingi dan memberikan konsultasi hukum kepada Pengampu guna memastikan bahwa pengelolaan aset dan perlindungan hak Terampu berjalan dengan baik serta melindungi Pengampu dari kemungkinan prasangka negatif dari pihak lain.</p>
 <p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap pengampu diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar Pengampu dapat bertindak secara hukum mewakili Terampu untuk berbagai keperluan administratif.</p>`)+
 `<p>Dalam rangka mewujudkan pelayanan publik, Tim Balai Harta Peninggalan Medan akan melakukan kunjungan ${kp?'ke Provinsi Kepulauan Riau ':''}untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${J} pada:</p>`+
     jadwal(r,`Untuk konfirmasi ${kw(r)} pelaksanaan sumpah, mohon diinformasikan kepada ${J} untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor`)+
-(kp?`<p>Kunjungan ini merupakan wujud kehadiran negara melalui Balai Harta Peninggalan Medan untuk mendampingi dan memberikan konsultasi hukum kepada warga Bapak/Ibu yang menjalankan tugas sebagai ${J}, agar hak dan harta ${P} terlindungi dengan baik. Hari dan jam pelaksanaan dalam rentang tanggal tersebut dipilih oleh ${J} dan akan kami sampaikan kepada pihak ${kt}.</p>`:'')+`<p>Besar harapan kami agar Bapak/Ibu ${pj} berkenan membantu meneruskan surat ini kepada pihak ${J} sesuai data administrasi setempat. Sehubungan dengan hal tersebut, Tim Balai Harta Peninggalan Medan akan berkoordinasi dengan pihak ${kt} untuk memohon kesediaan Bapak/Ibu mendampingi tim dalam pelaksanaan kunjungan ke kediaman <b>${V(r.nama)}</b>.</p>
+(kp?`<p>Kunjungan ini merupakan wujud kehadiran negara melalui Balai Harta Peninggalan Medan untuk mendampingi dan memberikan konsultasi hukum kepada warga Bapak/Ibu ${pj} yang menjalankan tugas sebagai ${J}, agar hak dan harta ${P} terlindungi dengan baik. Hari dan jam pelaksanaan dalam rentang tanggal tersebut dipilih oleh ${J} dan akan kami sampaikan kepada pihak ${kt}.</p>`:'')+`<p>Besar harapan kami agar Bapak/Ibu ${pj} berkenan membantu meneruskan surat ini kepada pihak ${J} sesuai data administrasi setempat. Sehubungan dengan hal tersebut, Tim Balai Harta Peninggalan Medan akan berkoordinasi dengan pihak ${kt} untuk memohon kesediaan Bapak/Ibu mendampingi tim dalam pelaksanaan kunjungan ke kediaman <b>${V(r.nama)}</b>.</p>
 <p>Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kesediaan Bapak/Ibu, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,false)}},
 
   bap:{nama:()=>'BA Penghadapan (BAP)',sty:{line:276},fn:r=>{const d=derive(r),p=bapP(r),isi=baris(r.isiBap);
@@ -499,7 +499,7 @@ ${NP('II.',18,'<b>PASSIVA</b>',';margin-top:10pt',1)}<p class="ni" style="margin
     ttd2(esc((m.jabatan||'').toUpperCase()),d.J.toUpperCase(),V(m.nama),V(r.nama),V(m.nip),'',MTR)}}
 };
 /* kelompok dokumen: dua surat antar (bernomor SPS) + satu Dokumen Penyumpahan (tiap bagian halaman baru) */
-const GRUP={surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,keys:['surat'],tahap:1},lurah:{nama:()=>'Surat Antar ke Lurah',keys:['lurah'],tahap:1},
+const GRUP={surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,keys:['surat'],tahap:1},lurah:{nama:r=>DOCS.lurah.nama(r),keys:['lurah'],tahap:1},
   undangan:{nama:r=>`Undangan Sumpah ke ${derive(r).J}`,keys:['undangan'],tahap:1,ket:'Bila sumpah di kantor / Kanwil / virtual (Zoom)'},
   penyumpahan:{nama:()=>'Dokumen Penyumpahan',keys:['permohonan','bap','ba','harta'],tahap:2,ket:'Permohonan · BAP · BA Sumpah · BA Inventarisasi (tiap bagian halaman baru)'}};
 const TAHAP={1:'Sebelum sumpah',2:'Hari penyumpahan',3:'Setelah sumpah'};
@@ -732,7 +732,7 @@ function cekData(r){const w=[],t=today(),ref=r.tglSumpah||t;
   if(r.jenis==='Perwalian'){(r.anak||[]).filter(a=>a.nama).forEach(a=>{const u=umurPada(a.tglLahir,ref);if(u!==null&&u>=18)w.push(`Anak ${a.nama} sudah ${u} tahun — perwalian untuk anak di bawah umur`);if(!a.tglLahir)w.push(`Tanggal lahir anak ${a.nama} kosong`)});
     if(r.nama&&(r.anak||[]).some(a=>a.nama===r.nama))w.push('Nama wali sama dengan nama anak — periksa')}
   else{const u=umurPada(r.terampu&&r.terampu.tglLahir,ref);if(u!==null&&u<18)w.push('Terampu berumur '+u+' tahun — pengampuan untuk orang dewasa');if(r.terampu&&r.nama&&r.terampu.nama===r.nama)w.push('Nama pengampu sama dengan terampu — periksa')}
-  if(!r.kelurahan)w.push('Kelurahan tempat tinggal '+(r.jenis==='Perwalian'?'wali':'pengampu')+' kosong — Surat ke Lurah belum bisa dibuat');
+  if(!tujuanSurat(r))w.push('Kelurahan/kecamatan tempat tinggal '+(r.jenis==='Perwalian'?'wali':'pengampu')+' kosong — Surat ke Lurah/Camat belum bisa dibuat');
   return w}
 /* ---- pengecekan otomatis sebelum cetak: {lvl:'e'|'w', msg, tab, f} ---- */
 /* tanggal merah: tetap tiap tahun + daftar 2026 (perkiraan SKB, bisa diubah admin utama di menu Jadwal) */
@@ -764,8 +764,8 @@ function cekCetak(r){const L=[],E=(tab,f,msg)=>L.push({lvl:'e',tab,f,msg}),W=(ta
     if((r.jk==='Perempuan')!==n.perem)W('pihak','jk',`Jenis kelamin tidak cocok dengan NIK (NIK menunjukkan ${n.perem?'perempuan':'laki-laki'})`)}}
   if(!r.tglLahir)E('pihak','tglLahir','Tanggal lahir '+J+' kosong');else{const u=umurPada(r.tglLahir,ref);if(u!==null&&(u<18||u>100))E('pihak','tglLahir','Umur '+J+' '+u+' tahun — periksa tanggal lahir')}
   if(!r.alamat)E('pihak','alamat','Alamat '+J+' kosong');
-  if(!r.kelurahan)E('pihak','kelurahan','Kelurahan tempat tinggal '+J+' kosong — Surat ke Lurah belum bisa dibuat');
-  if(!String(r.alamatKelurahan||'').trim())W('pihak','alamatKelurahan','Alamat kantor kelurahan kosong — Surat ke Lurah hanya bertuliskan "di Tempat" (pakai tombol 📍 Google Maps di tab '+(w?'Wali':'Pengampu')+')');
+  {const tj=tujuanSurat(r);if(!tj)E('pihak','kelurahan','Kelurahan/kecamatan tempat tinggal '+J+' kosong — Surat ke Lurah/Camat belum bisa dibuat');
+  else if(tj.di==='Tempat')W('pihak','alamatKelurahan',`Alamat kantor ${tj.camat?'camat':'kelurahan'} belum diketahui — surat hanya bertuliskan "di Tempat" (pakai tombol 📍 Google Maps di tab ${w?'Wali':'Pengampu'})`)}
   if(!r.pekerjaan)W('pihak','pekerjaan','Pekerjaan '+J+' kosong');
   // 3. objek
   if(w){const A=(r.anak||[]).filter(a=>a.nama);if(!A.length)E('objek','anak.0.nama','Belum ada data anak');
@@ -846,7 +846,7 @@ const NOMOR_SEMUA=['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa','nom
    di surat tampil "……" kuning dan bisa dilengkapi di Google Docs. Dokumen hari H (BAP, BA) tetap wajib lengkap. */
 const SURAT_ANTAR=['surat','lurah','undangan','desa'];
 function kurang(k,r){const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'').trim())m.push(l)};
-  if(SURAT_ANTAR.includes(k)){need(r.nama,'Nama '+d.J);if(k==='lurah'||k==='desa'){need(r.kelurahan,'Kelurahan tempat tinggal '+d.J);need(r.alamatKelurahan,'Alamat kantor kelurahan')}else need(r.alamat,'Alamat '+d.J);
+  if(SURAT_ANTAR.includes(k)){need(r.nama,'Nama '+d.J);if(!tujuanSurat(r))m.push('Kelurahan/kecamatan tempat tinggal '+d.J);else if(k!=='lurah'&&k!=='desa')need(r.alamat,'Alamat '+d.J);
     if(k==='undangan')need(r.tglSumpah,'Tanggal sumpah');need(r.tanggalSurat,'Tanggal surat');return m}
   need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');need(r.nama,'Nama '+d.J);need(r.alamat,'Alamat');need(r.kelurahan,'Kelurahan');need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu.nama,'Nama terampu');
@@ -864,7 +864,7 @@ function kosongSurat(k,r){if(!SURAT_ANTAR.includes(k))return[];const d=derive(r)
 const kosongGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kosongSurat(k,r)))];
 function infoNomor(k,r){const d=derive(r);return{kurang:kurang(k,r),
   perihal:{surat:`Pengambilan Sumpah ${d.J} dan Inventarisasi Harta`,lurah:'Koordinasi Terkait Pengambilan Sumpah dan Inventarisasi Harta',undangan:`Undangan Pengambilan Sumpah ${d.J} an. ${r.nama}`,desa:`Undangan Menghadiri Pengambilan Sumpah ${d.J} an. ${r.nama}`,bap:`Berita Acara Penghadapan ${d.jenisTxt} an. ${r.nama}`,ba:`Berita Acara Penyumpahan ${d.jenisTxt} an. ${r.nama}`,harta:`Berita Acara Pencatatan Harta ${d.jenisTxt} an. ${r.nama}`}[k],
-  tujuan:k==='lurah'||k==='desa'?'Lurah '+r.kelurahan:r.nama,tanggal:['surat','lurah','undangan','desa'].includes(k)?r.tanggalSurat:r.tglSumpah}}
+  tujuan:k==='lurah'||k==='desa'?(t=>t?t.jab:'Lurah '+r.kelurahan)(tujuanSurat(r)):r.nama,tanggal:['surat','lurah','undangan','desa'].includes(k)?r.tanggalSurat:r.tglSumpah}}
 async function ambilNomor(k,btn){const inf=infoNomor(k,cur);if(inf.kurang.length){alert('Lengkapi dulu: '+inf.kurang.join(', '));return}const ks=kosongSurat(k,cur);
   if(!confirm(`Ambil nomor SPS (${cur.jenis==='Perwalian'?'AH.06.02':'AH.06.03'}, tanggal hari ini ${tgl(today())}${k==='surat'||k==='lurah'?' — tanggal surat ikut disesuaikan':''}) untuk "${DOCS[k].nama(cur)}"?\nPerihal: ${inf.perihal}${ks.length?`\n\nMasih kosong (tampil "……" di surat, bisa dilengkapi nanti): ${ks.join(', ')}`:''}\n\nNomor yang sudah diambil tidak bisa dibatalkan dari aplikasi ini.`))return;
   btn.disabled=true;btn.textContent='Menghubungi SPS…';clearTimeout(saveT);await flush();
@@ -921,7 +921,9 @@ function provinsiBerkas(r){const mk='P|'+r.kelurahan+'|'+r.alamat+'|'+r.kotaPerm
 function provinsiHitung(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
   const pv=s.match(/\b(?:Provinsi|Prov\.)\s*([A-Za-z .]+?)(?=\s*(?:,|;|$|\d))/i);if(pv){const n=pv[1].trim().toLowerCase().replace(/[^a-z]/g,'');const f=Object.keys(PROV_DATA).find(k=>k.toLowerCase().replace(/[^a-z]/g,'')===n||(n==='sumut'&&k==='Sumatera Utara')||(n==='sumbar'&&k==='Sumatera Barat')||(n==='kepri'&&k==='Kepulauan Riau')||(n==='nad'&&k==='Aceh'));return f||pv[1].trim().replace(/\b\w/g,c=>c.toUpperCase())}
   const kk=lokasiBerkas(r).kota,key=n=>String(n).toLowerCase().replace(/[^a-z]/g,'');
-  if(kk!=='Lokasi belum diisi'){const kab=/^Kabupaten /.test(kk),n=key(kk.replace(/^(Kota|Kabupaten)\s+/,''));const f=PROV_IDX[(kab?'k:':'c:')+n]||PROV_IDX[(kab?'c:':'k:')+n]||PROV_IDX['p:'+n];if(f)return f}
+  if(kk!=='Lokasi belum diisi'){const kab=/^Kabupaten /.test(kk),n=key(kk.replace(/^(Kota|Kabupaten)\s+/,''));const f=PROV_IDX[(kab?'k:':'c:')+n]||PROV_IDX[(kab?'c:':'k:')+n]||PROV_IDX['p:'+n];if(f)return f;
+    /* tinggal di kota/kabupaten di luar wilayah kerja (mis. Jakarta Utara) — jangan ikut provinsi pengadilannya */
+    if(kotaKab(r.kelurahan)||kotaKab(r.alamat))return'Luar wilayah kerja BHP Medan'}
   const pn=String(r.pengadilan||'').match(/Pengadilan\s+(?:Negeri|Agama|Mahkamah\s+Syar'?iyah|Mahkamah\s+Syariah)\s+(.+)$/i)||String(r.pengadilan||'').match(/Mahkamah\s+Syar'?iyah\s+(.+)$/i);
   if(pn){const n=key(pn[1].replace(/\bKelas\b.*$/i,''));const f=PROV_IDX['c:'+n]||PROV_IDX['p:'+n]||PROV_IDX['k:'+n];if(f)return f}
   return'Provinsi belum diketahui'}
@@ -987,7 +989,7 @@ function renderMain(){
   if(tab==='pihak')h+=F('nama',`Nama ${d.J}`)+F('nik','NIK')+F('jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
     F('status',`Hubungan: ${d.pihak} adalah … pemohon (mis. Adik Kandung, Ibu Kandung, Anak Kandung)`)+F('hp','No. HP (surat permohonan)')+F('alamat','Alamat lengkap','area')+
-    lebar(F('kelurahan',`Kelurahan, Kecamatan, Kota tempat tinggal ${d.J} — wajib, tujuan Surat ke Lurah (terisi otomatis dari alamat)`).replace('<input ','<input data-kel '),'kelurahan')+lebar(F('alamatKelurahan','Nama kantor lurah/kepala desa + alamat — wajib untuk Surat ke Lurah'),'alamatKelurahan')+`<div class="full lurah-box" id="lurahBox">${lurahBoxHtml()}</div>`+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
+    lebar(F('kelurahan',`Kelurahan, Kecamatan, Kota tempat tinggal ${d.J} — wajib, tujuan Surat ke Lurah (terisi otomatis dari alamat)`).replace('<input ','<input data-kel '),'kelurahan')+lebar(F('alamatKelurahan','Nama kantor lurah/camat + alamat (kosong = otomatis dari data kantor bila ada)'),'alamatKelurahan')+`<div class="full lurah-box" id="lurahBox">${lurahBoxHtml()}</div>`+F('kotaPermohonan',`Kota di surat permohonan/pernyataan (kosong = ${kota(cur)})`);
   if(tab==='objek'){if(w){const refU=cur.tglSumpah||today();h+=`<div class="full"><p class="hint">Usia anak dihitung otomatis pada ${cur.tglSumpah?'tanggal sumpah ('+tgl(cur.tglSumpah)+')':'hari ini (tanggal sumpah belum diisi)'}. Anak yang sudah <b>${BATAS_DEWASA} tahun ke atas</b> otomatis tidak diwalikan dan tidak dicantumkan di dokumen.</p>${cur.anak.map((a,i)=>{const u=umurTh(a.tglLahir,refU),dw=anakDewasa(a,cur);return `<div class="child grid${dw?' dewasa':''}">${F(`anak.${i}.nama`,`Nama Anak ${i+1}`)}${F(`anak.${i}.jk`,'Jenis Kelamin','select',['Laki-laki','Perempuan'])}${F(`anak.${i}.tglLahir`,'Tanggal Lahir','date')}<div><label>Usia (otomatis)</label><input disabled value="${u===null?'—':u+' Tahun'}"></div>${dw?`<div><label>Diwalikan?</label><input disabled value="Tidak — sudah ${u} tahun"></div>`:F(`anak.${i}.wali`,'Diwalikan?','select',['Ya','Tidak'])}<div><label>&nbsp;</label><button onclick="cur.anak.splice(${i},1);save();renderMain()">Hapus</button></div>${dw?`<span class="badge-dw">${BATAS_DEWASA}+ · tidak diwalikan otomatis</span>`:''}</div>`}).join('')}
     <button onclick="cur.anak.push({nama:'',jk:'Laki-laki',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
     else h+=F('terampu.nama','Nama Terampu')+F('terampu.jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('terampu.tglLahir','Tanggal Lahir','date')+
@@ -1212,7 +1214,7 @@ function recDariBaris(H,v,w){const idx={};H.forEach((h,i)=>{const k=normH(h);if(
     nomorSurat:g('Nomor_Surat_'+J),nomorLurah:g('Nomor_Surat_Lurah'),tanggalSurat:tglISO(g('Tanggal_Surat'))||today(),
     tglSumpah:tglISO(g('Hari_Tanggal_Sumpah','Tanggal_Sumpah')),waktu:g('Waktu_Sumpah')||r.waktu,tempat:g('Tempat_Sumpah'),
     nomorBAP:g('Nomor_BAP_'+J),nomorBA:g('Nomor_BA_Sumpah_'+J),nomorBAHarta:g('Nomor_BA_Harta_'+J,'Nomor_BA_Harta_Terampu'),
-    isiBap:g('Isi_BAP'),hartaTetap:g('Daftar_Tanah'),hartaTunai:g('Daftar_Rekening')});
+    isiBap:g('Isi_BAP'),hartaTetap:g('Daftar_Tanah'),hartaTunai:g('Daftar_Rekening'),alamatKelurahan:g('Alamat_Kelurahan')});
   if(w){const a=[];for(let i=1;i<=10;i++){const n=g('Nama_Anak_'+i)||(i===1?g('Nama_Anak'):'');if(!n)continue;
       a.push({nama:n.toUpperCase(),jk:/perem|wanita/i.test(g('Jenis_Kelamin_Anak_'+i)||(i===1?g('Jenis_Kelamin_Anak'):''))?'Perempuan':'Laki-laki',tglLahir:tglISO(g('Tanggal_Lahir_Anak_'+i)||(i===1?g('Tanggal_Lahir_Anak'):'')),wali:'Ya'})}
     if(!a.length)baris(g('Daftar_Seluruh_Anak').replace(/;/g,'\n')).forEach(x=>{const m=x.match(/^[\-\d.\s]*([^,]+),\s*(laki-laki|perempuan)?[^0-9]*(.*)$/i);if(m)a.push({nama:m[1].trim().toUpperCase(),jk:/perem/i.test(m[2]||'')?'Perempuan':'Laki-laki',tglLahir:tglISO(m[3]),wali:'Ya'})});
@@ -1358,14 +1360,18 @@ async function msSimpan(btn){const L=MS.file.filter(x=>x.pilih&&x.rec&&!x.disimp
   api('apiCatat','IMPOR_MASSAL','','',`${n} berkas diimpor dari PDF (${MS.judul})`).catch(()=>{});renderList();msTampil();
   toast(`${n} berkas disimpan`+(lewat?`, ${lewat} dilewati (sudah ada)`:''));if(gagal.length)alert('Sebagian gagal disimpan: '+[...new Set(gagal)].join('; ')+'\nKlik Simpan lagi — yang sudah masuk tidak dobel.')}
 /* ---------------- surat massal Kepulauan Riau: Surat Antar ke Wali/Pengampu + ke Lurah semua berkas Kepri dalam satu ZIP ---------------- */
-const bersihNama=t=>String(t||'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()||'-';
-const berkasKepri=()=>DB.filter(r=>!r._dihapus&&isKepri(r)).sort((a,b)=>String(lokasiBerkas(a).kota).localeCompare(String(lokasiBerkas(b).kota))||String(a.nama||'').localeCompare(String(b.nama||'')));
+const bersihNama=t=>String(t||'').replace(/[\u2018\u2019`]/g,"'").replace(/[\u201c\u201d]/g,'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()||'-';
+const kotaBerkas=r=>((kotaKantor(r)||{}).kota)||lokasiBerkas(r).kota;
+const berkasKepri=()=>DB.filter(r=>!r._dihapus&&isKepri(r)).sort((a,b)=>String(kotaBerkas(a)).localeCompare(String(kotaBerkas(b)))||String(a.nama||'').localeCompare(String(b.nama||'')));
 const kurangKepri=r=>[...new Set(['surat','lurah'].flatMap(k=>kurang(k,r)))];
-function dlgKepri(){const L=berkasKepri(),k=KEPRI(),blm=L.filter(r=>kurangKepri(r).length).length;
+/* berkas yang tidak perlu disurati: ditolak (kelayakan) atau perwalian tanpa anak di bawah umur pada hari pertama kunjungan */
+function alasanLewat(r){const t=cekKelayakan(r).tolak;if(t.length)return'ditolak: '+t.map(x=>x.split('. Alasan')[0]).join('; ');
+  if(r.jenis==='Perwalian'&&(r.anak||[]).some(a=>a&&a.nama)&&!anakWali(r).length)return`semua anak sudah ${BATAS_DEWASA} tahun ke atas pada tanggal kunjungan`;return''}
+function dlgKepri(){const L=berkasKepri(),k=KEPRI(),blm=L.filter(r=>!alasanLewat(r)&&kurangKepri(r).length).length,lw=L.filter(r=>alasanLewat(r)).length;
   const cb=(id,t,on)=>`<label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="${id}" style="width:auto;margin:0" ${on?'checked':''}> ${t}</label>`;
   dlg(`<h3>📦 Surat Massal Kepulauan Riau</h3><p class="hint">Surat Antar ke Wali/Pengampu dan Surat Antar ke Lurah untuk semua berkas Provinsi Kepulauan Riau dibuat sekaligus (DOCX, format sama dengan unduhan satuan) dalam satu file ZIP, dikelompokkan per kota/kabupaten, beserta <b>Daftar Pengiriman.csv</b>.<br>Jadwal di surat: <b>${k?esc(rentangHari(k.mulai,k.sampai)+', '+rentangTgl(k.mulai,k.sampai)):'belum diatur'}</b> — hari & jam dipilih sendiri oleh wali/pengampu${isSuper()?' (ubah di ⚙ Pengaturan)':''}.</p>
-  ${L.length?`<div class="card" style="padding:10px"><b>${L.length} berkas</b> · ${L.length-blm} lengkap${blm?` · <span style="color:#b45309">${blm} belum lengkap</span>`:''}
-    <div style="max-height:34vh;overflow:auto;margin-top:6px;font-size:13px">${L.map((r,i)=>{const ku=kurangKepri(r);return`<div>${i+1}. <a onclick="dlgClose();pick('${r.id}')" style="cursor:pointer"><b>${esc(r.nama||'(tanpa nama)')}</b></a> — ${esc(lokasiBerkas(r).kota)}${ku.length?` <span style="color:#b45309">· kurang: ${esc(ku.join(', '))}</span>`:' <span style="color:var(--ok)">✔</span>'}</div>`}).join('')}</div></div>`:'<p>Belum ada berkas Provinsi Kepulauan Riau.</p>'}
+  ${L.length?`<div class="card" style="padding:10px"><b>${L.length} berkas</b> · ${L.length-blm-lw} siap${blm?` · <span style="color:#b45309">${blm} belum lengkap</span>`:''}${lw?` · <span class="hint">${lw} tidak perlu disurati</span>`:''}
+    <div style="max-height:34vh;overflow:auto;margin-top:6px;font-size:13px">${L.map((r,i)=>{const ku=kurangKepri(r),al=alasanLewat(r),tj=tujuanSurat(r);return`<div>${i+1}. <a onclick="dlgClose();pick('${r.id}')" style="cursor:pointer"><b>${esc(r.nama||'(tanpa nama)')}</b></a> — ${tj?esc(tj.jab):esc(lokasiBerkas(r).kota)}${al?` <span class="hint">· dilewati (${esc(al)})</span>`:ku.length?` <span style="color:#b45309">· kurang: ${esc(ku.join(', '))}</span>`:` <span style="color:var(--ok)">✔${tj&&tj.di==='Tempat'?' <span class="hint">(alamat kantor belum diketahui → "di Tempat")</span>':''}</span>`}</div>`}).join('')}</div></div>`:'<p>Belum ada berkas Provinsi Kepulauan Riau.</p>'}
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13.5px">${cb('kpS','Surat Antar ke Wali/Pengampu',1)}${cb('kpL','Surat Antar ke Lurah',1)}${cb('kpLewat','Lewati surat yang isian utamanya belum lengkap (dicatat di daftar pengiriman)',1)}
     ${GAS?cb('kpSps','Ambil nomor SPS untuk surat yang belum bernomor <small class="hint">(nomor yang sudah diambil tidak bisa dibatalkan)</small>',0):''}</div>
   <div id="kpOut" style="margin-top:8px"></div>
@@ -1375,19 +1381,20 @@ async function unduhKepri(btn){const L=berkasKepri(),K=[$('#kpS').checked&&'sura
   const perluNo=sps?L.reduce((a,r)=>a+K.filter(k=>!r[NOMOR[k]]&&!(lewat&&kurang(k,r).length)).length,0):0;
   if(perluNo&&!confirm(`Ambil ${perluNo} nomor SPS sekarang (tanggal hari ini)?\nNomor yang sudah diambil tidak bisa dibatalkan.`))return;
   btn.disabled=true;const out=$('#kpOut'),t0=Date.now();if(cur){clearTimeout(saveT);await flush()}
-  try{await loadJs(JSZIP);const zip=new JSZip(),dipakai=new Set(),H=[['No','Nama','Jenis','Kota/Kabupaten','Alamat','Kelurahan','Kantor Kelurahan','Nomor Surat ke Wali/Pengampu','Nomor Surat ke Lurah','Keterangan']],rows=[];let n=0,lw=0;
-    for(let i=0;i<L.length;i++){const r=L[i],kt=bersihNama(lokasiBerkas(r).kota),ket=[];btn.textContent=`Membuat ${i+1}/${L.length}…`;
-      for(const k of K){const nm=DOCS[k].nama(r),ku=kurang(k,r);if(lewat&&ku.length){ket.push(`${nm} dilewati (kurang: ${ku.join(', ')})`);lw++;continue}
+  try{await loadJs(JSZIP);const zip=new JSZip(),dipakai=new Set(),H=[['No','Nama','Jenis','Nomor Penetapan','Kota/Kabupaten','Alamat','Kelurahan/Kecamatan','Surat ke','Alamat Kantor Tujuan','Nomor Surat ke Wali/Pengampu','Nomor Surat ke Lurah/Camat','Keterangan']],rows=[];let n=0,lw=0;
+    for(let i=0;i<L.length;i++){const r=L[i],kt=bersihNama(kotaBerkas(r)),ket=[];btn.textContent=`Membuat ${i+1}/${L.length}…`;
+      const al=alasanLewat(r),tj=tujuanSurat(r);if(al){ket.push('Tidak disurati — '+al);lw+=K.length}
+      for(const k of al?[]:K){const nm=DOCS[k].nama(r),ku=kurang(k,r);if(lewat&&ku.length){ket.push(`${nm} dilewati (kurang: ${ku.join(', ')})`);lw++;continue}
         if(sps&&!r[NOMOR[k]])try{const x=await api('apiAmbilNomor',r.id,NOMOR[k],infoNomor(k,r));r[NOMOR[k]]=x.nomor;r._versi=x.versi;if(x.tanggalSurat)r.tanggalSurat=x.tanggalSurat}catch(e){ket.push(`Nomor SPS ${nm} gagal: ${e.message||e}`)}
         try{const blob=await buatDocx([k],r),dasar=`${kt}/${bersihNama(r.nama||'tanpa nama')} - ${nm}`;let f=dasar,c=2;while(dipakai.has(f))f=`${dasar} (${c++})`;dipakai.add(f);zip.file(f+'.docx',blob);n++}
         catch(e){ket.push(`${nm} gagal dibuat: ${e.message||e}`)}}
-      rows.push([i+1,r.nama,r.jenis,kt,alamatLengkap(r),r.kelurahan,r.alamatKelurahan,r.nomorSurat,r.nomorLurah,ket.join('; ')]);
+      rows.push([i+1,r.nama,r.jenis,r.nomorPenetapan,kt,r.alamat,r.kelurahan,tj?tj.jab:'',tj?tj.di.replace(/<br>/g,', ').replace(/&amp;/g,'&'):'',r.nomorSurat,r.nomorLurah,ket.join('; ')]);
       if(i%4===3)await new Promise(ok=>setTimeout(ok))}
     const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';zip.file('Daftar Pengiriman.csv','﻿'+H.concat(rows).map(b=>b.map(q).join(',')).join('\r\n'));
     btn.textContent='Menyusun ZIP…';const blob=await zip.generateAsync({type:'blob',compression:'STORE'}),fn=`Surat Antar Kepulauan Riau - ${today()}.zip`;
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),6e4);
     api('apiCatat','UNDUH_DOCX','','',`ZIP ${n} surat antar Kepulauan Riau (${L.length} berkas)`).catch(()=>{});if(sps)renderList();if(cur)renderMain();
-    out.innerHTML=`<p>✅ <b>${n} surat</b> dari ${L.length} berkas diunduh: <b>${esc(fn)}</b> (${((Date.now()-t0)/1000).toFixed(1)} detik).${lw?` <span style="color:#b45309">${lw} surat dilewati karena belum lengkap — lihat kolom Keterangan di Daftar Pengiriman.csv.</span>`:''}</p>`;btn.textContent='📦 Unduh lagi'}
+    out.innerHTML=`<p>✅ <b>${n} surat</b> dari ${L.length} berkas diunduh: <b>${esc(fn)}</b> (${((Date.now()-t0)/1000).toFixed(1)} detik).${lw?` <span style="color:#b45309">${lw} surat dilewati (belum lengkap / tidak perlu disurati) — lihat kolom Keterangan di Daftar Pengiriman.csv.</span>`:''}</p>`;btn.textContent='📦 Unduh lagi'}
   catch(e){out.innerHTML=`<p style="color:#c0392b">Gagal: ${esc(e.message||e)}</p>`;btn.textContent='📦 Unduh ZIP'}
   btn.disabled=false}
 async function screenshot(sel,nama){const el=document.querySelector(sel);if(!el)return;toast('Membuat screenshot…');
@@ -1780,6 +1787,40 @@ function kembaliM(){if(cur){clearTimeout(saveT);flush()}cur=null;goBerkas();scro
   if(buka&&!document.querySelector('#main .back-m')){const b=document.createElement('button');b.className='back-m';b.textContent='← Daftar Berkas';b.onclick=kembaliM;$('#main').prepend(b)}
   return r}})();
 
+/* ===== Alamat kantor lurah & camat (otomatis bila kolom "kantor kelurahan" kosong) =====
+   Kota Batam: direktori kantor pemerintahan batam.link (2022) + situs resmi kecamatan kec*.batam.go.id; Tanjungpinang: tanjungpinangkota.go.id.
+   Kantor lurah yang alamatnya tidak diketahui sengaja tidak dicantumkan → surat dialihkan ke Kantor Camat. Format lurah: [alamat, kode pos, kecamatan] */
+const KANTOR={
+  'kota batam':{kota:'Kota Batam',
+    camat:{'Batam Kota':['Jl. Raja Ali Kelana No. 1'],'Batu Aji':['Jl. Sri Beni No. 1, Batu Aji'],'Batu Ampar':['Jl. Kuda Laut No. 1, Batu Ampar'],'Belakang Padang':['Jl. Raya Sekanak, Kelurahan Sekanak Raya'],
+      'Bengkong':['Jl. Raya Bengkong Batam Centre No. 1'],'Bulang':['Jl. Temenggung Abdul Jamal No. 1, Kelurahan Bulang Lintang','29471'],'Galang':['Jl. Batin Limat No. 24, Kelurahan Sembulang'],
+      'Lubuk Baja':['Jl. Bunga Raya No. 03, Baloi Indah','29444'],'Nongsa':['Jl. Hasanuddin, Kabil'],'Sagulung':['Jl. Putri Hijau No. 1, Sagulung'],'Sekupang':['Jl. R. Soeprapto No. 1, Sungai Harapan'],'Sei Beduk':['Jl. Raya Kampung Bagan, Tanjung Piayu']},
+    lurah:{'Sukajadi':['Jl. Bukit Indah Raya III','29462','Batam Kota'],'Taman Baloi':['Perumahan Orchid Park','29464','Batam Kota'],'Belian':['Perumahan Cendana Tahap V','29464','Batam Kota'],
+      'Teluk Tering':['Jl. Dang Merdu','29461','Batam Kota'],'Sungai Panas':['Jl. Laksamana Bintan','29456','Batam Kota'],'Kabil':['Jl. Patimura Teluk Nipah No. 100','29467','Nongsa'],
+      'Batu Besar':['Jl. Hang Jebat KM. 1','','Nongsa'],'Buliang':['Komp. Pemda 2, Jl. Bunguran Timur','29424','Batu Aji'],'Bukit Tempayan':['Jl. Pendidikan, Bukit Tempayan','','Batu Aji'],
+      'Duriangkang':['Jl. Pancur Baru, Tanjung Piayu','','Sei Beduk'],'Tanjung Piayu':['Jl. Jenderal S. Parman','29437','Sei Beduk'],'Muka Kuning':['Perum Dam, Jl. Ahmad Yani, Muka Kuning','29433','Sei Beduk'],
+      'Sungai Binti':['Jl. Utama Sei Binti','29434','Sagulung'],'Sungai Langkai':['Perumahan Griya Permata','29434','Sagulung'],'Sagulung Kota':['Komp. Puri Brata, Kav. Lama','29439','Sagulung'],
+      'Sungai Lekop':['Jl. Dapur 12','29434','Sagulung'],'Sungai Pelunggut':['Jl. Raya Dapur 12','29439','Sagulung'],'Tembesi':['Jl. Letjen Suprapto','','Sagulung'],
+      'Tanjung Riau':['Jl. KH Ahmad Dahlan','','Sekupang'],'Tiban Baru':['Perumahan Tiban Koperasi Blok K No. 85','29425','Sekupang'],'Tiban Indah':['Jl. Gajah Mada No. 01','29426','Sekupang'],
+      'Patam Lestari':['Jl. Tiban 2','29427','Sekupang'],'Tanjung Pinggir':['Jl. RE Martadinata No. 3','29428','Sekupang'],'Tanjung Sengkuang':['Jl. Tamalatea No. 1','29432','Batu Ampar'],
+      'Kampung Seraya':['Jl. Yos Sudarso','29454','Batu Ampar'],'Bengkong Laut':['Jl. Bengkong Laut','29458','Bengkong'],'Kampung Pelita':['Jl. Sriwijaya No. 20','29443','Lubuk Baja'],'Lubuk Baja Kota':['Jl. Utama No. 1','29444','Lubuk Baja']}},
+  'kota tanjungpinang':{kota:'Kota Tanjungpinang',camat:{'Tanjungpinang Timur':['Jl. D.I. Panjaitan'],'Bukit Bestari':['Jl. Aisyah Sulaiman, Kelurahan Dompak','29124']},lurah:{}}};
+const kunciW=t=>String(t||'').toLowerCase().replace(/\b(sei|sui)\b/g,'sungai').replace(/\btj\.?\s*/g,'tanjung ').replace(/\bbatu basar\b/,'batu besar').replace(/\bsungai beduk\b/,'sei beduk').replace(/[^a-z]/g,'');
+const cariKantor=(m,nama)=>{const k=kunciW(nama);return Object.keys(m||{}).find(x=>kunciW(x)===k)};
+function kotaKantor(r){const kk=kotaKab(r.kelurahan)||kotaKab(r.alamat);if(kk)return KANTOR[(kk.jenis+' '+kk.nama).toLowerCase().replace(/\s+/g,' ')];
+  const pn=kunciW(r.pengadilan);return Object.values(KANTOR).find(K=>pn.includes(kunciW(K.kota.replace(/^(Kota|Kabupaten)\s+/,''))))}
+/* tujuan Surat Antar ke Lurah: isian petugas → kantor lurah (data) → kantor camat (bila kantor lurah tidak diketahui / hanya tahu kecamatan) */
+function tujuanSurat(r){const w=wilayahLurah(r),K=kotaKantor(r),bersih=x=>String(x||'').replace(/^(Kelurahan|Desa|Kecamatan)\s+/i,'').trim();
+  const isi=String(r.alamatKelurahan||'').trim(),desa=/^Desa\b/i.test(w.kel),kel=bersih(w.kel),kL=K&&kel&&cariKantor(K.lurah,kel),L=kL&&K.lurah[kL];
+  const kec=(L&&L[2])||bersih(w.kec),kC=K&&kec&&cariKantor(K.camat,kec),C=kC&&K.camat[kC],kota=(K&&K.kota)||w.kota||'';
+  const di=(nama,a,pos,kc)=>`${esc(nama)}<br>${esc(a)}${kc?', Kecamatan '+esc(kc):''}${kota?'<br>'+esc(kota)+(pos?' '+esc(pos):''):''}`;
+  const lurah=x=>({camat:false,desa,pj:desa?'Kepala Desa':'Lurah',kt:desa?'Desa':'Kelurahan',jab:L?`Lurah ${kL}, Kecamatan ${kC||kec}${kota?', '+kota:''}`:r.kelurahan?lurahNm(r).replace(/<[^>]+>/g,''):`${desa?'Kepala Desa':'Lurah'} ${kel}${kec?', Kecamatan '+kec:''}${kota?', '+kota:''}`,...x});
+  const camat=x=>({camat:true,pj:'Camat',kt:'Kecamatan',jab:`Camat ${kC||kec}${kota?', '+kota:''}`,...x});
+  if(isi)return /^(Kantor\s+)?(Camat|Kecamatan)\b/i.test(isi)&&kec?camat({di:esc(isi),sumber:'isian'}):(kel||!kec)?lurah({di:esc(isi),sumber:'isian'}):camat({di:esc(isi),sumber:'isian'});
+  if(L)return lurah({di:di(`Kantor ${desa?'Kepala Desa':'Lurah'} ${kL}`,L[0],L[1],kC||kec),sumber:'data'});
+  if(kec)return camat({di:C?di('Kantor Camat '+kC,C[0],C[1]):'Tempat',sumber:C?'data':''});
+  if(kel)return lurah({di:'Tempat',sumber:''});
+  return null}
 /* ===== Kantor lurah: link Google Maps dari ketikan (gratis, tanpa AI) ===== */
 function wilayahLurah(r){const t=[r.kelurahan,r.alamat].filter(Boolean).join(', ');const m=re=>((t.match(re)||[])[0]||'').trim();
   return{kel:m(/\b(?:Kelurahan|Kel\.|Desa)\s*[^,;]+/i).replace(/^Kel\.\s*/i,'Kelurahan '),kec:m(/\b(?:Kecamatan|Kec\.)\s*[^,;]+/i).replace(/^Kec\.\s*/i,'Kecamatan '),kota:(kk=>kk?kk.jenis+' '+kk.nama:'')(kotaKab(r.kelurahan)||kotaKab(r.alamat))}}
@@ -1788,7 +1829,8 @@ function namaKantorLurah(r){const w=wilayahLurah(r);if(!w.kel)return'';const n=w
 function petaLurahUrl(r){const w=wilayahLurah(r),ketik=String(r.alamatKelurahan||'').trim();
   const q=ketik?[ketik,!new RegExp(w.kec.replace(/^Kecamatan\s+/i,'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i').test(ketik)?w.kec:'',!/\b(Kota|Kabupaten|Kab\.)\b/i.test(ketik)?w.kota:''].filter(Boolean).join(', '):[namaKantorLurah(r),w.kec,w.kota].filter(Boolean).join(', ');
   return q?'https://www.google.com/maps/search/'+encodeURIComponent(q):''}
-function lurahBoxHtml(){if(!cur)return'';const u=petaLurahUrl(cur),nk=namaKantorLurah(cur),isi=String(cur.alamatKelurahan||'').trim();
+function lurahBoxHtml(){if(!cur)return'';const tj=tujuanSurat(cur);return(tj?`<div class="row" style="margin-bottom:6px">📮 Surat dikirim ke: <b>${esc(tj.jab)}</b> — <span>${tj.di.replace(/<br>/g,', ')}</span>${tj.sumber==='data'?' <span class="hint">(alamat otomatis dari data kantor; ketik di kolom atas bila ingin mengganti)</span>':''}</div>`:'')+lurahBoxLama()}
+function lurahBoxLama(){const u=petaLurahUrl(cur),nk=namaKantorLurah(cur),isi=String(cur.alamatKelurahan||'').trim();
   if(!u)return'<span class="hint">Isi kolom Kelurahan, Kecamatan, Kota di atas agar link Google Maps muncul.</span>';
   return`<div class="row"><a class="btn" href="${esc(u)}" target="_blank" rel="noopener">📍 Cari ${esc(isi?'ketikan ini':nk||'kantor lurah')} di Google Maps ↗</a>${!isi&&nk?`<button class="btn" type="button" onclick="tulisNamaKantor()">✍️ Tulis “${esc(nk)}”</button>`:''}<span class="hint">Salin alamat dari Google Maps, tulis nama kantornya dulu lalu alamatnya.</span></div>`}
 function segarkanLurahBox(){const b=$('#lurahBox');if(b)b.innerHTML=lurahBoxHtml()}
