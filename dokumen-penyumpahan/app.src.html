@@ -2159,10 +2159,20 @@ const kunciW=t=>String(t||'').toLowerCase().replace(/\b(sei|sui)\b/g,'sungai').r
 const cariKantor=(m,nama)=>{const k=kunciW(nama);return Object.keys(m||{}).find(x=>kunciW(x)===k)};
 function kotaKantor(r){const kk=kotaKab(r.kelurahan)||kotaKab(r.alamat);if(kk)return KANTOR[(kk.jenis+' '+kk.nama).toLowerCase().replace(/\s+/g,' ')];
   const pn=kunciW(r.pengadilan);return Object.values(KANTOR).find(K=>pn.includes(kunciW(K.kota.replace(/^(Kota|Kabupaten)\s+/,''))))}
+function bersihIsianKantor(t){return String(t||'').replace(/Titik\s*Lokasi\s*(Maps|Google\s*Maps)?\s*:?\s*[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{2,3}/gi,'').replace(/\b[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/g,'')
+  .replace(/Kode\s*Pos\s*:?\s*/gi,'').replace(/\s{2,}/g,' ').replace(/\s+([,.])/g,'$1').trim()}
+function isianBentrok(isi,kel,kec){const a=kunciW(isi),f=re=>{const m=isi.match(re);return m?kunciW(m[1]):''};
+  const ik=f(/\b(?:Kec\.?|Kecamatan)\s*([A-Za-z .]+?)(?=[,;]|\s+(?:Kota|Kab|Kel|Prov|Kepulauan)|$)/i),il=f(/\b(?:Kel\.?|Kelurahan)\s*([A-Za-z .]+?)(?=[,;]|\s+(?:Kota|Kab|Kec|Prov|Kepulauan)|$)/i);
+  return !!(kec&&ik&&ik!==kunciW(kec))||!!(kel&&il&&il!==kunciW(kel)&&!a.includes(kunciW(kel)))}
 /* tujuan Surat Antar ke Lurah: isian petugas → kantor lurah (data) → kantor camat (bila kantor lurah tidak diketahui / hanya tahu kecamatan) */
 function tujuanSurat(r){const w=wilayahLurah(r),K=kotaKantor(r),bersih=x=>String(x||'').replace(/^(Kelurahan|Desa|Kecamatan)\s+/i,'').trim();
-  const isi=String(r.alamatKelurahan||'').trim(),desa=/^Desa\b/i.test(w.kel),kel=bersih(w.kel),kL=K&&kel&&cariKantor(K.lurah,kel),L=kL&&K.lurah[kL];
-  const kec=(L&&L[2])||bersih(w.kec),kC=K&&kec&&cariKantor(K.camat,kec),C=kC&&K.camat[kC],kota=(K&&K.kota)||w.kota||'';
+  let isi=rapiAlamat(bersihIsianKantor(r.alamatKelurahan));const desa=/^Desa\b/i.test(w.kel);let kel=bersih(w.kel);
+  /* "Kelurahan Sagulung" = nama kecamatan (di Batam tidak ada kelurahan yang namanya sama dengan kecamatan) → kirim ke Camat */
+  let kecN=bersih(w.kec);if(K&&kel&&!cariKantor(K.lurah,kel)&&cariKantor(K.camat,kel)){if(!kecN)kecN=kel;kel=''}
+  const kL=K&&kel&&cariKantor(K.lurah,kel),L=kL&&K.lurah[kL];
+  const kec=(L&&L[2])||kecN;
+  /* isian kantor yang menyebut kelurahan/kecamatan lain (salah salin dari Maps) diabaikan */
+  if(isi&&isKepri(r)&&isianBentrok(isi,kel,kec))isi='',kC=K&&kec&&cariKantor(K.camat,kec),C=kC&&K.camat[kC],kota=(K&&K.kota)||w.kota||'';
   const di=(nama,a,pos,kc)=>`${esc(nama)}<br>${esc(a)}${kc?', Kecamatan '+esc(kc):''}${kota?'<br>'+esc(kota)+(pos?' '+esc(pos):''):''}`;
   const lurah=x=>({camat:false,desa,pj:desa?'Kepala Desa':'Lurah',kt:desa?'Desa':'Kelurahan',jab:L?`Lurah ${kL}, Kecamatan ${kC||kec}${kota?', '+kota:''}`:r.kelurahan?lurahNm(r).replace(/<[^>]+>/g,''):`${desa?'Kepala Desa':'Lurah'} ${kel}${kec?', Kecamatan '+kec:''}${kota?', '+kota:''}`,...x});
   const camat=x=>({camat:true,pj:'Camat',kt:'Kecamatan',jab:`Camat ${kC||kec}${kota?', '+kota:''}`,...x});
