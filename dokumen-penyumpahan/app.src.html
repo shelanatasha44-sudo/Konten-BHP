@@ -1064,7 +1064,8 @@ let STY={};
    bertahap kalau dengan itu semuanya muat; (2) kalau tetap tidak muat, spasi di halaman yang kosong itu direnggangkan
    supaya halaman terisi wajar, sedangkan tanda tangan tetap pindah bersama kalimat penutupnya (tidak pernah sendirian).
    Ruang tanda tangan/meterai tidak pernah dikecilkan. */
-const FIT_LV=[{line:1,gap:1},{line:.94,gap:.7},{line:.9,gap:.5},{line:.86,gap:.3}];
+/* tingkat rapat — pertama hanya baris titik-titik isian (BA Harta) 24→20 pt, baru teks; paling rapat 0,9× spasi / 0,5× jarak */
+const FIT_LV=[{line:1,gap:1,dot:24},{line:1,gap:1,dot:20},{line:.94,gap:.7,dot:20},{line:.9,gap:.5,dot:20}];
 /* tingkat renggang (seragam satu dokumen): spasi baris 1,15 → paling renggang ±1,35, jarak antarparagraf ikut melebar —
    lebih dari itu dokumen tampak seperti spasi ganda */
 const FIT_RENGGANG=[{line:1.06,gap:1.25},{line:1.12,gap:1.5},{line:1.18,gap:1.75}];
@@ -1077,6 +1078,7 @@ function terapkanFit(box,sty,f){const lh0=(sty.line||360)/240*1.15;box.style.lin
     const lh=parseFloat(s.lineHeight);if(lh&&lh<5)s.lineHeight=String(lh*1.15*(ttd?1:f.line*lx));else if(ttd)s.lineHeight=String(lh0);else if(lx!==1)s.lineHeight=String(lh0*f.line*lx);
     const fg=e.tagName==='TABLE'&&e.classList.contains('ttd')?gapTtd(f.gap):f.gap;for(const m of['marginTop','marginBottom'])if(ptOf(s[m]))s[m]=ptOf(s[m])*fg+'pt';
     if(e.dataset.gx)s.marginTop=(ptOf(s.marginTop)+parseFloat(e.dataset.gx))+'pt'});
+  box.querySelectorAll('p[data-line]').forEach(e=>{e.style.lineHeight=e.style.minHeight=(f.dot||24)+'pt'});
   /* DOCX: daftar bernomor tanpa jarak bawah (CSS pratinjau memberi 8pt) */
   box.querySelectorAll(':scope>ol,:scope>ul').forEach(e=>e.style.marginBottom='0');
   box.querySelectorAll('td').forEach(td=>{if(!td.style.lineHeight)td.style.lineHeight=String((sty.tline||276)/240*1.15)})}
@@ -1101,24 +1103,25 @@ function simulasi(U,cap=HAL_PT){let hal=0,pakai=0;const kosong=[],halOf=[];
     i=j+1}
   return{hal:hal+1,kosong,halOf}}
 function ukurDok(html,sty,f){const b=document.createElement('div');b.className='paper';b.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;min-height:0;box-shadow:none;transform:none';
-  b.innerHTML=html;terapkanFit(b,sty,f);document.body.appendChild(b);try{const U=unitDok(b);return{U,...simulasi(U),aman:simulasi(U,HAL_PT*RAPAT_AMAN).hal,styled:b.innerHTML}}finally{b.remove()}}
+  b.innerHTML=html;terapkanFit(b,sty,f);document.body.appendChild(b);try{const U=unitDok(b),pes=simulasi(U,HAL_PT*RAPAT_AMAN);return{U,...simulasi(U),aman:pes.hal,pes,styled:b.innerHTML}}finally{b.remove()}}
 /* → {f, html (untuk DOCX: atribut data-gx/data-lx), tampil (untuk pratinjau)} */
 function fitDok(k,r){const D=DOCS[k],sty=D.sty||{},html=D.fn(r);
-  try{const kosongMaks=x=>Math.max(0,...x.kosong.map(k=>k.pt)),R=FIT_LV.map(f=>ukurDok(html,sty,f)),R0=R[0];
+  try{const R=FIT_LV.map(f=>ukurDok(html,sty,f)),R0=R[0];
     /* 1) jumlah halaman yang PASTI tercapai (dihitung dengan halaman 10% lebih pendek dari perkiraan). Dirapatkan seperlunya saja:
           untuk hemat satu halaman, atau bila perkiraan normal pas-pasan (bisa meluber dan tanda tangan terdorong ke halaman baru) */
-    const pasti=Math.min(...R.map(x=>x.aman));let i=R.findIndex(x=>x.aman===pasti),f,S;
-    if(i>0){f=FIT_LV[i];S=R[i]}
-    else{
-      /* 2) selain itu: spasi SERAGAM satu dokumen, direnggangkan bertahap sampai tidak ada halaman yang banyak kosong sebelum
-         halaman berikutnya (mis. karena penutup + tanda tangan pindah halaman). Jumlah halaman tidak boleh bertambah. */
-      f=FIT_LV[0];S=R0;
-      if(kosongMaks(R0)>HAL_PT*KOSONG_MAKS)for(const g of FIT_RENGGANG){const T=ukurDok(html,sty,g);if(T.hal>R0.hal||T.aman>R0.aman)break;
-        if(kosongMaks(T)<kosongMaks(S)){f=g;S=T}if(kosongMaks(T)<=HAL_PT*KOSONG_MAKS)break}}
-    if(kosongMaks(S)<=HAL_PT*KOSONG_MAKS)return{f,html,tampil:S.styled};
+    const pasti=Math.min(...R.map(x=>x.aman));let i=R.findIndex(x=>x.aman===pasti),f=FIT_LV[i],S=R[i];
+    /* pas-pasan dan tidak bisa dipastikan dengan merapatkan: rencanakan untuk kemungkinan terburuk (penutup + tanda tangan pindah
+       halaman) supaya halaman sebelumnya tetap terisi — hasilnya rapi baik muat maupun meluber */
+    const ragu=i===0&&R0.aman>R0.hal,P=x=>ragu?x.pes:x,cap=ragu?HAL_PT*RAPAT_AMAN:HAL_PT;
+    const kosongMaks=x=>Math.max(0,...P(x).kosong.map(k=>k.pt)),batas=cap*KOSONG_MAKS;
+    /* 2) selain dirapatkan: spasi SERAGAM satu dokumen, direnggangkan bertahap sampai tidak ada halaman yang banyak kosong sebelum
+          halaman berikutnya. Jumlah halaman tidak boleh bertambah. */
+    if(i===0&&kosongMaks(R0)>batas)for(const g of FIT_RENGGANG){const T=ukurDok(html,sty,g);if(P(T).hal>P(R0).hal||T.aman>R0.aman)break;
+      if(kosongMaks(T)<kosongMaks(S)){f=g;S=T}if(kosongMaks(T)<=batas)break}
+    if(kosongMaks(S)<=batas)return{f,html,tampil:S.styled};
     /* 3) sisa ruang kosong yang masih besar: tambah jarak antarparagraf di halaman itu (maks. 12 pt per jarak) */
-    const d=new DOMParser().parseFromString(`<div>${html}</div>`,'text/html').body.firstChild,E=[...d.children];
-    S.kosong.filter(x=>x.pt>HAL_PT*KOSONG_MAKS).forEach(x=>{const idx=S.halOf.map((h,n)=>h===x.hal&&n>0&&S.halOf[n-1]===x.hal?n:-1).filter(n=>n>=0);
+    const Q=P(S),d=new DOMParser().parseFromString(`<div>${html}</div>`,'text/html').body.firstChild,E=[...d.children];
+    Q.kosong.filter(x=>x.pt>batas).forEach(x=>{const idx=Q.halOf.map((h,n)=>h===x.hal&&n>0&&Q.halOf[n-1]===x.hal?n:-1).filter(n=>n>=0);
       if(idx.length){const gx=Math.min(12,x.pt*.9/idx.length);idx.forEach(n=>E[n].dataset.gx=gx.toFixed(1))}});
     const out=d.innerHTML;return{f,html:out,tampil:ukurDok(out,sty,f).styled}}
   catch(e){console.warn('Tata letak otomatis dilewati:',e);return{f:FIT_LV[0],html,tampil:html}}}
@@ -1153,7 +1156,7 @@ function para(el,o={}){
   const r=(o.prefix?o.prefix.replace('<w:r><w:t>','<w:r>'+rPr(base)+'<w:t>'):'')+runs(tk);
   const ind=left||first||right||o.hang?`<w:ind w:left="${left}" w:right="${right}"${o.hang?` w:hanging="${o.hang}"`:` w:firstLine="${first}"`}/>`:'';
   const ln=el.dataset&&el.dataset.line;
-  return `<w:p><w:pPr>${o.keep?'<w:keepNext/><w:keepLines/>':(o.utuh||tk.some(k=>k.br))?'<w:keepLines/>':''}<w:widowControl/>${ln?'<w:pBdr><w:bottom w:val="dotted" w:sz="6" w:space="1" w:color="000000"/><w:between w:val="dotted" w:sz="6" w:space="1" w:color="000000"/></w:pBdr>':''}<w:spacing w:before="${tw(ptOf(s.marginTop)*FIT.gap+(parseFloat(el.dataset&&el.dataset.gx)||0))}" w:after="${o.after??tw(ptOf(s.marginBottom)*FIT.gap)}" ${ln?'w:line="480" w:lineRule="exact"':`w:line="${line}" w:lineRule="auto"`}/>${ind}<w:jc w:val="${jc}"/></w:pPr>${r}</w:p>`}
+  return `<w:p><w:pPr>${o.keep?'<w:keepNext/><w:keepLines/>':(o.utuh||tk.some(k=>k.br))?'<w:keepLines/>':''}<w:widowControl/>${ln?'<w:pBdr><w:bottom w:val="dotted" w:sz="6" w:space="1" w:color="000000"/><w:between w:val="dotted" w:sz="6" w:space="1" w:color="000000"/></w:pBdr>':''}<w:spacing w:before="${tw(ptOf(s.marginTop)*FIT.gap+(parseFloat(el.dataset&&el.dataset.gx)||0))}" w:after="${o.after??tw(ptOf(s.marginBottom)*FIT.gap)}" ${ln?`w:line="${tw(FIT.dot||24)}" w:lineRule="exact"`:`w:line="${line}" w:lineRule="auto"`}/>${ind}<w:jc w:val="${jc}"/></w:pPr>${r}</w:p>`}
 const spacer=(pt,keep)=>`<w:p><w:pPr>${keep?'<w:keepNext/>':''}<w:spacing w:before="0" w:after="0" w:line="${Math.max(20,tw(pt))}" w:lineRule="exact"/></w:pPr><w:r><w:rPr><w:sz w:val="2"/></w:rPr><w:t></w:t></w:r></w:p>`;
 const noBorders='<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders>';
 function kopXml(){
