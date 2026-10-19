@@ -348,7 +348,10 @@ const kanwil=r=>r.kanwilTembusan||SET.kanwilTembusan;
 const tembusan=(r,lurah=true)=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:10pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:10pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${lurahNm(r)}</li>`:''}</ol>`;
 const penetapan=r=>`Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap`;
 const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'};
-const kota=r=>r.kotaPermohonan||((r.kelurahan||'').match(/(?:Kota|Kabupaten|Kab\.)\s+([^,]+)/i)||[])[1]||'Medan';
+/* kota/kabupaten dari teks wilayah: hanya segmen yang diawali Kota/Kabupaten — nama kelurahan seperti "Kota Matsum I" tidak terambil */
+function kotaKab(t){const seg=String(t||'').split(/[,;]/).map(x=>x.trim()).filter(x=>/^(Kota|Kabupaten|Kab\.)\s+\S/i.test(x));const m=seg.length&&seg[seg.length-1].match(/^(Kota|Kabupaten|Kab\.)\s+(.+)$/i);
+  return m?{jenis:/^kab/i.test(m[1])?'Kabupaten':'Kota',nama:m[2].replace(/\s+/g,' ').replace(/[.\s]+$/,'').trim()}:null}
+const kota=r=>r.kotaPermohonan||(kotaKab(r.kelurahan)||kotaKab(r.alamat)||{}).nama||'Medan';
 /* alamat lengkap pemohon (wali/pengampu): alamat + kelurahan/kecamatan/kota bila belum tercantum */
 function alamatLengkap(r){const a=String(r.alamat||'').trim().replace(/[\s.,;]+$/,''),k=String(r.kelurahan||'').trim().replace(/[\s.,;]+$/,'');if(!a||!k)return a||k;
   const kn=k.match(/Kel(?:urahan)?\.?\s+([^,]+)/i);return kn&&a.toLowerCase().includes(kn[1].trim().toLowerCase())?a:a+', '+k}
@@ -565,8 +568,9 @@ async function bapDariPenetapan(file,onTry){const b64=await new Promise(ok=>{con
   throw err||new Error('AI tidak menghasilkan isi BAP')}
 async function susunBapAI(inp){const f=inp.files[0];inp.value='';if(!f)return;if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan AI dari penetapan?'))return;
   toast('Claude sedang membaca penetapan & menyusun BAP… (±30–60 detik)');const lb=inp.closest('label');if(lb)lb.style.opacity=.5;
-  try{const t=await bapDariPenetapan(f,i=>{if(i)toast('Menyusun ulang BAP (percobaan '+(i+1)+' dari 3)…')});const r=cur;r.isiBap=t;save();renderMain();toast('Isi BAP disusun dari penetapan — periksa sebelum mencetak');api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Isi BAP disusun AI dari '+f.name).catch(()=>{})}
-  catch(e){console.warn(e);const r=cur;r.isiBap=buatBap(r);save();renderMain();toast('AI sedang tidak dapat dihubungi — isi BAP disusun otomatis dari data berkas. Coba tombol AI lagi nanti bila ingin versi AI.')}
+  const asal=cur;
+  try{const t=await bapDariPenetapan(f,i=>{if(i)toast('Menyusun ulang BAP (percobaan '+(i+1)+' dari 3)…')});const r=asal;r.isiBap=t;simpanRec(r);if(cur===r)renderMain();toast('Isi BAP disusun dari penetapan — periksa sebelum mencetak');api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Isi BAP disusun AI dari '+f.name).catch(()=>{})}
+  catch(e){console.warn(e);const r=asal;r.isiBap=buatBap(r);simpanRec(r);if(cur===r)renderMain();toast('AI sedang tidak dapat dihubungi — isi BAP disusun otomatis dari data berkas. Coba tombol AI lagi nanti bila ingin versi AI.')}
   finally{if(lb)lb.style.opacity=1}}
 function susunBap(){if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan otomatis dari data berkas?'))return;cur.isiBap=buatBap(cur);save();renderMain();toast('Isi BAP disusun ulang')}
 function bapList(t,r){const c=[0,0,0];return baris(t).map(x=>{const m=x.match(/^(-{1,2})\s*(.*)$/),lv=m?m[1].length:0,tx=m?m[2]:x;c[lv]++;for(let i=lv+1;i<3;i++)c[i]=0;const tx2=lv?tx.charAt(0).toUpperCase()+tx.slice(1):tx;
@@ -632,8 +636,10 @@ function dlg(h,modal){const d=$('#gDlg');$('#gBody').innerHTML=h;d.dataset.lock=
 function dlgClose(){$('#gDlg').close()}
 
 /* ---------------- simpan otomatis ke server (dengan cek bentrok) ---------------- */
-let saveT=null,saving=false,again=false;
+let saveT=null,saving=false,again=false,listT=null;
 function save(){if(!cur)return;setStat('✎ Belum tersimpan…');clearTimeout(saveT);saveT=setTimeout(flush,900)}
+/* simpan berkas mana pun: yang sedang dibuka lewat save(), selain itu langsung ke server */
+function simpanRec(r){if(r===cur)return save();api('apiSimpan',JSON.parse(JSON.stringify(r)),r._versi).then(x=>{if(x&&!x.konflik)r._versi=x.versi;else if(x&&x.konflik)toast('Berkas '+(r.nama||'')+' diubah orang lain — isi BAP AI tidak tersimpan, ulangi')}).catch(e=>toast(e.message))}
 async function flush(){if(!cur)return;if(saving){again=true;return}saving=true;const r0=cur;
   try{const r=await api('apiSimpan',JSON.parse(JSON.stringify(r0)),r0._versi);
     if(r.konflik){alert(`Berkas ini baru saja diubah oleh ${r.oleh}. Data terbaru dimuat ulang; ulangi perubahan Anda bila perlu.`);
@@ -857,8 +863,10 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setT
 /* ===== Pemisahan daftar berkas: lokasi (kota/kabupaten pemohon) & tanggal pembuatan berkas ===== */
 const FIL=(()=>{try{return Object.assign({grp:'prov',prov:'',lok:'',bln:''},JSON.parse(localStorage.getItem('bhp_fil')||'{}'))}catch(e){return{grp:'prov',prov:'',lok:'',bln:''}}})();
 function setFil(k,v){FIL[k]=v;try{localStorage.setItem('bhp_fil',JSON.stringify(FIL))}catch(e){}renderList()}
-function lokasiBerkas(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
-  const k=s.match(/\b(Kota|Kabupaten|Kab\.)\s+([A-Za-z .'-]+?)(?=\s*(?:,|;|$|\bProv))/i),kc=s.match(/\b(?:Kecamatan|Kec\.)\s*([A-Za-z .'-]+?)(?=\s*(?:,|;|$))/i);
+const LOK_MEMO=new Map();
+function lokasiBerkas(r){const mk='L|'+r.kelurahan+'|'+r.alamat+'|'+r.kotaPermohonan;if(LOK_MEMO.has(mk))return LOK_MEMO.get(mk);const v=lokasiHitung(r);if(LOK_MEMO.size>3000)LOK_MEMO.clear();LOK_MEMO.set(mk,v);return v}
+function lokasiHitung(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
+  const kk=kotaKab(r.kelurahan)||kotaKab(r.alamat),k=kk&&[0,kk.jenis,kk.nama.replace(/\s*\bProv(insi)?\b.*$/i,'')],kc=s.match(/\b(?:Kecamatan|Kec\.)\s*([A-Za-z .'-]+?)(?=\s*(?:,|;|$))/i);
   const kota=k?(/^kab/i.test(k[1])?'Kabupaten ':'Kota ')+k[2].trim().replace(/\b\w/g,c=>c.toUpperCase()):String(r.kotaPermohonan||'').trim()?'Kota '+String(r.kotaPermohonan).trim():'';
   return{kota:kota||'Lokasi belum diisi',kec:kc?'Kec. '+kc[1].trim().replace(/\b\w/g,c=>c.toUpperCase())+(kota?', '+kota:''):''}}
 /* kota/kabupaten → provinsi (wilayah kerja BHP Medan) */
@@ -868,7 +876,8 @@ const PROV_DATA={'Sumatera Utara':'k:Asahan|k:Batu Bara|k:Dairi|k:Deli Serdang|k
   'Riau':'k:Bengkalis|k:Indragiri Hilir|k:Indragiri Hulu|k:Kampar|k:Kepulauan Meranti|k:Kuantan Singingi|k:Pelalawan|k:Rokan Hilir|k:Rokan Hulu|k:Siak|c:Dumai|c:Pekanbaru|p:Tembilahan|p:Rengat|p:Bangkinang|p:Teluk Kuantan|p:Pangkalan Kerinci|p:Bagan Siapiapi|p:Rokan Hilir|p:Pasir Pangaraian|p:Siak Sri Indrapura|p:Selat Panjang',
   'Kepulauan Riau':'k:Bintan|k:Karimun|k:Kepulauan Anambas|k:Lingga|k:Natuna|c:Batam|c:Tanjungpinang|c:Tanjung Pinang|p:Tanjung Balai Karimun|p:Ranai|p:Tarempa|p:Daik'};
 const PROV_IDX=(()=>{const m={};for(const[pv,l]of Object.entries(PROV_DATA))l.split('|').forEach(x=>{const[t,n]=x.split(':');m[t+':'+n.toLowerCase().replace(/[^a-z]/g,'')]=pv});return m})();
-function provinsiBerkas(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
+function provinsiBerkas(r){const mk='P|'+r.kelurahan+'|'+r.alamat+'|'+r.kotaPermohonan+'|'+r.pengadilan;if(LOK_MEMO.has(mk))return LOK_MEMO.get(mk);const v=provinsiHitung(r);LOK_MEMO.set(mk,v);return v}
+function provinsiHitung(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join(', ');
   const pv=s.match(/\b(?:Provinsi|Prov\.)\s*([A-Za-z .]+?)(?=\s*(?:,|;|$|\d))/i);if(pv){const n=pv[1].trim().toLowerCase().replace(/[^a-z]/g,'');const f=Object.keys(PROV_DATA).find(k=>k.toLowerCase().replace(/[^a-z]/g,'')===n||(n==='sumut'&&k==='Sumatera Utara')||(n==='sumbar'&&k==='Sumatera Barat')||(n==='kepri'&&k==='Kepulauan Riau')||(n==='nad'&&k==='Aceh'));return f||pv[1].trim().replace(/\b\w/g,c=>c.toUpperCase())}
   const kk=lokasiBerkas(r).kota,key=n=>String(n).toLowerCase().replace(/[^a-z]/g,'');
   if(kk!=='Lokasi belum diisi'){const kab=/^Kabupaten /.test(kk),n=key(kk.replace(/^(Kota|Kabupaten)\s+/,''));const f=PROV_IDX[(kab?'k:':'c:')+n]||PROV_IDX[(kab?'c:':'k:')+n]||PROV_IDX['p:'+n];if(f)return f}
@@ -913,7 +922,7 @@ function get(p){return p.split('.').reduce((o,k)=>o?.[k],cur)??''}
 function setv(p,v){if(cur._dihapus){toast('Berkas terhapus tidak bisa diubah');return}const ks=p.split('.');let o=cur;ks.slice(0,-1).forEach(k=>o=o[k]);o[ks.at(-1)]=v;
   if(p==='alamat'&&!cur._kelManual){const m=v.match(/Kelurahan[^,]*,\s*Kecamatan[^,]*(,[^,]*){0,2}/i);if(m){cur.kelurahan=m[0];const i=document.querySelector('[data-kel]');if(i)i.value=cur.kelurahan}}
   if(p==='kelurahan')cur._kelManual=true;
-  save();renderList();if(p==='jenis')renderMain()}
+  save();clearTimeout(listT);listT=setTimeout(renderList,300);if(p==='jenis')renderMain()}
 function renderMain(){
   if(WZ.on)return wizard(WZ.step);
   if(!cur){const n=DB.filter(r=>!r._dihapus),pg=n.filter(r=>r.jenis!=='Perwalian').length;
@@ -1491,7 +1500,7 @@ function kembaliM(){if(cur){clearTimeout(saveT);flush()}cur=null;goBerkas();scro
 
 /* ===== Kantor lurah: link Google Maps dari ketikan (gratis, tanpa AI) ===== */
 function wilayahLurah(r){const t=[r.kelurahan,r.alamat].filter(Boolean).join(', ');const m=re=>((t.match(re)||[])[0]||'').trim();
-  return{kel:m(/\b(?:Kelurahan|Kel\.|Desa)\s*[^,;]+/i).replace(/^Kel\.\s*/i,'Kelurahan '),kec:m(/\b(?:Kecamatan|Kec\.)\s*[^,;]+/i).replace(/^Kec\.\s*/i,'Kecamatan '),kota:m(/\b(?:Kota|Kabupaten|Kab\.)\s+[^,;]+/i).replace(/^Kab\.\s*/i,'Kabupaten ')}}
+  return{kel:m(/\b(?:Kelurahan|Kel\.|Desa)\s*[^,;]+/i).replace(/^Kel\.\s*/i,'Kelurahan '),kec:m(/\b(?:Kecamatan|Kec\.)\s*[^,;]+/i).replace(/^Kec\.\s*/i,'Kecamatan '),kota:(kk=>kk?kk.jenis+' '+kk.nama:'')(kotaKab(r.kelurahan)||kotaKab(r.alamat))}}
 /* nama kantor baku dari kolom kelurahan: Kelurahan X → Kantor Lurah X; Desa X → Kantor Kepala Desa X */
 function namaKantorLurah(r){const w=wilayahLurah(r);if(!w.kel)return'';const n=w.kel.replace(/^(Kelurahan|Desa)\s+/i,'').trim();return(/^Desa/i.test(w.kel)?'Kantor Kepala Desa ':'Kantor Lurah ')+n}
 function petaLurahUrl(r){const w=wilayahLurah(r),ketik=String(r.alamatKelurahan||'').trim();
