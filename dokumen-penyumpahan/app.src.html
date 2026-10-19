@@ -356,9 +356,10 @@ const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}
 /* kota/kabupaten dari teks wilayah: hanya segmen yang diawali Kota/Kabupaten — nama kelurahan seperti "Kota Matsum I" tidak terambil */
 function kotaKab(t){const seg=String(t||'').split(/[,;]/).map(x=>x.trim()).filter(x=>/^(Kota|Kabupaten|Kab\.)\s+\S/i.test(x));const m=seg.length&&seg[seg.length-1].match(/^(Kota|Kabupaten|Kab\.)\s+(.+)$/i);
   return m?{jenis:/^kab/i.test(m[1])?'Kabupaten':'Kota',nama:m[2].replace(/\s+/g,' ').replace(/[.\s]+$/,'').trim()}:null}
-const kota=r=>r.kotaPermohonan||(kotaKab(r.kelurahan)||kotaKab(r.alamat)||{}).nama||'Medan';
+/* kota surat permohonan: isian petugas → kota/kabupaten tempat tinggal → Kepulauan Riau: kota data kantor / Batam → Medan */
+const kota=r=>r.kotaPermohonan||(kotaKab(r.kelurahan)||kotaKab(r.alamat)||{}).nama||(isKepri(r)?((kotaKantor(r)||{}).kota||'Batam').replace(/^(Kota|Kabupaten)\s+/,''):'Medan');
 /* alamat lengkap pemohon (wali/pengampu): alamat + kelurahan/kecamatan/kota bila belum tercantum */
-function alamatLengkap(r){const a=String(r.alamat||'').trim().replace(/[\s.,;]+$/,''),k=String(r.kelurahan||'').trim().replace(/[\s.,;]+$/,'');if(!a||!k)return a||k;
+function alamatLengkap(r){const a=String(r.alamat||'').trim().replace(/[\s.,;]+$/,''),k=String(r.kelurahan||'').trim().replace(/[\s.,;]+$/,'');if(!a||!k)return a||k;if(a.toLowerCase().includes(k.toLowerCase()))return a;
   const kn=k.match(/Kel(?:urahan)?\.?\s+([^,]+)/i);return kn&&a.toLowerCase().includes(kn[1].trim().toLowerCase())?a:a+', '+k}
 const tempatSumpah=r=>String(r.tempat||'').trim()||alamatLengkap(r)||'Kediaman '+(r.nama||'');
 const tempatTgl=r=>`${esc(kota(r))},&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${blnThn(r.tglSumpah)}`;
@@ -846,7 +847,7 @@ const NOMOR_SEMUA=['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa','nom
    di surat tampil "……" kuning dan bisa dilengkapi di Google Docs. Dokumen hari H (BAP, BA) tetap wajib lengkap. */
 const SURAT_ANTAR=['surat','lurah','undangan','desa'];
 function kurang(k,r){const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'').trim())m.push(l)};
-  if(SURAT_ANTAR.includes(k)){need(r.nama,'Nama '+d.J);if(!tujuanSurat(r))m.push('Kelurahan/kecamatan tempat tinggal '+d.J);else if(k!=='lurah'&&k!=='desa')need(r.alamat,'Alamat '+d.J);
+  if(SURAT_ANTAR.includes(k)){need(r.nama,'Nama '+d.J);if(!tujuanSurat(r))m.push('Kelurahan/kecamatan tempat tinggal '+d.J);else if(k!=='lurah'&&k!=='desa')need(alamatEf(r),'Alamat '+d.J);
     if(k==='undangan')need(r.tglSumpah,'Tanggal sumpah');need(r.tanggalSurat,'Tanggal surat');return m}
   need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');need(r.nama,'Nama '+d.J);need(r.alamat,'Alamat');need(r.kelurahan,'Kelurahan');need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu.nama,'Nama terampu');
@@ -1064,7 +1065,14 @@ function simulasi(U){let hal=0,pakai=0;const kosong=[],halOf=[];
 function ukurDok(html,sty,f){const b=document.createElement('div');b.className='paper';b.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;min-height:0;box-shadow:none;transform:none';
   b.innerHTML=html;terapkanFit(b,sty,f);document.body.appendChild(b);try{const U=unitDok(b);return{U,...simulasi(U),styled:b.innerHTML}}finally{b.remove()}}
 /* → {f, html (untuk DOCX: atribut data-gx/data-lx), tampil (untuk pratinjau)} */
-function fitDok(k,r){const D=DOCS[k],sty=D.sty||{},html=D.fn(r);
+/* Kepulauan Riau: alamat yang kosong / hanya nama kota diganti kelurahan-kecamatan-kota tempat tinggal (data berkas tidak diubah) */
+const alamatRinci=a=>/\b(jl|jln|jalan|no|nomor|blok|rt|rw|komp|kompleks|perum|perumahan|kel|kelurahan|kec|kecamatan|desa|gg|gang|ruko|kav|kavling|dusun|lorong)\b/i.test(String(a||''));
+const alamatSamar=a=>/\bx{3,}\b/i.test(String(a||''));
+function alamatEf(r){if(!isKepri(r)||(alamatRinci(r.alamat)&&!alamatSamar(r.alamat)))return r.alamat;const w=wilayahLurah(r),t=tujuanSurat(r),K=kotaKantor(r);if(!w.kel&&!w.kec&&!(t&&t.camat))return r.alamat;
+  const kec=w.kec||(t&&t.camat?'Kecamatan '+t.jab.replace(/^Camat\s+/,'').replace(/,.*$/,''):'')||(t?(t.jab.match(/Kecamatan [^,]+/)||[''])[0]:'');
+  return[w.kel,kec,(K&&K.kota)||w.kota].filter(Boolean).join(', ')}
+const recDok=r=>{const a=alamatEf(r);return a&&a!==r.alamat?{...r,alamat:a}:r};
+function fitDok(k,r){r=recDok(r);const D=DOCS[k],sty=D.sty||{},html=D.fn(r);
   try{const besar=x=>x.pt>HAL_PT*KOSONG_MAKS,R=FIT_LV.map(f=>ukurDok(html,sty,f));
     /* dirapatkan hanya bila menghemat halaman (mis. penutup + tanda tangan jadi muat di halaman sebelumnya) */
     let i=R.findIndex(x=>x.hal<R[0].hal);if(i<0)i=0;const S=R[i],f=FIT_LV[i];
