@@ -781,7 +781,7 @@ function cekCetak(r){const L=[],E=(tab,f,msg)=>L.push({lvl:'e',tab,f,msg}),W=(ta
     else{const u=umurPada(tp.tglLahir,ref);if(u!==null&&u<18)E('objek','terampu.tglLahir','Terampu baru '+u+' tahun — pengampuan untuk orang dewasa')}
     if(!tp.kondisi)W('objek','terampu.kondisi','Kondisi medis terampu kosong');if(tp.nama&&tp.nama===r.nama)E('objek','terampu.nama','Nama terampu sama dengan pengampu')}
   // 4. jadwal
-  if(!r.tglSumpah)E('jadwal','tglSumpah','Tanggal sumpah belum diisi');else{
+  if(!r.tglSumpah){if(!kunjKepri(r))E('jadwal','tglSumpah','Tanggal sumpah belum diisi')}else{
     if(!HARI_KERJA(r.tglSumpah))E('jadwal','tglSumpah','Tanggal sumpah jatuh pada '+(libur(r.tglSumpah)?'hari libur: '+libur(r.tglSumpah):'hari '+hari(r.tglSumpah)+' (bukan hari kerja)'));
     if(r.tglPenetapan&&r.tglSumpah<r.tglPenetapan)E('jadwal','tglSumpah','Tanggal sumpah lebih awal dari tanggal penetapan');
     if(r.tglSumpah<t)W('jadwal','tglSumpah','Tanggal sumpah sudah lewat');
@@ -848,7 +848,7 @@ const NOMOR_SEMUA=['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa','nom
 const SURAT_ANTAR=['surat','lurah','undangan','desa'];
 function kurang(k,r){const d=derive(r),m=[];const need=(v,l)=>{if(!String(v??'').trim())m.push(l)};
   if(SURAT_ANTAR.includes(k)){need(r.nama,'Nama '+d.J);if(!tujuanSurat(r))m.push('Kelurahan/kecamatan tempat tinggal '+d.J);else if(k!=='lurah'&&k!=='desa')need(alamatEf(r),'Alamat '+d.J);
-    if(k==='undangan')need(r.tglSumpah,'Tanggal sumpah');need(r.tanggalSurat,'Tanggal surat');return m}
+    if(k==='undangan'&&!kunjKepri(r))need(r.tglSumpah,'Tanggal sumpah');need(r.tanggalSurat,'Tanggal surat');return m}
   need(r.pengadilan,'Pengadilan');need(r.nomorPenetapan,'Nomor penetapan');need(r.tglPenetapan,'Tanggal penetapan');need(r.nama,'Nama '+d.J);need(r.alamat,'Alamat');need(r.kelurahan,'Kelurahan');need(r.tglSumpah,'Tanggal sumpah');need(r.waktu,'Waktu');
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu.nama,'Nama terampu');
   if(['surat','lurah','undangan','desa'].includes(k))need(r.tanggalSurat,'Tanggal surat');
