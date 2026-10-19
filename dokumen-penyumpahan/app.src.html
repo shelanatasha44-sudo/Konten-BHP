@@ -1172,7 +1172,13 @@ const alamatSamar=a=>/\bx{3,}\b/i.test(String(a||''));
 function alamatEf(r){if(!isKepri(r)||(alamatRinci(r.alamat)&&!alamatSamar(r.alamat)))return r.alamat;const w=wilayahLurah(r),t=tujuanSurat(r),K=kotaKantor(r);if(!w.kel&&!w.kec&&!(t&&t.camat))return r.alamat;
   const kec=w.kec||(t&&t.camat?'Kecamatan '+t.jab.replace(/^Camat\s+/,'').replace(/,.*$/,''):'')||(t?(t.jab.match(/Kecamatan [^,]+/)||[''])[0]:'');
   return[w.kel,kec,(K&&K.kota)||w.kota].filter(Boolean).join(', ')}
-const recDok=r=>{const a=alamatEf(r);return a&&a!==r.alamat?{...r,alamat:a}:r};
+/* Alamat di surat: huruf awal tiap kata kapital (RT, RW, singkatan & angka Romawi tetap kapital). Data berkas tidak diubah. */
+const AL_KAP=/^(RT|RW|KM|BTN|KPR|PT|CV|TNI|POLRI|ABRI|DKI|NTT|NTB|BPN|PLN|PDAM|BTB|YKP|BP|SMA|SMP|SD|SMK|MTS|MAN|RSUD|II|III|IV|VI|VII|VIII|IX|XI|XII|XIII|XIV|XV)$/i,AL_KECIL=/^(dan|di|ke|dari|atau|s\.?d)$/i;
+function rapiAlamat(s){s=String(s||'').replace(/\b(RT|RW)\.?(?=\d)/gi,'$1 ');if(!/[a-z]/i.test(s))return s;const besar=!/[a-z]/.test(s.replace(/x{3,}/g,''));let i=0;
+  return s.replace(/[A-Za-zÀ-ÿ']+/g,(w,o)=>{const j=i++;if(/^x{3,}$/i.test(w))return w;if(AL_KAP.test(w))return w.toUpperCase();
+    if(!besar&&w.length>1&&w.length<=4&&w===w.toUpperCase())return w;const pre=s.charAt(o-1);if(/\d/.test(pre)||/\d/.test(s.charAt(o+w.length)))return w.toUpperCase();
+    if(j&&AL_KECIL.test(w))return w.toLowerCase();return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()})}
+const recDok=r=>{const a=alamatEf(r),o={...r,alamat:rapiAlamat(a||r.alamat),kelurahan:rapiAlamat(r.kelurahan)};if(r.alamatKelurahan)o.alamatKelurahan=rapiAlamat(r.alamatKelurahan);return o};
 function fitDok(k,r){r=recDok(r);const D=DOCS[k],sty=D.sty||{},html=D.fn(r);
   try{const R=FIT_LV.map(f=>ukurDok(html,sty,f)),R0=R[0];
     /* 1) jumlah halaman yang PASTI tercapai (dihitung dengan halaman 10% lebih pendek dari perkiraan). Dirapatkan seperlunya saja:
