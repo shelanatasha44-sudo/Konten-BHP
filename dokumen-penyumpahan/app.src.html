@@ -948,7 +948,7 @@ async function jalankanOtomatis(tglNo){const P=(PILIH||pilihDefault(cur)).filter
   const set=(id,ok,t)=>{const e=$('#pr_'+id);if(e)e.innerHTML=(ok?'✅ ':'❌ ')+t};let gagal=false;
   try{await flush();set('simpan',1,'Berkas tersimpan')}catch(e){set('simpan',0,esc(e.message));gagal=true}
   for(const [k,f] of tanpa){if(gagal)break;try{const inf=infoNomor(k,cur);if(tglNo)inf.tanggalNomor=tglNo;const r=await api('apiAmbilNomor',cur.id,f,inf);cur[f]=r.nomor;cur._versi=r.versi;if(r.tanggalSurat)cur.tanggalSurat=r.tanggalSurat;set('n_'+k,1,esc(DOCS[k].nama(cur)+': '+r.nomor))}
-    catch(e){set('n_'+k,0,esc(DOCS[k].nama(cur)+' — '+(e.message||e)));gagal=true}}
+    catch(e){const sdh=nomorSudahAda(e);if(sdh){cur[f]=sdh;set('n_'+k,1,esc(DOCS[k].nama(cur)+': '+sdh+' (sudah ada, tidak diambil lagi)'))}else{set('n_'+k,0,esc(DOCS[k].nama(cur)+' — '+(e.message||e)));gagal=true}}}
   /* Google Doc dibuat bersamaan (paralel) — total waktu ≈ satu dokumen, bukan dijumlah */
   if(!gagal)await Promise.all(P.map(async g=>{const nm=GRUP[g].nama(cur);
     try{if(GAS){const dok=await gdocCore(g,GRUP[g].keys,nm);set('d_'+g,1,`<a href="${dok.url}" target="_blank" rel="noopener">${esc(nm)}</a>`)}else{await dl(GRUP[g].keys,nm);set('d_'+g,1,esc(nm)+' (mode demo: DOCX diunduh)')}}
@@ -957,6 +957,8 @@ async function jalankanOtomatis(tglNo){const P=(PILIH||pilihDefault(cur)).filter
   $('#gDlg').dataset.lock='';renderMain()}
 
 /* ---------------- kelengkapan & nomor SPS ---------------- */
+/* server menolak bila dokumen sudah bernomor (cegah nomor dobel) — nomor yang ada dipakai */
+const nomorSudahAda=e=>{const m=String(e&&e.message||e||'').match(/sudah punya nomor:\s*(.+)$/);return m?m[1].trim():''};
 const NOMOR={surat:'nomorSurat',lurah:'nomorLurah',undangan:'nomorUndangan',desa:'nomorUndDesa'};
 const NOMOR_SEMUA=['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa','nomorBAP','nomorBA','nomorBAHarta'];
 /* surat antar cukup tahu SIAPA dan KE MANA dikirim: yang wajib hanya nama + alamat (surat/undangan ke wali/pengampu)
@@ -981,13 +983,13 @@ function kosongSurat(k,r){if(!SURAT_ANTAR.includes(k))return[];const d=derive(r)
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu&&r.terampu.nama,'Nama terampu');return m}
 const kosongGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kosongSurat(k,r)))];
 function infoNomor(k,r){const d=derive(r);return{kurang:kurang(k,r),
-  perihal:{surat:`Pengambilan Sumpah ${d.J} dan Inventarisasi Harta`,lurah:'Koordinasi Terkait Pengambilan Sumpah dan Inventarisasi Harta',undangan:`Undangan Pengambilan Sumpah ${d.J} an. ${r.nama}`,desa:`Undangan Menghadiri Pengambilan Sumpah ${d.J} an. ${r.nama}`,bap:`Berita Acara Penghadapan ${d.jenisTxt} an. ${r.nama}`,ba:`Berita Acara Penyumpahan ${d.jenisTxt} an. ${r.nama}`,harta:`Berita Acara Pencatatan Harta ${d.jenisTxt} an. ${r.nama}`}[k],
+  perihal:{surat:`Pengambilan Sumpah dan Inventarisasi Harta an. ${d.J} ${r.nama}`,lurah:`Koordinasi Terkait Pengambilan Sumpah dan Inventarisasi Harta an. ${d.J} ${r.nama}`,undangan:`Undangan Pengambilan Sumpah ${d.J} an. ${r.nama}`,desa:`Undangan Menghadiri Pengambilan Sumpah ${d.J} an. ${r.nama}`,bap:`Berita Acara Penghadapan ${d.jenisTxt} an. ${r.nama}`,ba:`Berita Acara Penyumpahan ${d.jenisTxt} an. ${r.nama}`,harta:`Berita Acara Pencatatan Harta ${d.jenisTxt} an. ${r.nama}`}[k],
   tujuan:k==='lurah'||k==='desa'?(t=>t?t.jab:'Lurah '+r.kelurahan)(tujuanSurat(r)):r.nama,tanggal:['surat','lurah','undangan','desa'].includes(k)?r.tanggalSurat:r.tglSumpah}}
 async function ambilNomor(k,btn){const inf=infoNomor(k,cur);if(inf.kurang.length){alert('Lengkapi dulu: '+inf.kurang.join(', '));return}
   const tn=await tanyaTglNomor([k]);if(!tn)return;inf.tanggalNomor=tn;
   btn.disabled=true;btn.textContent='Menghubungi SPS…';clearTimeout(saveT);await flush();
   try{const r=await api('apiAmbilNomor',cur.id,NOMOR[k],inf);cur[NOMOR[k]]=r.nomor;cur._versi=r.versi;if(r.tanggalSurat)cur.tanggalSurat=r.tanggalSurat;toast('Nomor: '+r.nomor);renderMain()}
-  catch(e){alert('Gagal mengambil nomor: '+(e.message||e));btn.disabled=false;btn.textContent='🔢 Ambil nomor SPS'}}
+  catch(e){const sdh=nomorSudahAda(e);if(sdh){cur[NOMOR[k]]=sdh;toast('Sudah bernomor: '+sdh+' (tidak diambil lagi)');renderMain();return}alert('Gagal mengambil nomor: '+(e.message||e));btn.disabled=false;btn.textContent='🔢 Ambil nomor SPS'}}
 
 /* konfirmasi + pilih tanggal nomor SPS (hari ini atau mundur; tidak bisa tanggal maju) */
 const tglNomorHtml=ks=>`<div class="cekbar w" style="cursor:default;flex-direction:column;align-items:stretch;gap:8px"><b>Anda yakin mengambil nomor dari SPS di tanggal <span id="tnTxt">${hari(today())}, ${tgl(today())}</span>?</b>
@@ -1706,14 +1708,14 @@ function eksporKepri(){const q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+[H].concat(rows).map(b=>b.map(q).join(',')).join('\r\n')],{type:'text/csv'}));a.download='Data Kepri - '+today()+'.csv';a.click()}
 async function unduhKepri(btn){const L=berkasKepri(),K=[$('#kpS').checked&&'surat',$('#kpL').checked&&'lurah'].filter(Boolean),lewat=$('#kpLewat').checked,sps=!!($('#kpSps')&&$('#kpSps').checked);
   if(!K.length)return toast('Centang minimal satu jenis surat');
-  const perluNo=sps?L.reduce((a,r)=>a+K.filter(k=>!r[NOMOR[k]]&&!(lewat&&kurang(k,r).length)).length,0):0;
+  const perluNo=sps?L.reduce((a,r)=>a+(alasanLewat(r)?0:K.filter(k=>!r[NOMOR[k]]&&!kurang(k,r).length).length),0):0;
   if(perluNo&&!confirm(`Ambil ${perluNo} nomor SPS sekarang (tanggal hari ini)?\nNomor yang sudah diambil tidak bisa dibatalkan.`))return;
   btn.disabled=true;const out=$('#kpOut'),t0=Date.now();if(cur){clearTimeout(saveT);await flush()}
   try{await loadJs(JSZIP);const zip=new JSZip(),dipakai=new Set(),H=[['No','Nama','Jenis','Nomor Penetapan','Kota/Kabupaten','Alamat','Kelurahan/Kecamatan','Surat ke','Alamat Kantor Tujuan','Email Kantor Tujuan','Email Wali/Pengampu','Nomor Surat ke Wali/Pengampu','Nomor Surat ke Lurah/Camat','Keterangan']],rows=[];let n=0,lw=0;
     for(let i=0;i<L.length;i++){const r=L[i],kt=bersihNama(kotaBerkas(r)),ket=[];btn.textContent=`Membuat ${i+1}/${L.length}…`;
       const al=alasanLewat(r),tj=tujuanSurat(r);if(al){ket.push('Tidak disurati — '+al);lw+=K.length}
       for(const k of al?[]:K){const nm=DOCS[k].nama(r),ku=kurang(k,r);if(lewat&&ku.length){ket.push(`${nm} dilewati (kurang: ${ku.join(', ')})`);lw++;continue}
-        if(sps&&!r[NOMOR[k]])try{const x=await api('apiAmbilNomor',r.id,NOMOR[k],infoNomor(k,r));r[NOMOR[k]]=x.nomor;r._versi=x.versi;if(x.tanggalSurat)r.tanggalSurat=x.tanggalSurat}catch(e){ket.push(`Nomor SPS ${nm} gagal: ${e.message||e}`)}
+        if(sps&&!r[NOMOR[k]]&&!ku.length)try{const x=await api('apiAmbilNomor',r.id,NOMOR[k],infoNomor(k,r));r[NOMOR[k]]=x.nomor;r._versi=x.versi;if(x.tanggalSurat)r.tanggalSurat=x.tanggalSurat;DASAR.set(r,JSON.stringify(r))}catch(e){const sdh=nomorSudahAda(e);if(sdh)r[NOMOR[k]]=sdh;else ket.push(`Nomor SPS ${nm} gagal: ${e.message||e}`)}
         try{const blob=await buatDocx([k],r),dasar=`${kt}/${bersihNama(r.nama||'tanpa nama')} - ${nm}`;let f=dasar,c=2;while(dipakai.has(f))f=`${dasar} (${c++})`;dipakai.add(f);zip.file(f+'.docx',blob);n++}
         catch(e){ket.push(`${nm} gagal dibuat: ${e.message||e}`)}}
       const rd=recDok(r);rows.push([i+1,r.nama,r.jenis,r.nomorPenetapan,kt,rd.alamat,rd.kelurahan,tj?tj.jab:'',tj?tj.di.replace(/<br>/g,', ').replace(/&amp;/g,'&'):'',tj&&tj.email||'',emailValid(r.email)?r.email.trim():'',r.nomorSurat,r.nomorLurah,ket.join('; ')]);
@@ -2243,7 +2245,10 @@ function isianBentrok(isi,kel,kec){const a=kunciW(isi),f=re=>{const m=isi.match(
   const ik=f(/\b(?:Kec\.?|Kecamatan)\s*([A-Za-z .]+?)(?=[,;]|\s+(?:Kota|Kab|Kel|Prov|Kepulauan)|$)/i),il=f(/\b(?:Kel\.?|Kelurahan)\s*([A-Za-z .]+?)(?=[,;]|\s+(?:Kota|Kab|Kec|Prov|Kepulauan)|$)/i);
   return !!(kec&&ik&&ik!==kunciW(kec))||!!(kel&&il&&il!==kunciW(kel)&&!a.includes(kunciW(kel)))}
 /* Email resmi kantor (diisi dari sumber resmi; kunci 'camat:<Kecamatan>' / 'lurah:<Kelurahan>') */
-const EMAIL_KANTOR={};
+const EMAIL_KANTOR={ /* sumber: situs resmi kecamatan/kelurahan (batam.go.id) dan Direktori Pemko Batam, dicek Okt 2026 */
+  'camat:Batam Kota':'bakot2017@gmail.com','camat:Batu Ampar':'batuampar458267@gmail.com','camat:Belakang Padang':'kec.belakangpadang@gmail.com','camat:Bengkong':'kecamatanbengkong@gmail.com',
+  'camat:Galang':'kecgalang@batam.go.id','camat:Lubuk Baja':'buletinlubukbaja@gmail.com','camat:Sei Beduk':'sungaibeduk@batam.go.id','camat:Sekupang':'kecsekupang@gmail.com',
+  'lurah:Taman Baloi':'kelurahan_tamanbaloi@yahoo.com','lurah:Teluk Tering':'kelteluktering@batam.go.id','lurah:Batu Merah':'batumerah003@gmail.com'};
 const emailKantor=(camat,nama)=>{const pre=camat?'camat:':'lurah:',k=Object.keys(EMAIL_KANTOR).find(x=>x.startsWith(pre)&&kunciW(x.slice(pre.length))===kunciW(nama));return k?EMAIL_KANTOR[k]:''};
 const emailValid=e=>/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(String(e||'').trim());
 /* tautan tulis email di Gmail (lampiran DOCX/PDF ditambahkan sendiri) */
