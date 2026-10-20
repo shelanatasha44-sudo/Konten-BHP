@@ -632,7 +632,7 @@ async function bapDariPenetapan(file,teks,onTry){if(typeof teks==='function'){on
 async function susunBapAI(inp){const f=inp.files[0];inp.value='';if(!f)return;if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan AI dari penetapan?'))return;
   toast('Claude sedang membaca penetapan & menyusun BAP… (±30–60 detik)');const lb=inp.closest('label');if(lb)lb.style.opacity=.5;
   const asal=cur;
-  try{const t=await bapDariPenetapan(f,i=>{if(i)toast('Menyusun ulang BAP (percobaan '+(i+1)+' dari 3)…')});const r=asal;r.isiBap=t;simpanRec(r);if(cur===r)renderMain();toast('Isi BAP disusun dari penetapan — periksa sebelum mencetak');api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Isi BAP disusun AI dari '+f.name).catch(()=>{})}
+  try{const t=await bapDariPenetapan(f,i=>{if(i)toast('Menyusun ulang BAP (percobaan '+(i+1)+' dari 3)…')});const r=asal;r.isiBap=t;simpanRec(r);if(cur===r)renderMain();toast('Isi BAP disusun dari penetapan — periksa sebelum mencetak');catat('BACA_PENETAPAN',r.id,r.nama,'Isi BAP disusun AI dari '+f.name).catch(()=>{})}
   catch(e){console.warn(e);const r=asal;r.isiBap=buatBap(r);simpanRec(r);if(cur===r)renderMain();toast('AI sedang tidak dapat dihubungi — isi BAP disusun otomatis dari data berkas. Coba tombol AI lagi nanti bila ingin versi AI.')}
   finally{if(lb)lb.style.opacity=1}}
 function susunBap(){if(cur.isiBap&&!confirm('Ganti isi BAP sekarang dengan susunan otomatis dari data berkas?'))return;cur.isiBap=buatBap(cur);save();renderMain();toast('Isi BAP disusun ulang')}
@@ -751,12 +751,12 @@ function tambahDataGithub(){if(!DB||!DB.length)return;const isi=new Set(),cari=n
   let nNo=0;NOMOR_SPS_ADA.data.forEach(([no,ns,nl])=>cari(no).forEach(r=>{let isiNo=false;
     if(ns&&!String(r.nomorSurat||'').trim()){r.nomorSurat=ns;isiNo=true;nNo++}if(nl&&!String(r.nomorLurah||'').trim()){r.nomorLurah=nl;isiNo=true;nNo++}
     if(isiNo){r.tanggalSurat=NOMOR_SPS_ADA.tanggal;isi.add(r)}}));
-  if(isi.size){const L=[...isi];L.forEach(simpanRec);api('apiCatat','TAMBAH_DATA','','',`${L.length} berkas Kepri dilengkapi (kolom kosong saja${nNo?', '+nNo+' nomor SPS yang sudah ada':''}): `+L.map(r=>r.nomorPenetapan).join(', ')).catch(()=>{});
+  if(isi.size){const L=[...isi];L.forEach(simpanRec);catat('TAMBAH_DATA','','',`${L.length} berkas Kepri dilengkapi (kolom kosong saja${nNo?', '+nNo+' nomor SPS yang sudah ada':''}): `+L.map(r=>r.nomorPenetapan).join(', ')).catch(()=>{});
     toast(`${L.length} berkas Kepri dilengkapi${nNo?' (termasuk '+nNo+' nomor SPS yang sudah diambil)':''} — hanya kolom kosong, data lain tidak diubah`);renderList()}}
 /* Data SIPP (nama wali, anak, tanggal) dari file Drive pribadi lewat server: hanya kolom kosong / nama disamarkan yang diisi */
 async function tambahDataSipp(){if(!GAS||!DB||!DB.length)return;let D;try{D=await api('apiImpor','tambahData')}catch(e){return}if(!D)return;const isi=[];
   Object.keys(D).forEach(no=>{const kn=nomorKunci(no);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn&&perluSipp(r)).forEach(r=>{const h=isiDariPen(r,D[no],'');if(h.isi.length){isi.push(r.nomorPenetapan+': '+h.isi.join(', '));simpanRec(r)}})});
-  if(isi.length){api('apiCatat','ISI_DARI_SIPP','','',`${isi.length} berkas dilengkapi dari data SIPP (kolom kosong saja): `+isi.join('; ')).catch(()=>{});
+  if(isi.length){catat('ISI_DARI_SIPP','','',`${isi.length} berkas dilengkapi dari data SIPP (kolom kosong saja): `+isi.join('; ')).catch(()=>{});
     toast(`${isi.length} berkas dilengkapi dari SIPP (nama wali/anak/tanggal — kolom kosong saja)`);renderList()}}
 async function boot(){
   if(!TOKEN){showLogin();return}
@@ -780,7 +780,7 @@ function bukaTerhapus(){WZ.on=false;LIHAT_HAPUS=true;if(cur&&!cur._dihapus)cur=n
 async function pulihkanSemua(btn){const L=DB.filter(r=>r._dihapus&&LIST_TAMPIL.includes(r.id));if(!L.length)return;
   if(!confirm(`Pulihkan ${L.length} berkas yang sedang tampil ke Daftar Berkas?`))return;btn.disabled=true;let n=0;
   for(let i=0;i<L.length;i+=4){await Promise.all(L.slice(i,i+4).map(async r=>{try{await api('apiPulihkan',r.id);r._dihapus=false;n++}catch(e){console.warn(e)}}));btn.textContent=`Memulihkan ${n}/${L.length}…`}
-  api('apiCatat','PULIHKAN','','',`${n} berkas dipulihkan sekaligus`).catch(()=>{});toast(`${n} berkas dipulihkan`);if(cur&&!cur._dihapus)cur=null;renderMain();renderList()}
+  catat('PULIHKAN','','',`${n} berkas dipulihkan sekaligus`).catch(()=>{});toast(`${n} berkas dipulihkan`);if(cur&&!cur._dihapus)cur=null;renderMain();renderList()}
 let LIST_TAMPIL=[];
 function menuUser(){dlg(`<h3>👤 ${esc(ME.nama)}</h3><p class="hint">Username: <b>${esc(ME.username)}</b> · ${isSuper()?'Admin Utama (akses penuh)':'Admin'}</p>
   <p style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="gantiPassword()">🔑 Ganti password</button><button onclick="logout()" style="color:var(--warn)">⎋ Keluar</button><button onclick="dlgClose()">Tutup</button></p>`)}
@@ -996,6 +996,12 @@ async function jalankanOtomatis(tglNo){const P=(PILIH||pilihDefault(cur)).filter
 /* ---------------- kelengkapan & nomor SPS ---------------- */
 /* server menolak bila dokumen sudah bernomor (cegah nomor dobel) — nomor yang ada dipakai */
 const nomorSudahAda=e=>{const m=String(e&&e.message||e||'').match(/sudah punya nomor:\s*(.+)$/);return m?m[1].trim():''};
+/* server hanya menerima aksi log UNDUH_DOCX / BACA_PENETAPAN / IMPOR_CSV — aksi lain dicatat sebagai IMPOR_CSV berlabel [AKSI] */
+const AKSI_LOG=['UNDUH_DOCX','BACA_PENETAPAN','IMPOR_CSV'];
+function catat(aksi,id,nama,det){const ok=AKSI_LOG.includes(aksi);return api('apiCatat',ok?aksi:'IMPOR_CSV',id||'',nama||'',(ok?'':'['+aksi+'] ')+(det||''))}
+/* nomor yang pernah diambil untuk berkas ini menurut Riwayat (AMBIL_NOMOR) — cadangan bila kolom nomor di berkas kosong */
+async function nomorDariRiwayat(id){try{const L=await api('apiRiwayat',{berkasId:id,aksi:'AMBIL_NOMOR',limit:50}),o={};
+  (L||[]).forEach(x=>{try{JSON.parse(String(x.detail||'').split(' | ')[0]).forEach(c=>{if(c&&c.f&&c.ke&&!o[c.f])o[c.f]=c.ke})}catch(e){}});return o}catch(e){return{}}}
 const NOMOR={surat:'nomorSurat',lurah:'nomorLurah',undangan:'nomorUndangan',desa:'nomorUndDesa'};
 const NOMOR_SEMUA=['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa','nomorBAP','nomorBA','nomorBAHarta'];
 /* surat antar cukup tahu SIAPA dan KE MANA dikirim: yang wajib hanya nama + alamat (surat/undangan ke wali/pengampu)
@@ -1412,7 +1418,7 @@ async function dl(keys,judul){
   try{const blob=await buatDocx(keys);
     const n=((judul||(keys.length>1?'Dokumen Lengkap':DOCS[keys[0]].nama(cur)))+' - '+(cur.nama||'tanpa nama')).replace(/[\\/:*?"<>|]/g,'')+'.docx';
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=n;document.body.appendChild(a);a.click();a.remove();
-    toast('Diunduh: '+n);api('apiCatat','UNDUH_DOCX',cur.id,cur.nama,keys.map(k=>DOCS[k].nama(cur)).join(', ')).catch(()=>{})}
+    toast('Diunduh: '+n);catat('UNDUH_DOCX',cur.id,cur.nama,keys.map(k=>DOCS[k].nama(cur)).join(', ')).catch(()=>{})}
   catch(e){alert('Gagal membuat DOCX: '+e.message)}}
 
 function gdocBtn(key,keys,judul){const d=(cur.dokumen||{})[key];const ks=JSON.stringify(keys).replace(/"/g,"'");
@@ -1453,7 +1459,7 @@ function importCsv(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{cons
       nomorBA:g(w?'Nomor_BA_Sumpah_Wali':'Nomor_BA_Sumpah_Pengampu'),nomorBAHarta:g(w?'Nomor_BA_Harta_Wali':'Nomor_BA_Harta_Pengampu')});
     if(w){r.anak=[{nama:g('Nama_Anak')||g('Nama_Anak_1'),jk:/perem/i.test(g('Jenis_Kelamin_Anak'))?'Perempuan':'Laki-laki',tglLahir:toISO(g('Tanggal_Lahir_Anak'))}]}
     else r.terampu={nama:g('Nama_Terampu'),jk:/perem/i.test(g('Jenis_Kelamin_Terampu'))?'Perempuan':'Laki-laki',tglLahir:toISO(g('Tanggal_Lahir_Terampu')),kondisi:g('Kondisi_Medis_Terampu')};
-    addRec(r,'Impor CSV: '+f.name);n++;api('apiSimpan',JSON.parse(JSON.stringify(r))).then(x=>{r._versi=x.versi;DASAR.set(r,JSON.stringify(r))}).catch(e=>toast(e.message))});renderList();toast(n+' berkas diimpor');api('apiCatat','IMPOR_CSV','','',n+' berkas dari '+f.name).catch(()=>{});inp.value=''})}
+    addRec(r,'Impor CSV: '+f.name);n++;api('apiSimpan',JSON.parse(JSON.stringify(r))).then(x=>{r._versi=x.versi;DASAR.set(r,JSON.stringify(r))}).catch(e=>toast(e.message))});renderList();toast(n+' berkas diimpor');catat('IMPOR_CSV','','',n+' berkas dari '+f.name).catch(()=>{});inp.value=''})}
 /* ---------------- impor dari sheet AutoCrat (Dokumen Otomatis: PERWALIAN RIAU / PENGAMPUAN RIAU) ---------------- */
 const BLN_ALIAS={jan:1,januari:1,feb:2,februari:2,pebruari:2,mar:3,maret:3,apr:4,april:4,mei:5,may:5,jun:6,juni:6,jul:7,juli:7,agu:8,agus:8,agustus:8,aug:8,sep:9,sept:9,september:9,okt:10,oktober:10,oct:10,nov:11,nop:11,nopember:11,november:11,des:12,desember:12,dec:12};
 function tglISO(v){v=String(v||'').trim();if(!v)return'';let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
@@ -1565,7 +1571,7 @@ async function imporJalan(btn){btn.disabled=true;let n=0,lewat=0;const gagal=[],
       pk.forEach(r=>{if(ok.has(r.id)){addRec(r,r.asal);r._versi=1;masuk.push(r);n++}})}
     catch(e){gagal.push(e.message||String(e))}}
   IMPX.taut.forEach(simpanRec);IMPX.taut=[];
-  api('apiCatat','IMPOR_CSV','','',`${n} berkas diimpor dari ${IMPX.judul||'spreadsheet'}`).catch(()=>{});renderList();
+  catat('IMPOR_CSV','','',`${n} berkas diimpor dari ${IMPX.judul||'spreadsheet'}`).catch(()=>{});renderList();
   $('#impOut').innerHTML=`<p>✅ <b>${n}</b> berkas baru diimpor${lewat?` · ${lewat} dilewati karena sudah ada di database`:''} <span class="hint">(0 token AI)</span>.</p>${gagal.length?`<p style="color:#c0392b">Sebagian gagal: ${esc([...new Set(gagal)].join('; '))}<br>Klik <b>Periksa lagi</b> lalu impor ulang — yang sudah masuk otomatis dilewati.</p>`:''}`;
   imporLanjut(masuk.concat(IMPX.lama));IMP=null;btn.disabled=false;btn.textContent='🔍 Periksa lagi';btn.onclick=()=>imporCek(btn)}
 function impLog(t){IMP_LOG.push(t);const e=$('#impLog');if(e){e.innerHTML=IMP_LOG.map(x=>`<div>${x}</div>`).join('');e.scrollTop=e.scrollHeight}}
@@ -1594,7 +1600,7 @@ async function imporSipp(b){const L=IMPL.filter(perluSipp);if(!L.length||SIPP.ja
     if(s.length){isi++;simpanRec(r);if(!fieldSamar(r).length)penuh++}
     impLog(`${s.length?'🕵️':'➖'} ${esc(r.nomorPenetapan)}: ${s.length?'terisi dari SIPP — '+esc(s.join(', ')):'tidak ada data tambahan di SIPP'}${tahan.length?` · <span style="color:var(--warn)">ditahan (tidak tertulis persis di SIPP): ${esc(tahan.join(', '))}</span>`:''}`)},b,'SIPP');
   if(cf)impLog(`⛔ ${cf} berkas tidak bisa dibuka server karena SIPP pengadilannya (mis. PN Batam) memakai verifikasi Cloudflare — cari manual: menu <i>Cek SIPP</i> → <i>SIPP ↗</i>, lalu ketik nama dan klik <i>Pakai</i>.`);
-  api('apiCatat','ISI_DARI_SIPP','','',`${isi} berkas diisi dari SIPP`).catch(()=>{});renderList();
+  catat('ISI_DARI_SIPP','','',`${isi} berkas diisi dari SIPP`).catch(()=>{});renderList();
   impLog(`<b>SIPP selesai:</b> ${isi} berkas terisi (${penuh} tanpa nama disamarkan lagi)${tdk?` · ${tdk} tidak ditemukan/gagal`:''}${ADA_AI?'':' · <b>AI Claude belum aktif</b>: hanya nama yang diisi'}.`);
   const LG=IMP_LOG.slice();imporLanjut();IMP_LOG=LG;impLog('')}
 /* satu PDF: teks dibaca di browser (gratis) → AI hemat → bila tidak lolos cek silang, AI teliti */
@@ -1609,7 +1615,7 @@ async function imporLengkapi(b){const L=IMPL.filter(r=>idDrive(r.linkPenetapan)&
       const {isi,tahan}=isiDariPen(r,h.d,h.teks);if(isi.length){ok++;simpanRec(r)}else nihil++;
       impLog(`${isi.length?'🤖':'➖'} ${esc(r.nama||r.nomorPenetapan)}: ${isi.length?'terisi '+esc(isi.join(', ')):'tidak ada data tambahan (kemungkinan disamarkan di penetapan)'}${tahan.length?` · <span style="color:var(--warn)">ditahan (tidak tertulis persis di teks): ${esc(tahan.join(', '))}</span>`:''}${h.teliti?' · dicek ulang model teliti':''}`)}
     catch(e){gagal++;impLog(`⛔ ${esc(r.nama||r.nomorPenetapan)}: ${esc(e.message||e)}`)}},b,'AI');
-  api('apiCatat','BACA_PENETAPAN','','',`${ok} berkas impor dilengkapi AI dari PDF`).catch(()=>{});renderList();
+  catat('BACA_PENETAPAN','','',`${ok} berkas impor dilengkapi AI dari PDF`).catch(()=>{});renderList();
   impLog(`<b>AI selesai:</b> ${ok} berkas dilengkapi · ${nihil} tanpa tambahan${scanL?` · ${scanL} PDF hasil scan dilewati (centang opsi scan untuk membacanya)`:''}${tel?` · ${tel} dicek ulang model teliti`:''}${gagal?` · ${gagal} gagal (klik lagi untuk mengulang)`:''}.`);
   const LG=IMP_LOG.slice();imporLanjut();IMP_LOG=LG;impLog('')}
 async function imporYatim(b){const L=(IMPX&&IMPX.yatim||[]).slice();if(!L.length)return;b.disabled=true;const scan=$('#impScan').checked,baru=[];let scanL=0,tolak=0,gagal=0;
@@ -1646,7 +1652,7 @@ function imporOtoHtml(){const nk=kepriLama().length;
 async function hapusKepri(lap){const L=kepriLama();let n=0;const gagal=[];
   for(let i=0;i<L.length;i+=4){await Promise.all(L.slice(i,i+4).map(async r=>{try{await api('apiHapus',r.id);r._dihapus=true;n++}catch(e){gagal.push((r.nama||r.nomorPenetapan)+': '+(e.message||e))}}));lap(`Menghapus berkas lama ${KEPRI} ${n}/${L.length}…`)}
   SET.kepriDihapus=new Date().toISOString();await api('apiSimpanPengaturan',{kepriDihapus:SET.kepriDihapus}).catch(e=>console.warn(e));
-  if(n)api('apiCatat','HAPUS_MASSAL','','',`${n} berkas ${KEPRI} dipindah ke arsip terhapus (sebelum impor ulang)`).catch(()=>{});
+  if(n)catat('HAPUS_MASSAL','','',`${n} berkas ${KEPRI} dipindah ke arsip terhapus (sebelum impor ulang)`).catch(()=>{});
   renderList();if(cur&&cur._dihapus)renderMain();if(gagal.length)throw new Error(`${gagal.length} berkas ${KEPRI} gagal dihapus: `+gagal.slice(0,3).join('; '));return n}
 async function imporOtomatis(btn){const K=$('#impKepri')&&$('#impKepri').checked?kepriLama().length:0,scan=!!($('#impScanOto')&&$('#impScanOto').checked),src=$('#impSs').value.trim();
   if(!src)return toast('Isi tautan folder / spreadsheet');
@@ -1662,7 +1668,7 @@ async function imporOtomatis(btn){const K=$('#impKepri')&&$('#impKepri').checked
     else impLog('<b>AI Claude belum aktif</b> — langkah baca PDF dilewati (isi kunci di Pengaturan).');
     const n=DB.filter(r=>!r._dihapus).length-n0+K;
     impLog(`<b>⚡ Impor otomatis selesai:</b> ${n} berkas baru${K?` · ${K} berkas lama ${KEPRI} dihapus`:''}. Periksa log di atas untuk yang ditolak/gagal.`);
-    api('apiCatat','IMPOR_OTOMATIS','','',`Impor otomatis ${IMPX.judul||src}: ${n} berkas baru`).catch(()=>{})}
+    catat('IMPOR_OTOMATIS','','',`Impor otomatis ${IMPX.judul||src}: ${n} berkas baru`).catch(()=>{})}
   catch(e){impLog(`⛔ ${esc(e.message||e)}`);if(!$('#impLog'))$('#impOut').insertAdjacentHTML('beforeend',`<p style="color:#c0392b">${esc(e.message||e)}</p>`)}
   finally{btn.disabled=false;btn.textContent='⚡ Impor Otomatis (1 klik)';if(b)b.disabled=false;const k=$('#impKepri');if(k&&!kepriLama().length)k.closest('label').remove()}}
 /* ---- 🧩 lengkapi berkas yang SUDAH ADA (dari daftar yang tampil): hanya mengisi kolom kosong / nama disamarkan, tidak pernah membuat berkas baru ---- */
@@ -1677,7 +1683,7 @@ async function lengkapiJalan(btn){btn.disabled=true;
     else impLog('<b>AI Claude belum aktif</b> — langkah baca PDF dilewati (isi kunci di Pengaturan).');
     const sisa=IMPL.filter(r=>r.nomorPenetapan&&fieldSamar(r).length);
     impLog(`<b>🧩 Selesai.</b>${sisa.length?` ${sisa.length} berkas masih ada nama disamarkan — buka menu <a style="cursor:pointer;text-decoration:underline" onclick="dlgClose();bukaSipp()">Cek SIPP</a>, klik <i>SIPP ↗</i> untuk mencari nomor perkara langsung di situs SIPP, lalu ketik namanya dan klik <i>Pakai</i>.`:''}`);
-    api('apiCatat','LENGKAPI','','',`Lengkapi ${IMPL.length} berkas (SIPP + PDF)`).catch(()=>{});renderList()}
+    catat('LENGKAPI','','',`Lengkapi ${IMPL.length} berkas (SIPP + PDF)`).catch(()=>{});renderList()}
   catch(e){impLog(`⛔ ${esc(e.message||e)}`)}
   finally{btn.disabled=false;btn.textContent='⚡ Jalankan semua'}}
 /* ---- impor terjadwal ---- */
@@ -1711,9 +1717,9 @@ async function imporAntrean(){let L;try{L=await api('apiImpor','antrean')}catch(
   let n=0;if(baru.length)try{const x=await api('apiSimpanBanyak',baru.map(r=>JSON.parse(JSON.stringify(r))));const ok=new Set(x.ids||[]);baru.forEach(r=>{if(ok.has(r.id)){addRec(r,r.asal);r._versi=1;n++}})}
     catch(e){console.warn(e);return}
   await api('apiImpor','selesai',selesai,[...new Set(DB.filter(r=>!r._dihapus&&r.nomorPenetapan).map(r=>nomorKunci(r.nomorPenetapan)))]).catch(()=>{});
-  if(n){renderList();api('apiCatat','IMPOR_TERJADWAL','','',`${n} berkas dari impor terjadwal disimpan otomatis`+(tolak?` · ${tolak} ditolak`:'')).catch(()=>{})}
+  if(n){renderList();catat('IMPOR_TERJADWAL','','',`${n} berkas dari impor terjadwal disimpan otomatis`+(tolak?` · ${tolak} ditolak`:'')).catch(()=>{})}
   if(n||tolak)toast(`📂 Impor terjadwal: ${n} berkas baru disimpan${tolak?`, ${tolak} ditolak (lihat Riwayat)`:''}`);
-  cat.forEach(c=>api('apiCatat','TOLAK_PENETAPAN','','',c).catch(()=>{}))}
+  cat.forEach(c=>catat('TOLAK_PENETAPAN','','',c).catch(()=>{}))}
 /* ---------------- surat massal Kepulauan Riau: Surat Antar ke Wali/Pengampu + ke Lurah semua berkas Kepri dalam satu ZIP ---------------- */
 const bersihNama=t=>String(t||'').replace(/[\u2018\u2019`]/g,"'").replace(/[\u201c\u201d]/g,'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()||'-';
 const kotaBerkas=r=>((kotaKantor(r)||{}).kota)||lokasiBerkas(r).kota;
@@ -1733,7 +1739,8 @@ function dlgKepri(){const L=berkasKepri(),k=kunjKepriCfg(),blm=L.filter(r=>!alas
   ${L.length?`<div class="card" style="padding:10px"><b>${L.length} berkas</b> · ${L.length-blm-lw} siap${blm?` · <span style="color:#b45309">${blm} belum lengkap</span>`:''}${lw?` · <span class="hint">${lw} tidak perlu disurati</span>`:''}
     <div style="max-height:34vh;overflow:auto;margin-top:6px;font-size:13px">${L.map((r,i)=>{const ku=kurangKepri(r),al=alasanLewat(r),tj=tujuanSurat(r);return`<div>${i+1}. <a onclick="dlgClose();pick('${r.id}')" style="cursor:pointer"><b>${esc(r.nama||'(tanpa nama)')}</b></a> — ${tj?esc(tj.jab):esc(lokasiBerkas(r).kota)}${al?` <span class="hint">· dilewati (${esc(al)})</span>`:ku.length?` <span style="color:#b45309">· kurang: ${esc(ku.join(', '))}</span>`:` <span style="color:var(--ok)">✔${tj&&tj.di==='Tempat'?' <span class="hint">(alamat kantor belum diketahui → "di Tempat")</span>':''}</span>`}</div>`}).join('')}</div></div>`:'<p>Belum ada berkas Provinsi Kepulauan Riau.</p>'}
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13.5px">${cb('kpS','Surat Antar ke Wali/Pengampu',1)}${cb('kpL','Surat Antar ke Lurah',1)}${cb('kpLewat','Lewati surat yang isian utamanya belum lengkap (dicatat di daftar pengiriman)',1)}
-    ${GAS?cb('kpSps','Ambil nomor SPS untuk surat yang belum bernomor <small class="hint">(nomor yang sudah diambil tidak bisa dibatalkan)</small>',0):''}</div>
+    ${GAS?cb('kpSps','Ambil nomor SPS <b>hanya</b> untuk surat yang belum pernah bernomor <small class="hint">(dicek dari data berkas + riwayat pengambilan nomor; surat yang sudah bernomor tidak diminta lagi)</small>',1):''}
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span>Isi ZIP:</span><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500"><input type="radio" name="kpIsi" value="semua" style="width:auto;margin:0" checked> Semua surat (lengkap)</label><label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:500"><input type="radio" name="kpIsi" value="baru" style="width:auto;margin:0"> Hanya surat baru <small class="hint">(yang belum bernomor sebelum unduhan ini)</small></label></div></div>
   <div id="kpOut" style="margin-top:8px"></div>
   <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="dlgClose()">Tutup</button><button onclick="eksporKepri()" ${L.length?'':'disabled'}>⬇ Data Kepri (CSV)</button><button onclick="imporKepriPilih()" title="Isi nomor SPS, email, alamat dll. dari file CSV">⬆ Impor CSV</button><button class="pri" onclick="unduhKepri(this)" ${L.length?'':'disabled'}>📦 Unduh ZIP</button></p>`)}
 
@@ -1789,7 +1796,7 @@ function imporKepriSimpan(){const P=IMPK&&IMPK.plan;if(!P)return;const pilih=P.u
   if(!pilih.length)return toast('Tidak ada berkas yang dicentang');const timpa=pilih.reduce((a,u)=>a+u.ch.filter(c=>c.timpa).length,0);
   if(timpa&&!confirm(`${timpa} isian yang sudah ada akan diganti. Lanjutkan?`))return;
   pilih.forEach(u=>{u.ch.forEach(c=>{u.r[c.f]=c.baru});if(u.r===cur)save();else simpanRec(u.r)});
-  api('apiCatat','IMPOR_CSV_KEPRI','','',`${pilih.length} berkas diisi dari ${IMPK.nama}: `+pilih.map(u=>u.r.nomorPenetapan+' ('+u.ch.map(c=>c.f).join(',')+')').join('; ')).catch(()=>{});
+  catat('IMPOR_CSV_KEPRI','','',`${pilih.length} berkas diisi dari ${IMPK.nama}: `+pilih.map(u=>u.r.nomorPenetapan+' ('+u.ch.map(c=>c.f).join(',')+')').join('; ')).catch(()=>{});
   toast(`${pilih.length} berkas diperbarui dari CSV`);IMPK=null;renderList();if(cur)renderMain();dlgKepri()}
 /* data lengkap berkas Kepulauan Riau untuk dicek / dilengkapi di luar aplikasi */
 function eksporKepri(){const q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
@@ -1800,22 +1807,29 @@ function eksporKepri(){const q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+[H].concat(rows).map(b=>b.map(q).join(',')).join('\r\n')],{type:'text/csv'}));a.download='Data Kepri - '+today()+'.csv';a.click()}
 async function unduhKepri(btn){const L=berkasKepri(),K=[$('#kpS').checked&&'surat',$('#kpL').checked&&'lurah'].filter(Boolean),lewat=$('#kpLewat').checked,sps=!!($('#kpSps')&&$('#kpSps').checked);
   if(!K.length)return toast('Centang minimal satu jenis surat');
-  const perluNo=sps?L.reduce((a,r)=>a+(alasanLewat(r)?0:K.filter(k=>!r[NOMOR[k]]&&!kurang(k,r).length).length),0):0;
-  if(perluNo&&!confirm(`Ambil ${perluNo} nomor SPS sekarang (tanggal hari ini)?\nNomor yang sudah diambil tidak bisa dibatalkan.`))return;
-  btn.disabled=true;const out=$('#kpOut'),t0=Date.now();if(cur){clearTimeout(saveT);await flush()}
+  const hanyaBaru=(document.querySelector('input[name=kpIsi]:checked')||{}).value==='baru',out=$('#kpOut');
+  const calon=()=>L.filter(r=>!alasanLewat(r)).flatMap(r=>K.filter(k=>!String(r[NOMOR[k]]||'').trim()&&!kurang(k,r).length).map(k=>[r,k]));
+  if(sps&&GAS){btn.disabled=true;btn.textContent='Mengecek riwayat nomor…';const ids=[...new Set(calon().map(([r])=>r.id))];let pulih=0;
+    for(const id of ids){const h=await nomorDariRiwayat(id),r=L.find(x=>x.id===id);K.forEach(k=>{const f=NOMOR[k];if(h[f]&&!String(r[f]||'').trim()){r[f]=h[f];pulih++}});if(pulih)simpanRec(r)}
+    btn.disabled=false;btn.textContent='📦 Unduh ZIP';if(pulih)toast(pulih+' nomor ditemukan di riwayat — tidak diminta lagi')}
+  const lamaNo=new Set(L.flatMap(r=>K.filter(k=>String(r[NOMOR[k]]||'').trim()).map(k=>r.id+'|'+k)));
+  const perluNo=sps?calon().length:0;
+  if(perluNo&&!confirm(`Ambil ${perluNo} nomor SPS untuk surat yang belum pernah bernomor (tanggal hari ini)?\n${lamaNo.size} surat yang sudah bernomor tidak diminta lagi.\nNomor yang sudah diambil tidak bisa dibatalkan.`))return;
+  btn.disabled=true;const t0=Date.now();if(cur){clearTimeout(saveT);await flush()}
   try{await loadJs(JSZIP);const zip=new JSZip(),dipakai=new Set(),H=[['No','Nama','Jenis','Nomor Penetapan','Kota/Kabupaten','Alamat','Kelurahan/Kecamatan','Surat ke','Alamat Kantor Tujuan','Email Kantor Tujuan','Email Wali/Pengampu','Nomor Surat ke Wali/Pengampu','Nomor Surat ke Lurah/Camat','Keterangan']],rows=[];let n=0,lw=0;
     for(let i=0;i<L.length;i++){const r=L[i],kt=bersihNama(kotaBerkas(r)),ket=[];btn.textContent=`Membuat ${i+1}/${L.length}…`;
       const al=alasanLewat(r),tj=tujuanSurat(r);if(al){ket.push('Tidak disurati — '+al);lw+=K.length}
       for(const k of al?[]:K){const nm=DOCS[k].nama(r),ku=kurang(k,r);if(lewat&&ku.length){ket.push(`${nm} dilewati (kurang: ${ku.join(', ')})`);lw++;continue}
         if(sps&&!r[NOMOR[k]]&&!ku.length)try{const x=await api('apiAmbilNomor',r.id,NOMOR[k],infoNomor(k,r));r[NOMOR[k]]=x.nomor;r._versi=x.versi;if(x.tanggalSurat)r.tanggalSurat=x.tanggalSurat;DASAR.set(r,JSON.stringify(r))}catch(e){const sdh=nomorSudahAda(e);if(sdh)r[NOMOR[k]]=sdh;else ket.push(`Nomor SPS ${nm} gagal: ${e.message||e}`)}
+        if(hanyaBaru&&lamaNo.has(r.id+'|'+k)){ket.push(`${nm} sudah pernah bernomor (${r[NOMOR[k]]}) — tidak dimasukkan (mode surat baru)`);continue}
         try{const blob=await buatDocx([k],r),dasar=`${kt}/${bersihNama(r.nama||'tanpa nama')} - ${nm}`;let f=dasar,c=2;while(dipakai.has(f))f=`${dasar} (${c++})`;dipakai.add(f);zip.file(f+'.docx',blob);n++}
         catch(e){ket.push(`${nm} gagal dibuat: ${e.message||e}`)}}
       const rd=recDok(r);rows.push([i+1,r.nama,r.jenis,r.nomorPenetapan,kt,rd.alamat,rd.kelurahan,tj?tj.jab:'',tj?tj.di.replace(/<br>/g,', ').replace(/&amp;/g,'&'):'',tj&&tj.email||'',emailValid(r.email)?r.email.trim():'',r.nomorSurat,r.nomorLurah,ket.join('; ')]);
       if(i%4===3)await new Promise(ok=>setTimeout(ok))}
     const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';zip.file('Daftar Pengiriman.csv','﻿'+H.concat(rows).map(b=>b.map(q).join(',')).join('\r\n'));
-    btn.textContent='Menyusun ZIP…';const blob=await zip.generateAsync({type:'blob',compression:'STORE'}),fn=`Surat Antar Kepulauan Riau - ${today()}.zip`;
+    btn.textContent='Menyusun ZIP…';const blob=await zip.generateAsync({type:'blob',compression:'STORE'}),fn=`Surat Antar Kepulauan Riau${hanyaBaru?' (baru)':''} - ${today()}.zip`;
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),6e4);
-    api('apiCatat','UNDUH_DOCX','','',`ZIP ${n} surat antar Kepulauan Riau (${L.length} berkas)`).catch(()=>{});if(sps)renderList();if(cur)renderMain();
+    catat('UNDUH_DOCX','','',`ZIP ${n} surat antar Kepulauan Riau (${L.length} berkas)`).catch(()=>{});if(sps)renderList();if(cur)renderMain();
     out.innerHTML=`<p>✅ <b>${n} surat</b> dari ${L.length} berkas diunduh: <b>${esc(fn)}</b> (${((Date.now()-t0)/1000).toFixed(1)} detik).${lw?` <span style="color:#b45309">${lw} surat dilewati (belum lengkap / tidak perlu disurati) — lihat kolom Keterangan di Daftar Pengiriman.csv.</span>`:''}</p>`;btn.textContent='📦 Unduh lagi'}
   catch(e){out.innerHTML=`<p style="color:#c0392b">Gagal: ${esc(e.message||e)}</p>`;btn.textContent='📦 Unduh ZIP'}
   btn.disabled=false}
@@ -1880,7 +1894,7 @@ function dlgLibur(){const L=((SET.libur&&SET.libur.length)?SET.libur:LIBUR_DEF);
 async function simpanLibur(b){const L=$('#lbTxt').value.split('\n').map(x=>x.trim().match(/^(\d{4}-\d{2}-\d{2})\s+(.+)$/)).filter(Boolean).map(m=>({tgl:m[1],nama:m[2].trim()}));
   b.disabled=true;try{SET.libur=GAS?await api('apiLiburSimpan',L):L;dlgClose();renderKalender();toast(L.length+' tanggal merah disimpan')}catch(e){b.disabled=false;toast(e.message||String(e))}}
 function jadwalkan(id){const r=DB.find(x=>x.id===id);if(!r)return;if(!HARI_KERJA(KAL.sel)){toast('⚠ '+(libur(KAL.sel)||hari(KAL.sel)+' bukan hari kerja')+' — pilih tanggal lain');return}
-  cur=r;r.tglSumpah=KAL.sel;save();api('apiCatat','JADWAL',r.id,r.nama,'Dijadwalkan sumpah '+tgl(KAL.sel)).catch(()=>{});renderList();renderKalender();toast('📅 '+r.nama+' dijadwalkan '+tgl(KAL.sel))}
+  cur=r;r.tglSumpah=KAL.sel;save();catat('JADWAL',r.id,r.nama,'Dijadwalkan sumpah '+tgl(KAL.sel)).catch(()=>{});renderList();renderKalender();toast('📅 '+r.nama+' dijadwalkan '+tgl(KAL.sel))}
 /* ---------------- cek silang ke SIPP pengadilan ---------------- */
 const SIPP={hasil:{},jalan:false,filter:'masalah'};
 function sippDom(r){if(r.sippDomain)return r.sippDomain;let s=String(r.pengadilan||'').toLowerCase().replace(/kelas\s+\S+/g,'');const j=/agama|syar/.test(s)?'pa':/negeri/.test(s)?'pn':(/\bPA\b|PA\./.test(r.nomorPenetapan||'')?'pa':'pn');
@@ -1900,7 +1914,7 @@ function isiOtomatisSipp(r,x){const fs=fieldSamar(r),pm=x.pemohon||[],kd=(x.kand
 const normNm=n=>String(n||'').toUpperCase().replace(/[^A-Z]/g,'');
 async function sippIsiKosong(r){if(!GAS||!r||!r.nomorPenetapan||!fieldSamar(r).length)return;toast('🕵️ Ada nama kosong/disamarkan — mencari di SIPP '+(sippDom(r)||'')+'…');
   try{const x=(await jalankanSipp([r.id]))[0];if(!x||x.status==='gagal'||x.status==='lewat'){toast('SIPP: '+(x&&x.pesan||'tidak bisa dicek'));return}
-    const isi=isiOtomatisSipp(r,x);if(isi.length){api('apiSimpan',JSON.parse(JSON.stringify(r))).then(y=>r._versi=y.versi).catch(e=>toast(e.message));api('apiCatat','ISI_DARI_SIPP',r.id,r.nama,isi.join(', ')).catch(()=>{})}
+    const isi=isiOtomatisSipp(r,x);if(isi.length){api('apiSimpan',JSON.parse(JSON.stringify(r))).then(y=>r._versi=y.versi).catch(e=>toast(e.message));catat('ISI_DARI_SIPP',r.id,r.nama,isi.join(', ')).catch(()=>{})}
     if(cur&&cur.id===r.id)renderMain();renderList();dlgSipp(r.id,isi)}catch(e){toast('SIPP gagal: '+(e.message||e))}}
 function pakaiSipp(id,path,sel){const r=DB.find(x=>x.id===id);const v=$('#'+sel).value.trim();if(!r||!v)return;const ks=path.split('.');let o=r;ks.slice(0,-1).forEach(k=>o=o[k]);o[ks.at(-1)]=v.toUpperCase();
   if(cur&&cur.id===id)cur=r;renderList();api('apiSimpan',JSON.parse(JSON.stringify(r))).then(x=>{r._versi=x.versi;toast('Nama diisi dari SIPP: '+v)}).catch(e=>toast(e.message));
@@ -2222,20 +2236,20 @@ function dlgBeda(r,L){BEDA={r,L};
   <p style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="BEDA=null;dlgClose()">Biarkan isian lama</button><button class="pri" onclick="pakaiBeda()">Ganti yang dicentang</button></p>`)}
 function pakaiBeda(){if(!BEDA)return;const{r,L}=BEDA,pilih=[...document.querySelectorAll('[data-beda]:checked')].map(e=>L[+e.dataset.beda]);BEDA=null;dlgClose();if(!pilih.length)return;
   pilih.forEach(x=>{const ks=x.path.split('.');let o=r;ks.slice(0,-1).forEach(k=>o=o[k]);o[ks.at(-1)]=x.baru;if(x.path==='kelurahan')r._kelManual=true});
-  simpanRec(r);renderMain();renderList();api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Diganti dengan isi penetapan: '+pilih.map(x=>labelKolom(x.path)).join(', ')).catch(()=>{});toast(pilih.length+' kolom diganti dengan isi penetapan')}
+  simpanRec(r);renderMain();renderList();catat('BACA_PENETAPAN',r.id,r.nama,'Diganti dengan isi penetapan: '+pilih.map(x=>labelKolom(x.path)).join(', ')).catch(()=>{});toast(pilih.length+' kolom diganti dengan isi penetapan')}
 function applyPenetapan(root,next){
   (root||$('#penBody')).querySelectorAll('[data-pk]').forEach(e=>{const ks=e.dataset.pk.split('.');let o=PEN;ks.slice(0,-1).forEach((k,i)=>{o[k]=o[k]??(/^\d+$/.test(ks[i+1])?[]:{});o=o[k]});o[ks.at(-1)]=e.value.trim()});
-  {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));api('apiCatat','TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
+  {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));catat('TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
   let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;let beda=[];if(!r)r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||''));
   /* berkas lama: hanya kolom kosong yang diisi, yang berbeda ditanyakan */
-  if(!baru){beda=gabungKeBerkas(PEN,r);cur=r;if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();save();api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Kolom kosong diisi dari penetapan '+(PEN.nomorPenetapan||'')+(beda.length?` · ${beda.length} kolom berbeda tidak diubah`:'')).catch(()=>{});if(beda.length)dlgBeda(r,beda);toast('Kolom kosong diisi dari penetapan — isian lama tidak diubah');return}
+  if(!baru){beda=gabungKeBerkas(PEN,r);cur=r;if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();save();catat('BACA_PENETAPAN',r.id,r.nama,'Kolom kosong diisi dari penetapan '+(PEN.nomorPenetapan||'')+(beda.length?` · ${beda.length} kolom berbeda tidak diubah`:'')).catch(()=>{});if(beda.length)dlgBeda(r,beda);toast('Kolom kosong diisi dari penetapan — isian lama tidak diubah');return}
   ['jenis','pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tempatLahir','tglLahir','agama','pekerjaan','alamat','kelurahan','status','pasangan','aktaNikah','tglMeninggalPasangan','ketMeninggal','alasan','terkaitMiliter'].forEach(k=>{if(PEN[k])r[k]=typeof PEN[k]==='string'?PEN[k]:String(PEN[k])});
   if(samar(r.nama))r.nama='';
   if(typeof PEN.orangTuaHidup==='boolean')r.orangTuaHidup=PEN.orangTuaHidup;terapkanTambahan(PEN,r);if(typeof PEN.isiBap==='string'&&PEN.isiBap.trim())r.isiBap=PEN.isiBap;
   if(PEN.kelurahan)r._kelManual=true;
   if(PEN.jenis==='Perwalian'){const a=(PEN.anak||[]).filter(x=>x&&(x.nama||x.tglLahir)).map(x=>({nama:samar(x.nama)?'':String(x.nama).toUpperCase(),jk:/perem/i.test(x.jk)?'Perempuan':'Laki-laki',tglLahir:x.tglLahir||'',wali:x.diwalikan===false||x.wali==='Tidak'?'Tidak':'Ya'}));if(a.length)r.anak=a}
   else if(PEN.terampu){const t=PEN.terampu;r.terampu={nama:samar(t.nama)?'':t.nama||'',jk:/perem/i.test(t.jk)?'Perempuan':'Laki-laki',tglLahir:t.tglLahir||'',kondisi:t.kondisi||''}}
-  cur=r;tab='jadwal';if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();Promise.resolve(flush()).then(()=>sippIsiKosong(r)).catch(()=>{});api('apiCatat','BACA_PENETAPAN',r.id,r.nama,'Isian diambil dari penetapan '+(PEN.nomorPenetapan||'')+(PEN._ai?' (AI)':'')).catch(()=>{});toast('Data penetapan diterapkan — lanjut isi jadwal sumpah')}
+  cur=r;tab='jadwal';if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();Promise.resolve(flush()).then(()=>sippIsiKosong(r)).catch(()=>{});catat('BACA_PENETAPAN',r.id,r.nama,'Isian diambil dari penetapan '+(PEN.nomorPenetapan||'')+(PEN._ai?' (AI)':'')).catch(()=>{});toast('Data penetapan diterapkan — lanjut isi jadwal sumpah')}
 
 
 /* ---------------- wizard Berkas Baru (3 bagian) ---------------- */
