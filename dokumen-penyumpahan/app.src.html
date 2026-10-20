@@ -663,11 +663,14 @@ function urlSesi(t){try{if(GAS&&google.script.history)google.script.history.repl
 function tokenDariUrl(){return new Promise(ok=>{if(!GAS||!google.script.url)return ok(null);let done=false;setTimeout(()=>{if(!done){done=true;ok(null)}},1500);
   try{google.script.url.getLocation(l=>{if(done)return;done=true;const v=l&&l.parameter&&l.parameter.sesi;ok(v||null)})}catch(e){done=true;ok(null)}})}
 function sesiHabis(){TOKEN=null;ss('bhpTok',null);urlSesi(null);showLogin('Sesi berakhir, silakan login lagi.')}
+/* error izin server (deployment dijalankan akun yang tidak punya akses ke spreadsheet database) → petunjuk perbaikan */
+function pesanIzin(m){m=String(m||'');if(!/tidak memiliki izin untuk mengakses dokumen|do not have permission to access the requested document/i.test(m))return esc(m);
+  return esc(m)+`<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff7ed;color:#7c2d12;font-size:12.5px;line-height:1.45"><b>Cara memperbaiki:</b> server aplikasi berjalan memakai akun Google yang <b>terakhir menerapkan (Terapkan) deployment</b>, dan akun itu tidak punya akses ke spreadsheet database.<br>• Pemilik spreadsheet database membuka proyek Apps Script → <b>Terapkan → Kelola deployment → ✏️ Edit → Versi baru → Terapkan</b> dari akunnya sendiri; <b>atau</b><br>• Pemilik membagikan spreadsheet "Dokumen Penyumpahan — Database" dan folder "Dokumen Penyumpahan BHP Medan" (Editor) ke akun yang menerapkan deployment.<br>Data berkas aman — tidak ada yang hilang.</div>`}
 function showLogin(msg){
   document.body.classList.add('locked');
   $('#login').innerHTML=`<form class="card" onsubmit="event.preventDefault();doLogin(this)" style="max-width:380px;margin:12vh auto;padding:28px">
     <div style="text-align:center;margin-bottom:14px"><img src="${LOGO_DEF}" style="height:64px"><h2 style="margin:10px 0 2px;font-size:18px">Dokumen Penyumpahan</h2><span class="hint">Balai Harta Peninggalan Medan</span></div>
-    ${msg?`<p style="color:var(--warn);font-size:13px">${esc(msg)}</p>`:''}
+    ${msg?`<div style="color:var(--warn);font-size:13px;margin:0 0 10px">${pesanIzin(msg)}</div>`:''}
     <label>Username</label><input name="u" autocomplete="username" required autofocus>
     <label style="margin-top:10px">Password</label><input name="p" type="password" autocomplete="current-password" required>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:500;cursor:pointer"><input type="checkbox" name="ing" checked style="width:auto;margin:0"> Tetap masuk di perangkat ini (30 hari)</label>
