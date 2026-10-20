@@ -758,6 +758,29 @@ async function tambahDataSipp(){if(!GAS||!DB||!DB.length)return;let D;try{D=awai
   Object.keys(D).forEach(no=>{const kn=nomorKunci(no);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn&&perluSipp(r)).forEach(r=>{const h=isiDariPen(r,D[no],'');if(h.isi.length){isi.push(r.nomorPenetapan+': '+h.isi.join(', '));simpanRec(r)}})});
   if(isi.length){catat('ISI_DARI_SIPP','','',`${isi.length} berkas dilengkapi dari data SIPP (kolom kosong saja): `+isi.join('; ')).catch(()=>{});
     toast(`${isi.length} berkas dilengkapi dari SIPP (nama wali/anak/tanggal — kolom kosong saja)`);renderList()}}
+/* ===== Berkas baru yang menunjuk BHP Medan, dikirim lewat GitHub (data Direktori Putusan MA + SIPP).
+   Dibuat sekali saja oleh Admin Utama: dilewati bila id-nya pernah ada (termasuk yang sudah dihapus) atau nomor penetapan + jenis sudah ada.
+   Alamat/kelurahan pemohon tidak tercantum di sumber — diisi petugas setelah salinan penetapan diterima. ===== */
+const BERKAS_GITHUB=[
+  {id:'gh-pms-147-2026',jenis:'Pengampuan',nama:'BERNANDO TAPPIN TUAH DAMANIK',jk:'Laki-laki',agama:'',status:'Ibu Kandung',
+    terampu:{nama:'NURSIAH PURBA',jk:'Perempuan',tglLahir:'',kondisi:'mengalami sakit gangguan jiwa/depresi'},
+    pengadilan:'Pengadilan Negeri Pematangsiantar',nomorPenetapan:'147/Pdt.P/2026/PN Pms',tglPenetapan:'2026-07-30',kotaPermohonan:'Pematangsiantar',
+    alasan:'memberikan persetujuan menjual/memindahkan hak atas tanah Sertipikat Hak Milik Nomor 322 atas nama Nursiah Purba',
+    hartaTetap:'Sebidang tanah seluas 1.229 m² yang terletak di Jalan Karang Sari, Kelurahan Tambun Nabolon, Kecamatan Siantar Martoba, Kota Pematangsiantar, Sertipikat Hak Milik Nomor 322 atas nama Nursiah Purba, diterbitkan Kepala Kantor Pertanahan Kota Pematangsiantar tanggal 20 September 1996',
+    asal:'Data Direktori Putusan MA + SIPP PN Pematangsiantar (BHP Medan ditunjuk sebagai Pengampu Pengawas)'},
+  {id:'gh-pms-153-2026',jenis:'Perwalian',nama:'DIAN FESA SILITONGA',agama:'',status:'Keponakan',
+    anak:[{nama:'PURNAMA CLARA MARGARETH PURBA',jk:'Perempuan',tglLahir:'2014-08-06',wali:'Ya'}],orangTuaHidup:false,
+    ketMeninggal:'Ayah kandung anak, Almarhum Henry Agus Jaya Purba, dan ibu kandung anak, Almarhumah Rina Gokasi Silitonga (kakak Pemohon), telah meninggal dunia',
+    pengadilan:'Pengadilan Negeri Pematangsiantar',nomorPenetapan:'153/Pdt.P/2026/PN Pms',tglPenetapan:'2026-08-10',kotaPermohonan:'Pematangsiantar',
+    alasan:'pengambilan uang BPJS Ketenagakerjaan Almarhumah Rina Gokasi Silitonga (ibu kandung anak) di BPJS Ketenagakerjaan Cabang Pematangsiantar',
+    hartaTunai:'Dana BPJS Ketenagakerjaan atas nama Almarhumah Rina Gokasi Silitonga pada BPJS Ketenagakerjaan Cabang Pematangsiantar, Kartu Peserta Nomor 1271436702830006',
+    asal:'Data Direktori Putusan MA + SIPP PN Pematangsiantar (BHP Medan ditunjuk sebagai pengawas perwalian)'}];
+async function berkasDariGithub(){if(!GAS||!isSuper()||!DB)return;const kn=r=>r.jenis+'|'+nomorKunci(r.nomorPenetapan);
+  const baru=BERKAS_GITHUB.filter(b=>!DB.some(r=>r.id===b.id||(!r._dihapus&&kn(r)===kn(b)))).map(b=>{const r=Object.assign(blank(),JSON.parse(JSON.stringify(b)));delete r.asal;return{r,asal:b.asal}});
+  if(!baru.length)return;try{const x=await api('apiSimpanBanyak',baru.map(({r})=>Object.assign(JSON.parse(JSON.stringify(r)),{asal:'GitHub'})));const ok=new Set(x.ids||[]);
+    const masuk=baru.filter(({r})=>ok.has(r.id));masuk.forEach(({r,asal})=>{addRec(r,asal);r._versi=1;DASAR.set(r,JSON.stringify(r))});
+    if(masuk.length){catat('IMPOR_CSV','','',`[BERKAS_GITHUB] ${masuk.length} berkas baru: `+masuk.map(({r})=>r.nomorPenetapan+' '+r.nama).join('; ')).catch(()=>{});
+      toast(`${masuk.length} berkas baru yang menunjuk BHP ditambahkan: `+masuk.map(({r})=>r.nama).join(', '));renderList()}}catch(e){console.warn('Berkas GitHub:',e)}}
 async function boot(){
   if(!TOKEN){showLogin();return}
   try{const r=INIT||await api('apiInit');INIT=null;ME=r.user;USERS=r.users||[];SPS=r.sps||SPS;SET=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),r.settings||{});lengkapiPejabat();pakaiDB(r.berkas||[]);FOLDER=r.folderUrl||'';
@@ -765,6 +788,7 @@ async function boot(){
     if(r.ai!==undefined)ADA_AI=r.ai;else api('apiAdaAI').then(v=>ADA_AI=v).catch(()=>{});
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
   $('#login').hidden=true;document.body.classList.remove('locked');renderHeader();cur=null;renderList();renderMain();
+  setTimeout(()=>berkasDariGithub().catch(e=>console.warn('Berkas GitHub:',e)),2500);
   setTimeout(()=>{try{tambahDataGithub()}catch(e){console.warn('Tambah data:',e)}tambahDataSipp().catch(e=>console.warn('Tambah SIPP:',e))},1500);
   if(isSuper())setTimeout(()=>imporAntrean().catch(e=>console.warn('Antrean impor:',e)),3000);
   if(ME.wajibGanti)gantiPassword(true)}
