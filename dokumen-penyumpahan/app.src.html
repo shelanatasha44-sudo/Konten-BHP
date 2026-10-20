@@ -1735,7 +1735,62 @@ function dlgKepri(){const L=berkasKepri(),k=kunjKepriCfg(),blm=L.filter(r=>!alas
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13.5px">${cb('kpS','Surat Antar ke Wali/Pengampu',1)}${cb('kpL','Surat Antar ke Lurah',1)}${cb('kpLewat','Lewati surat yang isian utamanya belum lengkap (dicatat di daftar pengiriman)',1)}
     ${GAS?cb('kpSps','Ambil nomor SPS untuk surat yang belum bernomor <small class="hint">(nomor yang sudah diambil tidak bisa dibatalkan)</small>',0):''}</div>
   <div id="kpOut" style="margin-top:8px"></div>
-  <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="dlgClose()">Tutup</button><button onclick="eksporKepri()" ${L.length?'':'disabled'}>⬇ Data Kepri (CSV)</button><button class="pri" onclick="unduhKepri(this)" ${L.length?'':'disabled'}>📦 Unduh ZIP</button></p>`)}
+  <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="dlgClose()">Tutup</button><button onclick="eksporKepri()" ${L.length?'':'disabled'}>⬇ Data Kepri (CSV)</button><button onclick="imporKepriPilih()" title="Isi nomor SPS, email, alamat dll. dari file CSV">⬆ Impor CSV</button><button class="pri" onclick="unduhKepri(this)" ${L.length?'':'disabled'}>📦 Unduh ZIP</button></p>`)}
+
+/* ===== Impor CSV ke berkas (Surat Massal Kepri): dicocokkan lewat Nomor Penetapan, dengan pilihan kolom & cara pengisian.
+   Sel kosong di CSV tidak pernah menghapus data. Bawaan: hanya mengisi kolom yang kosong. ===== */
+const IMPK_KOLOM=[
+  {f:'nomorSurat',lbl:'Nomor surat ke Wali/Pengampu (SPS)',al:['nomorsurat','nomorsuratkewalipengampu','nomorsuratwalipengampu','nomorsuratwali','nomorsuratpengampu']},
+  {f:'nomorLurah',lbl:'Nomor surat ke Lurah/Camat (SPS)',al:['nomorsuratlurah','nomorsuratkelurahcamat','nomorsuratlurahcamat','nomorlurah']},
+  {f:'email',lbl:'Email Wali/Pengampu',al:['emailwalipengampu','emailwali','emailpengampu','email','emailpemohon']},
+  {f:'nama',lbl:'Nama Wali/Pengampu',al:['nama','namawali','namapengampu','namawalipengampu']},
+  {f:'kelurahan',lbl:'Kelurahan, Kecamatan, Kota',al:['kelkeckota','kelurahankecamatan','kelurahankecamatankota','kelurahan'],mati:true},
+  {f:'alamat',lbl:'Alamat Wali/Pengampu',al:['alamat','alamatwali','alamatpengampu','alamatlengkap'],mati:true},
+  {f:'hp',lbl:'No. HP',al:['nohp','hp','nomorhp','telepon'],mati:true},
+  {f:'alamatKelurahan',lbl:'Alamat kantor lurah (isian manual)',al:['alamatkelurahan'],mati:true},
+  {f:'tanggalSurat',lbl:'Tanggal surat',al:['tanggalsurat','tglsurat'],mati:true}];
+let IMPK=null;
+function imporKepriPilih(){const i=document.createElement('input');i.type='file';i.accept='.csv,text/csv';i.onchange=async()=>{const f=i.files[0];if(!f)return;
+  try{let t=await f.text();t=t.replace(/^﻿/,'');imporKepriBaca(t,f.name)}catch(e){alert('Gagal membaca CSV: '+(e.message||e))}};i.click()}
+function csvDelim(t,d){if(d===',')return parseCsv(t);return parseCsv(t.replace(/"[^"]*"|,|;/g,m=>m===';'?',':m===','?'\u0001':m)).map(r=>r.map(c=>c.replace(/\u0001/g,',')))}
+function imporKepriBaca(t,nama){const h1=(t.split(/\r?\n/)[0]||''),d=(h1.split(';').length>h1.split(',').length)?';':',';
+  const rows=csvDelim(t,d).filter(r=>r.some(c=>String(c).trim()));if(rows.length<2)return alert('CSV kosong atau tanpa baris data.');
+  const H=rows[0].map(h=>String(h).toLowerCase().replace(/[^a-z0-9]/g,'')),iNo=H.findIndex(h=>h==='nomorpenetapan');
+  if(iNo<0)return alert('Kolom "Nomor Penetapan" tidak ditemukan di CSV. Gunakan Daftar Pengiriman.csv atau Data Kepri (CSV) dari aplikasi.');
+  const kol=IMPK_KOLOM.map(k=>({...k,i:H.findIndex(h=>k.al.includes(h))})).filter(k=>k.i>=0);
+  if(!kol.length)return alert('Tidak ada kolom yang bisa diimpor (mis. Nomor Surat, Email, Alamat, Kelurahan).');
+  IMPK={nama,rows:rows.slice(1),iNo,kol};
+  dlg(`<h3>⬆ Impor CSV ke berkas</h3><p class="hint">File: <b>${esc(nama)}</b> · ${rows.length-1} baris · dicocokkan lewat <b>Nomor Penetapan</b>. Sel yang kosong di CSV tidak menghapus data apa pun.</p>
+    <div class="card" style="padding:10px"><b>Kolom yang diimpor</b><div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;font-size:13.5px">${kol.map((k,j)=>`<label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" data-ik="${j}" style="width:auto;margin:0" ${k.mati?'':'checked'}> ${esc(k.lbl)} <span class="hint">(kolom CSV: ${esc(rows[0][k.i])})</span></label>`).join('')}</div></div>
+    <div class="card" style="padding:10px;margin-top:8px"><b>Bila kolom di aplikasi sudah berisi</b><div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;font-size:13.5px">
+      <label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="radio" name="ikMode" value="kosong" style="width:auto;margin:0" checked> Isi kolom yang kosong saja — data yang sudah ada tidak diubah (disarankan)</label>
+      <label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="radio" name="ikMode" value="ganti" style="width:auto;margin:0"> Ganti juga isian yang berbeda <span style="color:var(--warn)">(hati-hati, termasuk nomor SPS)</span></label></div></div>
+    ${kol.some(k=>k.f==='nomorSurat'||k.f==='nomorLurah')?`<div class="card" style="padding:10px;margin-top:8px"><b>Tanggal nomor SPS</b> <span class="hint">(opsional — tanggal surat untuk berkas yang nomor SPS-nya baru diisi; kosong = tanggal surat tidak diubah)</span><input type="date" id="ikTgl" style="margin-top:6px;max-width:220px"></div>`:''}
+    <div id="ikOut" style="margin-top:8px"></div>
+    <p style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button onclick="dlgKepri()">← Kembali</button><button class="pri" id="ikBtn" onclick="imporKepriCek()">🔍 Lihat perubahan</button></p>`)}
+function imporKepriRencana(){const X=IMPK,pakai=X.kol.filter((k,j)=>{const c=document.querySelector(`[data-ik="${j}"]`);return c&&c.checked}),ganti=(document.querySelector('input[name=ikMode]:checked')||{}).value==='ganti';
+  const tgl=($('#ikTgl')&&$('#ikTgl').value)||'',ubah=[],tak=[],beda=[],seen=new Set();
+  X.rows.forEach(row=>{const no=String(row[X.iNo]||'').trim();if(!no)return;const kn=nomorKunci(no);if(seen.has(kn))return;seen.add(kn);
+    const R=DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn);if(!R.length){tak.push(no);return}
+    R.forEach(r=>{const ch=[];pakai.forEach(k=>{let v=String(row[k.i]??'').trim();if(!v||/^…+$|^\.{3,}$/.test(v))return;if(k.f==='email'&&!emailValid(v))return;if(k.f==='tanggalSurat'){v=toISO(v)||(/^\d{4}-\d{2}-\d{2}$/.test(v)?v:'');if(!v)return}
+      const lama=String(r[k.f]??'').trim();if(lama===v)return;
+      const boleh=!lama||(k.f==='kelurahan'||k.f==='alamat')&&bolehTambah(lama,v);
+      if(boleh||ganti)ch.push({f:k.f,lbl:k.lbl,lama,baru:v,timpa:!!lama&&!boleh});else beda.push({no,lbl:k.lbl,lama,baru:v})});
+      if(tgl&&ch.some(c=>(c.f==='nomorSurat'||c.f==='nomorLurah')&&!c.lama)&&r.tanggalSurat!==tgl&&!ch.some(c=>c.f==='tanggalSurat'))ch.push({f:'tanggalSurat',lbl:'Tanggal surat (ikut nomor SPS)',lama:r.tanggalSurat||'',baru:tgl,timpa:false});
+      if(ch.length)ubah.push({r,ch})})});
+  return{ubah,tak,beda}}
+function imporKepriCek(){const P=imporKepriRencana();IMPK.plan=P;const o=$('#ikOut');
+  o.innerHTML=`<div class="card" style="padding:10px"><b>${P.ubah.length} berkas akan diubah</b>${P.tak.length?` · <span class="hint">${P.tak.length} nomor penetapan tidak ada di aplikasi</span>`:''}${P.beda.length?` · <span class="hint">${P.beda.length} isian dilewati karena aplikasi sudah berisi lain</span>`:''}
+    <div style="max-height:36vh;overflow:auto;margin-top:6px;font-size:13px">${P.ubah.map((u,i)=>`<label style="margin:0 0 6px;display:flex;gap:8px;align-items:flex-start;font-weight:400"><input type="checkbox" data-iu="${i}" checked style="width:auto;margin:3px 0 0"><span><b>${esc(u.r.nama||'(tanpa nama)')}</b> — ${esc(u.r.nomorPenetapan)}<br>${u.ch.map(c=>`${esc(c.lbl)}: ${c.lama?`<s>${esc(c.lama)}</s> → `:''}<b${c.timpa?' style="color:var(--warn)"':''}>${esc(c.baru)}</b>`).join('<br>')}</span></label>`).join('')||'<span class="hint">Tidak ada perubahan.</span>'}
+    ${P.beda.length?`<details style="margin-top:6px"><summary class="hint">Isian yang dilewati (aplikasi sudah berisi)</summary>${P.beda.map(b=>`<div class="hint">${esc(b.no)} · ${esc(b.lbl)}: aplikasi "${esc(b.lama)}" — CSV "${esc(b.baru)}"</div>`).join('')}</details>`:''}
+    ${P.tak.length?`<details style="margin-top:6px"><summary class="hint">Nomor penetapan tidak ditemukan</summary><div class="hint">${P.tak.map(esc).join(', ')}</div></details>`:''}</div></div>`;
+  const b=$('#ikBtn');if(P.ubah.length){b.textContent=`💾 Simpan ${P.ubah.length} berkas`;b.onclick=imporKepriSimpan}else{b.textContent='🔍 Lihat perubahan';b.onclick=imporKepriCek}}
+function imporKepriSimpan(){const P=IMPK&&IMPK.plan;if(!P)return;const pilih=P.ubah.filter((u,i)=>{const c=document.querySelector(`[data-iu="${i}"]`);return c&&c.checked});
+  if(!pilih.length)return toast('Tidak ada berkas yang dicentang');const timpa=pilih.reduce((a,u)=>a+u.ch.filter(c=>c.timpa).length,0);
+  if(timpa&&!confirm(`${timpa} isian yang sudah ada akan diganti. Lanjutkan?`))return;
+  pilih.forEach(u=>{u.ch.forEach(c=>{u.r[c.f]=c.baru});if(u.r===cur)save();else simpanRec(u.r)});
+  api('apiCatat','IMPOR_CSV_KEPRI','','',`${pilih.length} berkas diisi dari ${IMPK.nama}: `+pilih.map(u=>u.r.nomorPenetapan+' ('+u.ch.map(c=>c.f).join(',')+')').join('; ')).catch(()=>{});
+  toast(`${pilih.length} berkas diperbarui dari CSV`);IMPK=null;renderList();if(cur)renderMain();dlgKepri()}
 /* data lengkap berkas Kepulauan Riau untuk dicek / dilengkapi di luar aplikasi */
 function eksporKepri(){const q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
   const H=['No','Jenis','Nama','NIK','Jenis_Kelamin','Agama','Pekerjaan','Alamat','Kel_Kec_Kota','Alamat_Kelurahan','Tujuan_Surat','Alamat_Kantor_Tujuan','Kota','Pengadilan','Nomor_Penetapan','Tanggal_Penetapan','Anak/Terampu','No_HP','Nomor_Surat','Nomor_Surat_Lurah','Status','Keterangan','ID'];
