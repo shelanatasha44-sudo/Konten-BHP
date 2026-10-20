@@ -773,7 +773,7 @@ const BERKAS_GITHUB=[
     ketMeninggal:'Ayah kandung anak, Almarhum Henry Agus Jaya Purba, dan ibu kandung anak, Almarhumah Rina Gokasi Silitonga (kakak Pemohon), telah meninggal dunia',
     pengadilan:'Pengadilan Negeri Pematangsiantar',nomorPenetapan:'153/Pdt.P/2026/PN Pms',tglPenetapan:'2026-08-10',kotaPermohonan:'Pematangsiantar',
     alasan:'pengambilan uang BPJS Ketenagakerjaan Almarhumah Rina Gokasi Silitonga (ibu kandung anak) di BPJS Ketenagakerjaan Cabang Pematangsiantar',
-    hartaTunai:'Dana BPJS Ketenagakerjaan atas nama Almarhumah Rina Gokasi Silitonga pada BPJS Ketenagakerjaan Cabang Pematangsiantar, Kartu Peserta Nomor 1271436702830006',
+    hartaTunai:'Dana BPJS Ketenagakerjaan atas nama Almarhumah Rina Gokasi Silitonga pada BPJS Ketenagakerjaan Cabang Pematangsiantar, Kartu Peserta Nomor 1271436702830006 (sesuai amar; dalam petitum tertulis 1271036702830006 — nomor ini sesuai format NIK Almarhumah: Kota Medan, Kec. Medan Helvetia, lahir 27 Februari 1983; mohon dicocokkan dengan kartu asli)',
     asal:'Data Direktori Putusan MA + SIPP PN Pematangsiantar (BHP Medan ditunjuk sebagai pengawas perwalian)'}];
 async function berkasDariGithub(){if(!GAS||!isSuper()||!DB)return;const kn=r=>r.jenis+'|'+nomorKunci(r.nomorPenetapan);
   const baru=BERKAS_GITHUB.filter(b=>!DB.some(r=>r.id===b.id||(!r._dihapus&&kn(r)===kn(b)))).map(b=>{const r=Object.assign(blank(),JSON.parse(JSON.stringify(b)));delete r.asal;return{r,asal:b.asal}});
