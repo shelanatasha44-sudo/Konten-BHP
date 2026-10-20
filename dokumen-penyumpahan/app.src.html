@@ -705,18 +705,54 @@ const TAMBAH_DATA=[
   {nomor:'187/Pdt.P/2026/PA.Btm',email:'nardi0393@gmail.com'},{nomor:'193/Pdt.P/2026/PA.Btm',email:'lisnawatylubis@gmail.com'},
   {nomor:'42/Pdt.P/2026/PA.Btm',email:'r.nayu.praswati@gmail.com'},
 ];
+/* Nomor SPS yang SUDAH diambil (ZIP Kota Batam, 19 Oktober 2026): diisi ke kolom kosong agar tidak diminta lagi; tanggal surat ikut tanggal nomor */
+const NOMOR_SPS_ADA={tanggal:'2026-10-19',data:[
+  ['154/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3339','W.2.AHU.AHU.1-AH.06.02-3340'],
+  ['3/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3341','W.2.AHU.AHU.1-AH.06.02-3342'],
+  ['418/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3343','W.2.AHU.AHU.1-AH.06.02-3344'],
+  ['394/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.03-3345','W.2.AHU.AHU.1-AH.06.03-3346'],
+  ['48/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3347','W.2.AHU.AHU.1-AH.06.02-3348'],
+  ['81/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.03-3349','W.2.AHU.AHU.1-AH.06.03-3350'],
+  ['443/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3351','W.2.AHU.AHU.1-AH.06.02-3352'],
+  ['119/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3353','W.2.AHU.AHU.1-AH.06.02-3354'],
+  ['58/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3355','W.2.AHU.AHU.1-AH.06.02-3356'],
+  ['92/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3357','W.2.AHU.AHU.1-AH.06.02-3358'],
+  ['11/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3359','W.2.AHU.AHU.1-AH.06.02-3360'],
+  ['195/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3361','W.2.AHU.AHU.1-AH.06.02-3362'],
+  ['53/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3363','W.2.AHU.AHU.1-AH.06.02-3364'],
+  ['238/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3365','W.2.AHU.AHU.1-AH.06.02-3366'],
+  ['184/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3367','W.2.AHU.AHU.1-AH.06.02-3368'],
+  ['44/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3369','W.2.AHU.AHU.1-AH.06.02-3370'],
+  ['184/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3371','W.2.AHU.AHU.1-AH.06.02-3372'],
+  ['250/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3373','W.2.AHU.AHU.1-AH.06.02-3374'],
+  ['193/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3375','W.2.AHU.AHU.1-AH.06.02-3376'],
+  ['69/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3377','W.2.AHU.AHU.1-AH.06.02-3378'],
+  ['158/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.03-3379','W.2.AHU.AHU.1-AH.06.03-3380'],
+  ['186/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3381','W.2.AHU.AHU.1-AH.06.02-3382'],
+  ['187/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3383','W.2.AHU.AHU.1-AH.06.02-3384'],
+  ['42/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3385','W.2.AHU.AHU.1-AH.06.02-3386'],
+  ['173/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3387','W.2.AHU.AHU.1-AH.06.02-3388'],
+  ['14/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3389','W.2.AHU.AHU.1-AH.06.02-3390'],
+  ['181/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3391','W.2.AHU.AHU.1-AH.06.02-3392'],
+  ['130/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.02-3393','W.2.AHU.AHU.1-AH.06.02-3394'],
+  ['70/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3395','W.2.AHU.AHU.1-AH.06.02-3396'],
+  ['74/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3397','W.2.AHU.AHU.1-AH.06.02-3398'],
+  ['293/Pdt.P/2026/PN Btm','W.2.AHU.AHU.1-AH.06.03-3399','W.2.AHU.AHU.1-AH.06.03-3400'],
+  ['142/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3401','W.2.AHU.AHU.1-AH.06.02-3402'],
+  ['26/Pdt.P/2026/PA.Btm','W.2.AHU.AHU.1-AH.06.02-3403','W.2.AHU.AHU.1-AH.06.02-3404'],
+]};
 function bolehTambah(lama,baru){lama=String(lama??'').trim();if(!lama)return true;if(/\b(Kel\.?|Kelurahan|Desa|Kec\.?|Kecamatan)\b/i.test(lama))return false;
   const k=x=>String(x).toLowerCase().replace(/provinsi|kepulauan riau|[^a-z]/g,'');return k(baru).includes(k(lama))}
 /* isian yang pernah dikirim lalu ternyata tidak terbukti: dikosongkan lagi HANYA bila isinya masih persis sama (tidak diubah orang) */
 const TARIK_DATA=[{nomor:'174/Pdt.P/2026/PA.Btm',kelurahan:'Kecamatan Batu Aji, Kota Batam'}];
-function tambahDataGithub(){if(!DB||!DB.length)return;const isi=[];
-  TARIK_DATA.forEach(t=>{const kn=nomorKunci(t.nomor);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn).forEach(r=>{let ubah=false;
-    Object.keys(t).forEach(f=>{if(f!=='nomor'&&r[f]===t[f]){r[f]='';ubah=true}});if(ubah){isi.push(r);simpanRec(r)}})});
-  TAMBAH_DATA.forEach(t=>{const kn=nomorKunci(t.nomor);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn).forEach(r=>{let ubah=false;
-    Object.keys(t).forEach(f=>{if(f==='nomor'||samaNilai(r[f],t[f]))return;if(bolehTambah(r[f],t[f])){r[f]=t[f];ubah=true}});
-    if(ubah){isi.push(r);simpanRec(r)}})});
-  if(isi.length){api('apiCatat','TAMBAH_DATA','','',`${isi.length} berkas Kepri dilengkapi (kolom kosong saja): `+isi.map(r=>r.nomorPenetapan).join(', ')).catch(()=>{});
-    toast(`${isi.length} berkas Kepri dilengkapi (kelurahan/kecamatan/email — kolom kosong saja, data lain tidak diubah)`);renderList()}}
+function tambahDataGithub(){if(!DB||!DB.length)return;const isi=new Set(),cari=no=>{const kn=nomorKunci(no);return DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn)};
+  TARIK_DATA.forEach(t=>cari(t.nomor).forEach(r=>{Object.keys(t).forEach(f=>{if(f!=='nomor'&&r[f]===t[f]){r[f]='';isi.add(r)}})}));
+  TAMBAH_DATA.forEach(t=>cari(t.nomor).forEach(r=>{Object.keys(t).forEach(f=>{if(f==='nomor'||samaNilai(r[f],t[f]))return;if(bolehTambah(r[f],t[f])){r[f]=t[f];isi.add(r)}})}));
+  let nNo=0;NOMOR_SPS_ADA.data.forEach(([no,ns,nl])=>cari(no).forEach(r=>{let isiNo=false;
+    if(ns&&!String(r.nomorSurat||'').trim()){r.nomorSurat=ns;isiNo=true;nNo++}if(nl&&!String(r.nomorLurah||'').trim()){r.nomorLurah=nl;isiNo=true;nNo++}
+    if(isiNo){r.tanggalSurat=NOMOR_SPS_ADA.tanggal;isi.add(r)}}));
+  if(isi.size){const L=[...isi];L.forEach(simpanRec);api('apiCatat','TAMBAH_DATA','','',`${L.length} berkas Kepri dilengkapi (kolom kosong saja${nNo?', '+nNo+' nomor SPS yang sudah ada':''}): `+L.map(r=>r.nomorPenetapan).join(', ')).catch(()=>{});
+    toast(`${L.length} berkas Kepri dilengkapi${nNo?' (termasuk '+nNo+' nomor SPS yang sudah diambil)':''} — hanya kolom kosong, data lain tidak diubah`);renderList()}}
 /* Data SIPP (nama wali, anak, tanggal) dari file Drive pribadi lewat server: hanya kolom kosong / nama disamarkan yang diisi */
 async function tambahDataSipp(){if(!GAS||!DB||!DB.length)return;let D;try{D=await api('apiImpor','tambahData')}catch(e){return}if(!D)return;const isi=[];
   Object.keys(D).forEach(no=>{const kn=nomorKunci(no);DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===kn&&perluSipp(r)).forEach(r=>{const h=isiDariPen(r,D[no],'');if(h.isi.length){isi.push(r.nomorPenetapan+': '+h.isi.join(', '));simpanRec(r)}})});
@@ -761,7 +797,8 @@ function dlgClose(){$('#gDlg').close()}
 let saveT=null,saving=false,again=false,listT=null;
 function save(){if(!cur)return;setStat('✎ Belum tersimpan…');clearTimeout(saveT);saveT=setTimeout(flush,900)}
 /* simpan berkas mana pun: yang sedang dibuka lewat save(), selain itu langsung ke server */
-function simpanRec(r){if(r===cur)return save();const js=JSON.stringify(r);api('apiSimpan',JSON.parse(js),r._versi).then(x=>{if(x&&!x.konflik){r._versi=x.versi;DASAR.set(r,js)}else if(x&&x.konflik)toast('Berkas '+(r.nama||'')+' diubah orang lain — isi BAP AI tidak tersimpan, ulangi')}).catch(e=>toast(e.message))}
+const ANTRE_SIMPAN=new WeakMap();/* simpan per berkas berurutan — dua pengisian otomatis pada berkas yang sama tidak saling bentrok */
+function simpanRec(r){if(r===cur)return save();const p=(ANTRE_SIMPAN.get(r)||Promise.resolve()).then(()=>{const js=JSON.stringify(r);return api('apiSimpan',JSON.parse(js),r._versi).then(x=>{if(x&&!x.konflik){r._versi=x.versi;DASAR.set(r,js)}else if(x&&x.konflik)toast('Berkas '+(r.nama||'')+' diubah orang lain — isian otomatis tidak tersimpan, buka ulang aplikasi')})}).catch(e=>toast(e.message));ANTRE_SIMPAN.set(r,p);return p}
 /* DASAR = isi berkas terakhir yang sama dengan server. Bila berkas ternyata diubah orang lain (bentrok), perubahan kita
    (beda dari DASAR) digabung ke data server — isian orang lain tidak ditimpa dan isian baru kita tidak dibuang */
 const DASAR=new WeakMap();
