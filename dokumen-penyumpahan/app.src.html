@@ -365,7 +365,9 @@ const lurahNm=r=>{const k=String(r.kelurahan||'').trim().replace(/^(Lurah|Kelura
 /* tembusan kanwil mengikuti provinsi tempat tinggal (seperti format surat Padang → Kanwil Sumatera Barat); Sumatera Utara / tidak diketahui = Pengaturan */
 const kanwilDef=r=>{const p=provinsiBerkas(r);return PROV_DATA[p]&&p!=='Sumatera Utara'?'Kepala Kantor Wilayah Kementerian Hukum '+p:SET.kanwilTembusan};
 const kanwil=r=>r.kanwilTembusan||kanwilDef(r);
-const tembusan=(r,lurah=true,pertinggal=false)=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:8pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:8pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah?';':''}</li>${lurah?`<li>${(t=>t?esc(t.jab):lurahNm(r))(tujuanSurat(r))}</li>`:''}</ol>`;
+const tembusan=(r,lurah=true,pertinggal=false,jabLurah='')=>`<p class="ni" data-keep="1" style="margin-top:22pt;font-size:8pt;line-height:1">Tembusan:</p><ol data-keep="1" style="font-size:8pt;line-height:1"><li>Direktur Jenderal Administrasi Hukum Umum Kementerian Hukum RI;</li><li>Direktur Perdata Direktorat Jenderal Administrasi Hukum Umum;</li><li>${esc(kanwil(r))}${lurah||pertinggal?';':''}</li>${lurah?`<li>${jabLurah?esc(jabLurah):(t=>t?esc(t.jab):lurahNm(r))(tujuanSurat(r))}${pertinggal?';':''}</li>`:''}${pertinggal?'<li>Pertinggal</li>':''}</ol>`;
+/* tembusan undangan (contoh surat BHP): "Lurah Kelurahan X, Kecamatan Y, Kota Z" / "Kepala Desa X, Kecamatan Y, Kabupaten Z" */
+const jabLurahLengkap=r=>{const w=wilayahLurah(r);if(!w.kel)return'';const desa=/^Desa\b/i.test(w.kel);return[(desa?'Kepala ':'Lurah ')+w.kel,w.kec,w.kota].filter(Boolean).join(', ')};
 const penetapan=r=>`Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap`;
 const blnThn=s=>{const d=pd(s);return d?`${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'};
 /* kota/kabupaten dari teks wilayah: hanya segmen yang diawali Kota/Kabupaten — nama kelurahan seperti "Kota Matsum I" tidak terambil */
@@ -435,6 +437,10 @@ const syarat=(items,after)=>`<ol style="margin-left:36pt;line-height:1.15">${ite
 const PNBP_LAMA=/Nomor 45 Tahun 2024|Hak Asasi Manusia/i;
 const dasarPnbp=()=>String(SET.dasarPnbp&&!PNBP_LAMA.test(SET.dasarPnbp)?SET.dasarPnbp:DEF_SET.dasarPnbp).replace(/\.\s*$/,'');
 const pnbpTxt=()=>'Nominal PNBP ditetapkan secara resmi berdasarkan '+esc(dasarPnbp())+'.';
+/* PP 30/2026 Lampiran (BHP): pengurusan sumpah perwalian/pengampuan yang ADA harta Rp200.000/permohonan; TIDAK ada harta Rp0 */
+const tanpaHarta=r=>/^Tidak/i.test(String(r&&r.pnbpHarta||''));
+const pnbpUndangan=(r,d)=>tanpaHarta(r)?`Biaya Penerimaan Negara Bukan Pajak (PNBP) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt} yang tidak disertai harta sebesar Rp 0,- (nihil/tidak dipungut biaya), sesuai ${esc(dasarPnbp())}.`
+  :`Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt}. Nominal ini ditetapkan secara resmi berdasarkan ${esc(dasarPnbp())}. ${BILLING}`;
 const BILLING='(Mekanisme pembayaran akan dipandu melalui kode pembayaran/<i>billing</i> kas negara secara elektronik pada saat kegiatan).';
 
 const tabelJadwal=r=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:100pt">Hari / Tanggal</td><td>:</td><td>${hari(r.tglSumpah)}, ${tgl(r.tglSumpah)}</td></tr>
@@ -454,8 +460,8 @@ const DOCS_EXTRA={
 `<p>Guna kelengkapan administrasi Berita Acara Penyumpahan dan Pencatatan Harta sesuai ketentuan peraturan perundang-undangan, kami memohon kesediaan ${s} untuk membawa dokumen pendukung pada saat kegiatan, yang meliputi:</p>`+
     syarat([...dok,'Fotokopi Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;',
       'Meterai senilai Rp 10.000,- (Sepuluh Ribu Rupiah) sebanyak 4 (empat) lembar;',
-      `Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt}. Nominal ini ditetapkan secara resmi berdasarkan ${esc(dasarPnbp())}. ${BILLING}`],[])+
-`<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Untuk informasi lebih lanjut, ${s} dapat menghubungi <i>Contact Person</i> (WhatsApp) Layanan Perwalian dan Pengampuan di nomor: ${WA()}. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,!!String(r.kelurahan||'').trim(),true)}}};
+      pnbpUndangan(r,d)],[])+
+`<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Untuk informasi lebih lanjut, ${s} dapat menghubungi <i>Contact Person</i> (WhatsApp) Layanan Perwalian dan Pengampuan di nomor: ${WA()}. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,!!String(r.kelurahan||'').trim(),true,jabLurahLengkap(r))}}};
 const DOCS={
   permohonan:{nama:r=>'Surat Permohonan Penyumpahan',sty:{font:'Times New Roman',line:276,tline:264},fn:r=>{const d=derive(r);
     /* format surat permohonan penyumpahan di kantor BHP (contoh: permohonan Limba Sulinto Ernawati) */
@@ -488,7 +494,7 @@ ${tbl([[esc(jp.replace(/\s+/g,' ')),esc(kotaPg)],['Nomor Penetapan',V(r.nomorPen
     syarat([...(w?['Fotokopi Kartu Tanda Penduduk (KTP) Wali dan Kartu Identitas Anak (KIA)/KTP Anak (bila ada);','Fotokopi Kartu Keluarga (KK);','Fotokopi Akta Kelahiran Anak;','Fotokopi Akta Kematian / Surat Keterangan Kematian Orang Tua Anak;','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan Anak;']
         :['Fotokopi Kartu Tanda Penduduk (KTP) Pengampu dan Terampu;','Fotokopi Kartu Keluarga (KK);','Fotokopi Akta Kelahiran Terampu;','Fotokopi Surat Keterangan Kondisi Medis Terampu;','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan Terampu;']),
       'Fotokopi Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;','Meterai senilai Rp 10.000,- (Sepuluh Ribu Rupiah) sebanyak 4 (empat) lembar;',
-      `Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt} dan biaya sebesar Rp 40.000,- (Empat Puluh Ribu Rupiah) untuk 4 (empat) lembar meterai Rp 10.000,-`],[pnbpTxt(),`<i>${BILLING}</i>`])+
+      tanpaHarta(r)?`Biaya Penerimaan Negara Bukan Pajak (PNBP) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt} yang tidak disertai harta sebesar Rp 0,- (nihil/tidak dipungut biaya), serta biaya sebesar Rp 40.000,- (Empat Puluh Ribu Rupiah) untuk 4 (empat) lembar meterai Rp 10.000,-`:`Biaya Penerimaan Negara Bukan Pajak (PNBP) sebesar Rp 200.000,- (Dua Ratus Ribu Rupiah) untuk layanan Berita Acara Penyumpahan ${d.jenisTxt} dan biaya sebesar Rp 40.000,- (Empat Puluh Ribu Rupiah) untuk 4 (empat) lembar meterai Rp 10.000,-`],tanpaHarta(r)?[pnbpTxt()]:[pnbpTxt(),`<i>${BILLING}</i>`])+
 `<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r)}},
 
   lurah:{nama:r=>(t=>t&&t.camat?'Surat Antar ke Camat':'Surat Antar ke Lurah')(r&&tujuanSurat(r)),sty:{line:360},fn:r=>{const d=derive(r),J=d.J,s=d.sapa,P=d.pihak,kp=kunjKepri(r),t=tujuanSurat(r)||{pj:'Lurah',kt:'Kelurahan',jab:'',di:'Tempat'},pj=t.pj,kt=t.kt;
@@ -1209,7 +1215,7 @@ function renderMain(){
     <div><label>Pejabat BA Inventarisasi Harta</label><select onchange="setv('muda',this.value);renderMain()">${pjOptLayak(cur.muda)}</select>${pjPeringatan(cur.muda)}</div>
     <div><label>Pejabat BAP</label><select onchange="setv('bapOleh',this.value);renderMain()">${pjOptLayak(cur.bapOleh??cur.muda)}</select>${pjPeringatan(cur.bapOleh??cur.muda)}</div>`+F('kanwilTembusan',`Tembusan Kanwil (kosong = ${kanwilDef(cur)})`)+
     F('saksi1','Saksi 1 (opsional)')+F('saksi2','Saksi 2 (opsional)')+`<div class="full"><label>Lafaz sumpah (otomatis sesuai agama)</label><textarea disabled>${esc(d.laf)}</textarea></div>`;
-  if(tab==='harta')h+=`<div class="full"><h4 style="margin:4px 0">Harta kekayaan ${w?'anak':'terampu'} (untuk BA Inventarisasi & BAP)</h4></div>`+
+  if(tab==='harta')h+=`<div class="full"><h4 style="margin:4px 0">Harta kekayaan ${w?'anak':'terampu'} (untuk BA Inventarisasi & BAP)</h4></div>`+F('pnbpHarta','PNBP sumpah (PP 30/2026) — dikutip di surat antar & undangan','select',['Ada harta — Rp 200.000','Tidak ada harta — Rp 0'])+
     HARTA.map(([k,l,o])=>{if(cur[k]===undefined&&o)cur[k]=cur[o]||'';return F(k,'Aktiva — '+l+' (satu per baris)','area')}).join('')+F('hartaHutang','Passiva — Hutang-hutang (satu per baris)','area')+
     `<div class="full"><h4 style="margin:12px 0 4px">Keterangan untuk BA Penghadapan</h4><p class="hint" style="margin:0">Terisi otomatis dari penetapan bila memakai AI. Kosongkan yang tidak ada.</p></div>`+
     (w?F('pasangan','Nama suami/istri penghadap')+F('aktaNikah','Akta nikah (mis. Kutipan Akta Nikah Nomor … tanggal …)')+F('tglMeninggalPasangan','Tanggal meninggal suami/istri','date')+F('ketMeninggal','Keterangan kematian (mis. berdasarkan Akta Kematian Nomor …)'):'')+
