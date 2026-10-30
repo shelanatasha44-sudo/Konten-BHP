@@ -26,6 +26,12 @@ ditambah perubahan di bawah. Backend `Code.gs` dan `BapSiap.gs` tidak berubah da
 - **Nama file direktori putusan MA dikenali** (`putusan_12_pdt.p_2026_pn_btm.pdf`, `salinan_putusan_1_Pdt_P_2025_PN_Dum.pdf`) → PDF yang sudah ada di aplikasi, atau ganda di folder, dilewati **sebelum** dibaca AI.
 - **⏰ Impor terjadwal**: server memeriksa folder Drive sendiri (tiap 1/2/4/6/12 jam atau harian). PDF baru → OCR Google Drive (gratis) → watermark dibuang → teks dibaca model hemat (`claudeJson_`/`sistemAI_` di Code.gs, dengan prompt caching & pencatatan biaya yang sama); scan/teks tidak lengkap → PDF utuh dibaca model teliti. Hasil masuk antrean dan **disimpan otomatis saat admin utama membuka aplikasi** (cek silang teks, aturan kelayakan, dan pencegahan dobel yang sama).
 
+## Mode ringkas pengisian manual (30 Okt 2026)
+- Tombol **🧾 Ringkas ✓ / Tampilan lengkap** di atas form berkas (pilihan diingat di perangkat; bawaan: ringkas).
+- Mode ringkas menyembunyikan kolom opsional yang **masih kosong**: provinsi, alamat SIPP, nomor surat SPS, email, kantor lurah/camat, kota permohonan, tanggal surat permohonan, link Zoom, tembusan Kanwil, saksi BA, harta selain tanah & uang (emas, surat berharga, perabot, barang bergerak, hutang), serta kotak hitungan otomatis (usia, hari/tanggal BA, lafaz).
+- Kolom yang sudah berisi atau ditandai merah/kuning oleh pemeriksaan **selalu tampil**. Nomor BA, BAP, dan BA Inventarisasi tampil sejak tanggal sumpah tiba (hari H).
+- Di bawah form ada tombol **➕ Tampilkan N kolom lainnya** untuk membuka semua kolom.
+
 ## Pembaca PDF lebih teliti & cepat (30 Okt 2026)
 - **Instruksi AI lebih ketat**: nama/NIK/nomor disalin persis, NIK wajib 16 digit, pemohon tidak tertukar dengan kuasa/saksi/pasangan, tanggal lahir anak tidak tertukar, tanggal penetapan = tanggal diucapkan (bukan tanggal daftar/sidang), amar didahulukan, "para Pemohon" → Pemohon I sebagai nama.
 - **Cek silang lebih lengkap**: selain nama, nomor dan tanggal penetapan, kini NIK (16 digit & tertulis di teks), tanggal lahir pemohon dan terampu ikut diperiksa.
