@@ -26,6 +26,13 @@ ditambah perubahan di bawah. Backend `Code.gs` dan `BapSiap.gs` tidak berubah da
 - **Nama file direktori putusan MA dikenali** (`putusan_12_pdt.p_2026_pn_btm.pdf`, `salinan_putusan_1_Pdt_P_2025_PN_Dum.pdf`) → PDF yang sudah ada di aplikasi, atau ganda di folder, dilewati **sebelum** dibaca AI.
 - **⏰ Impor terjadwal**: server memeriksa folder Drive sendiri (tiap 1/2/4/6/12 jam atau harian). PDF baru → OCR Google Drive (gratis) → watermark dibuang → teks dibaca model hemat (`claudeJson_`/`sistemAI_` di Code.gs, dengan prompt caching & pencatatan biaya yang sama); scan/teks tidak lengkap → PDF utuh dibaca model teliti. Hasil masuk antrean dan **disimpan otomatis saat admin utama membuka aplikasi** (cek silang teks, aturan kelayakan, dan pencegahan dobel yang sama).
 
+## Pembaca PDF lebih teliti & cepat (30 Okt 2026)
+- **Instruksi AI lebih ketat**: nama/NIK/nomor disalin persis, NIK wajib 16 digit, pemohon tidak tertukar dengan kuasa/saksi/pasangan, tanggal lahir anak tidak tertukar, tanggal penetapan = tanggal diucapkan (bukan tanggal daftar/sidang), amar didahulukan, "para Pemohon" → Pemohon I sebagai nama.
+- **Cek silang lebih lengkap**: selain nama, nomor dan tanggal penetapan, kini NIK (16 digit & tertulis di teks), tanggal lahir pemohon dan terampu ikut diperiksa.
+- **Koreksi otomatis dari teks asli**: nilai AI yang tidak tertulis di penetapan (NIK, tanggal lahir, tanggal/nomor penetapan) diganti nilai yang tertulis persis di teks; NIK yang meleset 1–2 digit dicocokkan dengan NIK di teks. Kolom yang dikoreksi ditampilkan (🛠) di layar periksa. Berlaku juga untuk impor massal & impor terjadwal (termasuk koreksi arah hubungan).
+- **Lebih cepat**: hasil baca langsung tampil; isi BAP disusun AI di latar belakang dan masuk ke berkas begitu selesai (hanya bila isi BAP masih kosong). Melengkapi berkas yang sudah punya isi BAP tidak lagi menyusun BAP ulang.
+- **AI dijalankan lagi = hanya mengisi yang kosong, data baru tetap masuk**: isian lama tidak pernah ditimpa; anak yang belum tercatat ditambahkan, harta & saksi baru ditambahkan (aset dengan nomor sertifikat/rekening sama atau uraian yang sama tidak diulang), slot anak kosong diisi tanpa menimpa isiannya. PDF di impor massal/terjadwal yang berkasnya sudah ada kini melengkapi kolom kosong berkas itu (sebelumnya dilewati).
+
 ## Pasang
 1. **Tampilan**: buka `Index.html` (raw) → Ctrl+A, Ctrl+C → di proyek Apps Script buka file **Index** → Ctrl+A, Ctrl+V → Simpan.
 2. **Impor terjadwal** (sekali): buat file skrip `ImporMassal` berisi `ImporMassal.gs`; ⚙ Setelan proyek → centang *Tampilkan file manifes* → ganti isi `appsscript.json` dengan file di sini; pilih fungsi `pasangImporMassal` → Jalankan → izinkan.
