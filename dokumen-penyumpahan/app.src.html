@@ -843,7 +843,10 @@ function simpanRec(r){if(r===cur)return save();const p=(ANTRE_SIMPAN.get(r)||Pro
 /* DASAR = isi berkas terakhir yang sama dengan server. Bila berkas ternyata diubah orang lain (bentrok), perubahan kita
    (beda dari DASAR) digabung ke data server — isian orang lain tidak ditimpa dan isian baru kita tidak dibuang */
 const DASAR=new WeakMap();
-const pakaiDB=L=>{DB=L;DB.forEach(r=>DASAR.set(r,JSON.stringify(r)))};
+/* nomor surat yang hanya berisi awalan (mis. "W.2.AHU.AHU.1-AH.06.02-" dari spreadsheet) = belum ada nomor → tombol Ambil nomor SPS tampil */
+const hanyaAwalan=v=>/[-–]\s*$/.test(String(v||'').trim());
+const bersihNomor=r=>{['nomorSurat','nomorLurah','nomorUndangan','nomorUndDesa'].forEach(k=>{if(r&&hanyaAwalan(r[k]))r[k]=''});return r};
+const pakaiDB=L=>{DB=L;DB.forEach(r=>{bersihNomor(r);DASAR.set(r,JSON.stringify(r))})};
 const samaNilai=(a,b)=>JSON.stringify(a??'')===JSON.stringify(b??'');
 const objPolos=v=>v&&typeof v==='object'&&!Array.isArray(v);
 function gabung3(b,l,s,jalur,bentrok){
@@ -1532,7 +1535,7 @@ function recDariBaris(H,v,w){const idx={};H.forEach((h,i)=>{const k=normH(h);if(
     isiBap:g('Isi_BAP'),hartaTetap:g('Daftar_Tanah'),hartaTunai:g('Daftar_Rekening'),alamatKelurahan:g('Alamat_Kelurahan')});
   /* tebakan (kolom kosong) dicatat supaya boleh ditimpa saat dilengkapi dari PDF */
   IMP_TEBAK.set(r.id,[!jkDari(g('Jenis_Kelamin_'+J,'Jenis_Kelamin'),g('Panggilan'))&&'jk',!normAgama(g('Agama_'+J,'Agama'))&&'agama'].filter(Boolean));
-  if(samar(r.nama))r.nama='';if(r.linkPenetapan&&!idDrive(r.linkPenetapan))r.linkPenetapan='';
+  bersihNomor(r);if(samar(r.nama))r.nama='';if(r.linkPenetapan&&!idDrive(r.linkPenetapan))r.linkPenetapan='';
   if(w){const a=[];for(let i=1;i<=10;i++){const n=g('Nama_Anak_'+i)||(i===1?g('Nama_Anak'):''),tl=g('Tanggal_Lahir_Anak_'+i)||(i===1?g('Tanggal_Lahir_Anak'):'');if(!n&&!tl)continue;
       a.push({nama:samar(n)?'':n.toUpperCase(),jk:/perem|wanita/i.test(g('Jenis_Kelamin_Anak_'+i)||(i===1?g('Jenis_Kelamin_Anak'):''))?'Perempuan':'Laki-laki',tglLahir:tglISO(g('Tanggal_Lahir_Anak_'+i)||(i===1?g('Tanggal_Lahir_Anak'):'')),wali:'Ya'})}
     if(!a.length)baris(g('Daftar_Seluruh_Anak').replace(/;/g,'\n')).forEach(x=>{const m=x.match(/^[\-\d.\s]*([^,]+),\s*(laki-laki|perempuan)?[^0-9]*(.*)$/i);if(m)a.push({nama:m[1].trim().toUpperCase(),jk:/perem/i.test(m[2]||'')?'Perempuan':'Laki-laki',tglLahir:tglISO(m[3]),wali:'Ya'})});
