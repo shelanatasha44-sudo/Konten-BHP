@@ -217,6 +217,9 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* ===== Daftar Berkas: tampilan tabel (gaya SPS) ===== */
+.side .sec.lipat{cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;border-radius:8px;margin:0 8px;padding-left:12px;padding-right:12px}
+.side .sec.lipat:hover{opacity:.9;background:#ffffff0d}.side .sec.lipat::after{content:'▾';font-size:12px}.side .sec.lipat.tutup::after{content:'▸'}
+@media(min-width:901px){.side .nav.sec-hide{display:none}}body.menu-m .side .nav.sec-hide{display:none!important}
 .v-s{display:none}
 .wrap.tblmode{grid-template-columns:1fr}.wrap.tblmode>aside{display:none}.wrap.tblmode>#main{background:transparent;border:0;box-shadow:none;padding:0}
 .tb-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 2px #1b234508}
@@ -2584,6 +2587,15 @@ function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q
     <td data-l="Tgl Sumpah" class="${r.tglSumpah?'':'mut'}"><span class="v-l">${r.tglSumpah?tgl(r.tglSumpah):'Belum dijadwalkan'}</span><span class="v-s">${r.tglSumpah?tglPendek(r.tglSumpah):'—'}</span></td>
     <td data-l="Status"><span class="pill ${s.k}"><span class="v-l">${s.t}</span><span class="v-s">${s.k==='wr'?s.t.replace(' perlu dilengkapi',' kurang'):s.t}</span></span></td></tr>`}).join('')||`<tr><td colspan="6" class="tb-empty">${DB.length?'Tidak ada berkas yang cocok dengan filter.':'Belum ada berkas. Klik “＋ Berkas Baru” untuk memulai.'}</td></tr>`;
   $('#tbMore').innerHTML=L.length>TB.batas?`<button class="tb-more" onclick="TB.batas+=50;isiTabel()">Tampilkan ${Math.min(50,L.length-TB.batas)} berkas berikutnya (${L.length-TB.batas} lagi)</button>`:''}
+
+/* ===== Panel kiri: judul bagian bisa diklik untuk menampilkan / menyembunyikan menunya (diingat per perangkat) ===== */
+(function(){const KEY='bhp_lipat',baca=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return{}}};let st=baca();
+  const secs=[...document.querySelectorAll('.side .sec')];
+  const anggota=sec=>{const L=[];let n=sec.nextElementSibling;while(n&&!n.classList.contains('sec')&&!n.classList.contains('foot')){if(n.classList.contains('nav')&&!n.classList.contains('more-m'))L.push(n);n=n.nextElementSibling}return L};
+  const atur=(sec,tutup)=>{sec.classList.toggle('tutup',tutup);sec.setAttribute('aria-expanded',String(!tutup));anggota(sec).forEach(n=>n.classList.toggle('sec-hide',tutup))};
+  secs.forEach(sec=>{const k=sec.textContent.trim();sec.classList.add('lipat');sec.setAttribute('role','button');sec.tabIndex=0;sec.title='Klik untuk menampilkan / menyembunyikan';atur(sec,!!st[k]);
+    const klik=()=>{st=baca();st[k]=!sec.classList.contains('tutup');atur(sec,st[k]);try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+    sec.addEventListener('click',e=>{e.stopPropagation();klik()});sec.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();klik()}})})})();
 </script>
 </body>
 </html>
