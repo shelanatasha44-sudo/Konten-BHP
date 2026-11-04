@@ -217,6 +217,7 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* ===== Daftar Berkas: tampilan tabel (gaya SPS) ===== */
+.v-s{display:none}
 .wrap.tblmode{grid-template-columns:1fr}.wrap.tblmode>aside{display:none}.wrap.tblmode>#main{background:transparent;border:0;box-shadow:none;padding:0}
 .tb-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 2px #1b234508}
 .tb-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.tb-head h3{margin:0;font-size:19px;color:var(--ink)}.tb-head p{margin:3px 0 0;color:var(--mut);font-size:13px}
@@ -233,9 +234,11 @@ table.tb .kode b{display:block;font-size:13px}table.tb .kode small,table.tb .sub
 .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;background:#eef1f9;color:var(--navy,#1b2345)}.pill.pg{background:#fff6db;color:#8a6100}.pill.ok{background:#e7f6ee;color:#0f7a4f}.pill.no{background:#fdecec;color:#b42318}.pill.wr{background:#fff1e6;color:#b54708}
 .tb-empty{text-align:center;color:var(--mut);padding:28px 10px}.tb-more{display:block;margin:12px auto 0;padding:8px 18px;border-radius:10px}
 @media(max-width:900px){.tb-card{padding:14px}.tb-fgrid{grid-template-columns:1fr 1fr}.tb-tabs button{font-size:11px;padding:9px 4px;flex-direction:column;gap:3px}
-  table.tb thead{display:none}table.tb,table.tb tbody,table.tb tr,table.tb td{display:block;width:100%}table.tb tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:6px 4px}
-  table.tb td{border:0;padding:5px 10px;display:flex;justify-content:space-between;gap:12px;text-align:right}table.tb td::before{content:attr(data-l);color:var(--mut);font-size:11px;text-transform:uppercase;text-align:left;flex:none}
-  table.tb td.kode,table.tb td.nm{display:block;text-align:left}table.tb td.kode::before,table.tb td.nm::before{display:none}}
+  /* HP: tetap tabel mendatar seperti SPS — huruf & jarak dirapatkan, kolom Lokasi disembunyikan, geser ke samping bila perlu */
+  .tb-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -6px}table.tb{font-size:10.5px}
+  table.tb th{font-size:8.5px;padding:7px 4px;letter-spacing:0;white-space:normal}table.tb th small{display:none}table.tb td{padding:8px 4px;overflow-wrap:break-word}
+  table.tb .kode b{font-size:10.5px}table.tb .kode small{display:none}table.tb .sub{font-size:9.5px}
+  table.tb .c-lok{display:none}.pill{font-size:9px;padding:2px 6px;white-space:nowrap}.v-l{display:none}.v-s{display:inline}}
 </style>
 </head>
 <body>
@@ -2528,6 +2531,7 @@ document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[da
 
 /* ===== Daftar Berkas: tabel dengan filter, tab & urutan (gaya SPS) ===== */
 const TB={tab:'semua',dari:'',sampai:'',jenis:'',prov:'',cari:'',sort:'dibuat',dir:-1,batas:50};
+const tglPendek=s=>{const d=pd(s);return d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(2)}`:'—'};
 function tbStatus(r){const t=(cekKelayakan(r).tolak||[]).length,e=cekCetak(r).filter(x=>x.lvl==='e').length;
   return t?{k:'no',t:'Ditolak'}:e?{k:'wr',t:e+' perlu dilengkapi'}:{k:'ok',t:'Lengkap'}}
 function tabelBerkasHtml(){const opt=(arr,v,semua)=>`<option value="">${semua}</option>`+arr.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
@@ -2540,7 +2544,7 @@ function tabelBerkasHtml(){const opt=(arr,v,semua)=>`<option value="">${semua}</
   <div class="tb-srow"><div><label>Pencarian</label><input id="tbCari" value="${esc(TB.cari)}" placeholder="🔍 Cari nama pemohon, anak/terampu, nomor penetapan, kelurahan…" onkeydown="if(event.key==='Enter')tbTerapkan()"></div>
   <button class="pri" onclick="tbTerapkan()">⏷ Terapkan Filter</button><button onclick="tbReset()">↻ Reset Filter</button></div></div>
   <div class="tb-tabs" id="tbTabs"></div><div class="tb-meta" id="tbMeta"></div>
-  <table class="tb"><thead><tr>${[['penetapan','No. Penetapan'],['nama','Nama Pemohon'],['jenis','Jenis'],['lokasi','Lokasi'],['sumpah','Tgl Sumpah'],['status','Status']].map(([k,l])=>`<th onclick="tbUrut('${k}')">${l}<small>${TB.sort===k?(TB.dir>0?'▲':'▼'):'⇅'}</small></th>`).join('')}</tr></thead><tbody id="tbBody"></tbody></table><div id="tbMore"></div></div>`}
+  <div class="tb-scroll"><table class="tb"><thead><tr>${[['penetapan','No. Penetapan'],['nama','Nama Pemohon'],['jenis','Jenis'],['lokasi','Lokasi'],['sumpah','Tgl Sumpah'],['status','Status']].map(([k,l])=>`<th class="${k==='lokasi'?'c-lok':''}" onclick="tbUrut('${k}')">${l}<small>${TB.sort===k?(TB.dir>0?'▲':'▼'):'⇅'}</small></th>`).join('')}</tr></thead><tbody id="tbBody"></tbody></table></div><div id="tbMore"></div></div>`}
 function tbTerapkan(){TB.dari=$('#tbDari').value;TB.sampai=$('#tbSampai').value;TB.jenis=$('#tbJenis').value;TB.prov=$('#tbProv').value;TB.cari=$('#tbCari').value.trim();TB.batas=50;isiTabel()}
 function tbReset(){Object.assign(TB,{dari:'',sampai:'',jenis:'',prov:'',cari:'',batas:50});const q=$('#q');if(q)q.value='';renderMain()}
 function tbUrut(k){TB.dir=TB.sort===k?-TB.dir:(k==='dibuat'||k==='sumpah'?-1:1);TB.sort=k;renderMain()}
@@ -2557,12 +2561,12 @@ function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q
   const lbl={penetapan:'No. Penetapan',nama:'Nama',jenis:'Jenis',lokasi:'Lokasi',sumpah:'Tanggal Sumpah',status:'Status',dibuat:'Tanggal Dibuat'}[TB.sort];
   $('#tbMeta').innerHTML=`Total: ${L.length} berkas <span>⇅ ${lbl} (${TB.dir>0?'A → Z / terlama':'Z → A / terbaru'})</span>`;
   body.innerHTML=L.slice(0,TB.batas).map(r=>{const d=derive(r),s=st.get(r),lk=lokasiBerkas(r);
-    return `<tr onclick="pick('${r.id}')"><td class="kode" data-l="No. Penetapan"><b>${esc(r.nomorPenetapan||'—')}</b><small>${esc(r.pengadilan||'')}</small></td>
+    return `<tr onclick="pick('${r.id}')"><td class="kode" data-l="No. Penetapan"><b>${esc(r.nomorPenetapan||'—').replace(/\//g,'/<wbr>')}</b><small>${esc(r.pengadilan||'')}</small></td>
     <td class="nm" data-l="Pemohon"><b>${esc(r.nama||'(tanpa nama)')}</b><span class="sub">${esc(d.objek||'-')}</span></td>
-    <td data-l="Jenis"><span class="pill ${r.jenis==='Perwalian'?'':'pg'}">${esc(r.jenis||'-')}</span></td>
-    <td data-l="Lokasi"><span>${esc(lk.kota)}<span class="sub">${esc(provinsiBerkas(r))}</span></span></td>
-    <td data-l="Tgl Sumpah" class="${r.tglSumpah?'':'mut'}">${r.tglSumpah?tgl(r.tglSumpah):'Belum dijadwalkan'}</td>
-    <td data-l="Status"><span class="pill ${s.k}">${s.t}</span></td></tr>`}).join('')||`<tr><td colspan="6" class="tb-empty">${DB.length?'Tidak ada berkas yang cocok dengan filter.':'Belum ada berkas. Klik “＋ Berkas Baru” untuk memulai.'}</td></tr>`;
+    <td data-l="Jenis"><span class="pill ${r.jenis==='Perwalian'?'':'pg'}"><span class="v-l">${esc(r.jenis||'-')}</span><span class="v-s">${r.jenis==='Perwalian'?'Wali':r.jenis?'Ampu':'-'}</span></span></td>
+    <td class="c-lok" data-l="Lokasi"><span>${esc(lk.kota)}<span class="sub">${esc(provinsiBerkas(r))}</span></span></td>
+    <td data-l="Tgl Sumpah" class="${r.tglSumpah?'':'mut'}"><span class="v-l">${r.tglSumpah?tgl(r.tglSumpah):'Belum dijadwalkan'}</span><span class="v-s">${r.tglSumpah?tglPendek(r.tglSumpah):'—'}</span></td>
+    <td data-l="Status"><span class="pill ${s.k}"><span class="v-l">${s.t}</span><span class="v-s">${s.k==='wr'?s.t.replace(' perlu dilengkapi',' kurang'):s.t}</span></span></td></tr>`}).join('')||`<tr><td colspan="6" class="tb-empty">${DB.length?'Tidak ada berkas yang cocok dengan filter.':'Belum ada berkas. Klik “＋ Berkas Baru” untuk memulai.'}</td></tr>`;
   $('#tbMore').innerHTML=L.length>TB.batas?`<button class="tb-more" onclick="TB.batas+=50;isiTabel()">Tampilkan ${Math.min(50,L.length-TB.batas)} berkas berikutnya (${L.length-TB.batas} lagi)</button>`:''}
 </script>
 </body>
