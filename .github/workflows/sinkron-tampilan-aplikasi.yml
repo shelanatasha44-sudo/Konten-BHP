@@ -1,0 +1,53 @@
+# Sinkron otomatis tampilan aplikasi Dokumen Penyumpahan ke repo yang dibaca Apps Script.
+#
+# Aplikasi yang terpasang (Code.gs → UI_URL) mengambil tampilan dari:
+#   damayantielsintha-wq/Kalender-Kerja-Wilayah-II  branch claude/dokumen-penyumpahan-app-3s2ts5  penyumpahan/Index.html
+# Workflow ini menyalin dokumen-penyumpahan/Index.html (dan sumbernya) dari repo ini ke sana setiap kali berubah,
+# sehingga perubahan tampil sendiri di aplikasi (paling lambat 10 menit, atau langsung dengan …/exec?segar=1).
+#
+# Perlu SEKALI dipasang oleh pemilik akun:
+#   Secret repo ini bernama AKTIF_REPO_TOKEN = fine-grained personal access token milik damayantielsintha-wq
+#   dengan akses HANYA ke repo Kalender-Kerja-Wilayah-II, izin "Contents: Read and write".
+# Tanpa secret itu workflow hanya memberi catatan dan tidak melakukan apa pun.
+name: Sinkron tampilan aplikasi
+
+on:
+  push:
+    branches: [ccr-82a96c14-ey9957]
+    paths:
+      - 'dokumen-penyumpahan/Index.html'
+      - 'dokumen-penyumpahan/app.src.html'
+  workflow_dispatch:
+
+concurrency:
+  group: sinkron-tampilan
+  cancel-in-progress: false
+
+jobs:
+  sinkron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil repo ini
+        uses: actions/checkout@v4
+
+      - name: Salin ke repo aplikasi aktif
+        env:
+          TOKEN: ${{ secrets.AKTIF_REPO_TOKEN }}
+          TUJUAN: damayantielsintha-wq/Kalender-Kerja-Wilayah-II
+          CABANG: claude/dokumen-penyumpahan-app-3s2ts5
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::Secret AKTIF_REPO_TOKEN belum dipasang — sinkron dilewati."
+            exit 0
+          fi
+          git clone --depth 1 -b "$CABANG" "https://x-access-token:${TOKEN}@github.com/${TUJUAN}.git" tujuan
+          cp dokumen-penyumpahan/Index.html tujuan/penyumpahan/Index.html
+          cp dokumen-penyumpahan/app.src.html tujuan/penyumpahan/app.src.html
+          cd tujuan
+          if git diff --quiet; then echo "Tidak ada perubahan."; exit 0; fi
+          git config user.name "sinkron-otomatis"
+          git config user.email "sinkron-otomatis@users.noreply.github.com"
+          git add penyumpahan/Index.html penyumpahan/app.src.html
+          git commit -m "Sinkron tampilan dari shelanatasha44-sudo/Konten-BHP@${GITHUB_SHA::7}"
+          git push origin "HEAD:${CABANG}"
+          echo "::notice::Tampilan tersinkron — aktif di aplikasi paling lambat 10 menit (atau buka …/exec?segar=1)."
