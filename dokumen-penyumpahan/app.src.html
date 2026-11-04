@@ -220,6 +220,12 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* ===== Daftar Berkas: tampilan tabel (gaya SPS) ===== */
+details.aksi-lain{position:relative}details.aksi-lain>summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;user-select:none}
+details.aksi-lain>summary::-webkit-details-marker{display:none}details.aksi-lain[open]>summary{border-color:var(--navy,#1b2345)}
+.aksi-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px #1b234522;padding:6px;display:flex;flex-direction:column;min-width:190px}
+.aksi-menu button{border:0;text-align:left;border-radius:8px;padding:9px 12px;font-size:13.5px;background:transparent}.aksi-menu button:hover{background:#f3f5fb}
+@media(max-width:900px){.steps{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 2px 4px;margin-left:-2px;margin-right:-2px;scrollbar-width:none}.steps::-webkit-scrollbar{display:none}
+  .steps button{flex:none;white-space:nowrap}.meta-ubah{display:none}.aksi-menu{right:auto;left:0}}
 .kel-h{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--ink);margin:2px 0 -2px}
 .kel-h small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--mut)}.kel-h .wj{color:#b42318}
 details.opsi-box{margin-top:16px;border:1px dashed #cdd3e3;border-radius:12px;background:#fafbfd}details.opsi-box>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
@@ -1268,8 +1274,8 @@ function renderMain(){
   const d=derive(cur),w=d.w;const CL=cekCetak(cur);CEK={};CL.forEach(x=>{if(x.f&&(!CEK[x.f]||x.lvl==='e'))CEK[x.f]=x});
   const TABS={umum:'1. Perkara',pihak:`2. ${d.J}`,objek:`3. ${w?'Anak':'Terampu'}`,jadwal:'4. Jadwal & Pejabat',harta:'5. BAP & Harta',dok:'📄 Dokumen',riw:'🕘 Riwayat'};
   let h=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><div class="seg">${['Pengampuan','Perwalian'].map(j=>`<button class="${cur.jenis===j?'on':''}" onclick="setv('jenis','${j}')">${j}</button>`).join('')}</div>
-  <span style="margin-right:auto"><span class="hint" id="stat">✓ Tersimpan</span><br><span class="meta">${cur._meta?`Dibuat ${esc(cur._meta.dibuatOleh||'')} · diubah terakhir oleh <b>${esc(cur._meta.diubahOleh||'')}</b>, ${wkt(cur._meta.diubahPada)}`:''}</span></span>
-  <button hidden onclick="setRingkas(!RINGKAS)" title="Mode ringkas: hanya kolom wajib yang tampil; kolom opsional yang masih kosong disembunyikan">${RINGKAS?'🧾 Ringkas ✓':'🧾 Tampilan lengkap'}</button><button onclick="cekSippBerkas()" title="Cari nama asli (yang disamarkan) &amp; cocokkan dengan SIPP pengadilan">🔎 SIPP</button><button onclick="screenshot('#main',cur.nama)" title="Simpan tampilan ini sebagai gambar PNG">📸 Screenshot</button><button onclick="dupRec()">⧉ Duplikat</button>${isSuper()?(cur._dihapus?'<button onclick="restoreRec()">♻️ Pulihkan</button>':'<button onclick="delRec()" style="color:var(--warn)">🗑 Hapus</button>'):''}</div>
+  <span style="margin-right:auto"><span class="hint" id="stat">✓ Tersimpan</span><br><span class="meta meta-ubah">${cur._meta?`Dibuat ${esc(cur._meta.dibuatOleh||'')} · diubah terakhir oleh <b>${esc(cur._meta.diubahOleh||'')}</b>, ${wkt(cur._meta.diubahPada)}`:''}</span></span>
+  <button hidden onclick="setRingkas(!RINGKAS)" title="Mode ringkas: hanya kolom wajib yang tampil; kolom opsional yang masih kosong disembunyikan">${RINGKAS?'🧾 Ringkas ✓':'🧾 Tampilan lengkap'}</button><details class="aksi-lain"><summary>⋯ Lainnya</summary><div class="aksi-menu"><button onclick="cekSippBerkas()" title="Cari nama asli (yang disamarkan) &amp; cocokkan dengan SIPP pengadilan">🔎 Cek SIPP</button><button onclick="screenshot('#main',cur.nama)" title="Simpan tampilan ini sebagai gambar PNG">📸 Screenshot</button><button onclick="dupRec()">⧉ Duplikat berkas</button>${isSuper()?(cur._dihapus?'<button onclick="restoreRec()">♻️ Pulihkan</button>':'<button onclick="delRec()" style="color:var(--warn)">🗑 Hapus berkas</button>'):''}</div></details></div>
   ${bannerKelayakan(cur)}${cekBar(CL)}<div class="steps">${Object.entries(TABS).map(([k,v])=>{const q=CL.filter(x=>x.tab===k),e=q.some(x=>x.lvl==='e');return`<button class="${tab===k?'on':''}" onclick="tab='${k}';renderMain()">${v}${q.length?`<span class="dot ${e?'':'w'}">${q.length}</span>`:''}</button>`}).join('')}</div>${panduanTab(TABS,CL,d)}<div class="grid">`;
   const pjOpt=v=>{const c=pjCari(v).nama;return SET.pejabat.map(p=>`<option ${p.nama===c?'selected':''} value="${esc(p.nama)}">${esc(p.nama||'(isi di Pengaturan)')} — ${esc(p.jabatan||'')}</option>`).join('')};
   if(tab==='umum')h+=`<div class="full"><label class="btn" style="display:inline-block;margin:0;color:var(--ink)">📑 Isi otomatis dari PDF Penetapan<input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this,true)"></label>${idDrive(cur.linkPenetapan)?` <a class="btn" style="display:inline-block;margin:0" href="${esc(cur.linkPenetapan)}" target="_blank" rel="noopener">📄 Buka PDF penetapan</a> <button onclick="bacaPdfDrive(this)">📑 Baca ulang dari PDF Drive</button>`:''}</div>`+F('pengadilan','Pengadilan')+FX('provinsi','Provinsi','select',['',...PROV.map(x=>x[0]),'Lainnya'],cur.provinsi||'',' data-f="provinsi" title="Kosongkan agar ditebak otomatis dari pengadilan/alamat"').replace('<option selected></option>','<option value="" selected>Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>').replace('<option ></option>','<option value="">Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>')+F('nomorPenetapan','Nomor Penetapan')+F('linkPenetapan','Tautan PDF penetapan (Google Drive)')+F('sippDomain',`Alamat SIPP (kosong = otomatis: ${esc(sippDom(cur)||'-')})`)+F('tglPenetapan','Tanggal Penetapan','date')+F('tanggalSurat','Tanggal Surat','date')+
@@ -2662,6 +2668,10 @@ let OPSI_BUKA=false;
 function pisahOpsional(){if(!['umum','pihak','objek','jadwal','harta'].includes(tab))return;const g=$('#main > .grid');if(!g)return;
   const opsi=[...g.children].filter(e=>{if(e.id==='lurahBox')return true;const f=e.dataset&&e.dataset.f;if(f)return OPSIONAL.has(f)||/opsional|\(kosong\s*=|otomatis dari SPS|diisi petugas/i.test((e.querySelector('label')||{}).textContent||'');
     return false});
+  /* kotak hasil hitungan aplikasi (label "otomatis", tidak bisa diketik) → kelompok tersendiri, tertutup */
+  const oto=[...g.children].filter(e=>!opsi.includes(e)&&/otomatis/i.test((e.querySelector('label')||{}).textContent||'')&&e.querySelector('input[disabled],textarea[disabled]'));
+  if(oto.length){const bx=document.createElement('details');bx.className='opsi-box oto-box';bx.innerHTML=`<summary>🔒 Terisi otomatis <small>(tidak perlu diisi · ${oto.length} kolom)</small></summary><div class="grid"></div>`;
+    const g3=bx.querySelector('.grid');oto.forEach(e=>{e.hidden=false;g3.appendChild(e)});g.after(bx)}
   if(!opsi.length)return;
   g.insertAdjacentHTML('afterbegin','<div class="kel-h"><span class="wj">●</span> Wajib diisi <small>— lengkapi kolom di bagian ini</small></div>');
   const kol=opsi.filter(e=>e.dataset.f),ada=kol.filter(e=>String(get(e.dataset.f)||'').trim()).length,peringatan=kol.some(e=>CEK[e.dataset.f]);
@@ -2669,6 +2679,10 @@ function pisahOpsional(){if(!['umum','pihak','objek','jadwal','harta'].includes(
   box.innerHTML=`<summary>➕ Kolom tambahan <small>(opsional — boleh dikosongkan · ${kol.length} kolom${ada?`, ${ada} sudah terisi`:''})</small></summary><div class="grid"></div>`;
   const g2=box.querySelector('.grid');opsi.forEach(e=>{e.hidden=false;g2.appendChild(e)});
   g.after(box)}
+
+/* menu "⋯ Lainnya" menutup sendiri saat klik di luar / memilih aksi; tab aktif di HP digulir agar terlihat */
+document.addEventListener('click',e=>{document.querySelectorAll('details.aksi-lain[open]').forEach(d=>{if(!d.contains(e.target)||e.target.closest('.aksi-menu button'))d.open=false})});
+(function(){const asli=renderMain;renderMain=function(){const r=asli.apply(this,arguments);try{const on=document.querySelector('#main .steps button.on');if(on&&on.scrollIntoView&&matchMedia('(max-width:900px)').matches)on.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}return r}})();
 </script>
 </body>
 </html>
