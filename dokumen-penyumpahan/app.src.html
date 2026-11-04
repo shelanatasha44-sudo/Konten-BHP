@@ -226,6 +226,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .tb-srow{display:flex;gap:10px;align-items:flex-end;margin-top:12px;flex-wrap:wrap}.tb-srow>div{flex:1;min-width:220px}.tb-srow label{display:block;font-size:12px;font-weight:600;margin:0 0 5px}
 .tb-srow input{width:100%;font-size:13px;padding:9px 12px;border-radius:10px}.tb-srow button{padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px}
 .tb-tabs{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:18px 0 10px}.tb-tabs button{flex:1;border:0;border-radius:0;background:var(--card);padding:11px 10px;font-weight:600;font-size:12.5px;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px}
+.tb-ic{font-weight:400;font-size:14px;opacity:.85}.tb-tabs button:not(.on):hover{background:#f5f6fb}
 .tb-tabs button+button{border-left:1px solid var(--line)}.tb-tabs button.on{background:var(--navy,#1b2345);color:#fff}.tb-tabs i{font-style:normal;background:#eef1f9;color:var(--navy,#1b2345);border-radius:99px;padding:1px 8px;font-size:11px}.tb-tabs button.on i{background:#ffffff26;color:#fff}
 .tb-meta{display:flex;justify-content:flex-end;align-items:center;gap:10px;color:var(--mut);font-size:12px;margin-bottom:8px}.tb-meta span{border:1px solid var(--line);border-radius:7px;padding:2px 8px;font-size:11px}
 table.tb{width:100%;border-collapse:collapse;font-size:13px}table.tb th{text-align:left;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--mut);font-weight:600;padding:11px 10px;border-bottom:1px solid var(--line);background:#fafbfd;cursor:pointer;white-space:nowrap;user-select:none}
@@ -2567,9 +2568,9 @@ function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q
   const dasar=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS).filter(r=>(!TB.jenis||r.jenis===TB.jenis)&&(!TB.prov||provinsiBerkas(r)===TB.prov)&&(!TB.dari||(r.tglSumpah||'')>=TB.dari)&&(!TB.sampai||(r.tglSumpah&&r.tglSumpah<=TB.sampai))
     &&(!q.length||(t=>q.every(w=>t.includes(w)))([r.nama,derive(r).objek,r.nomorPenetapan,r.pengadilan,r.kelurahan,r.alamat].join(' ').toLowerCase())));
   const st=new Map(dasar.map(r=>[r,tbStatus(r)]));
-  const TABS=[['hari','Sumpah Hari Ini',r=>r.tglSumpah===hari],['semua','Semua Berkas',()=>true],['kurang','Perlu Dilengkapi',r=>st.get(r).k==='wr'],['tolak','Ditolak',r=>st.get(r).k==='no']];
-  $('#tbTabs').innerHTML=TABS.map(([k,l,f])=>`<button class="${TB.tab===k?'on':''}" onclick="tbTab('${k}')">${l} <i>${dasar.filter(f).length}</i></button>`).join('');
-  const f=(TABS.find(t=>t[0]===TB.tab)||TABS[1])[2],L=dasar.filter(f);
+  const TABS=[['hari','📅','Sumpah Hari Ini',r=>r.tglSumpah===hari],['semua','☰','Semua Berkas',()=>true],['kurang','⚠','Perlu Dilengkapi',r=>st.get(r).k==='wr'],['tolak','⊘','Ditolak',r=>st.get(r).k==='no']];
+  $('#tbTabs').innerHTML=TABS.map(([k,ic,l,f])=>`<button class="${TB.tab===k?'on':''}" onclick="tbTab('${k}')"><b class="tb-ic">${ic}</b><span>${l}</span> <i>${dasar.filter(f).length}</i></button>`).join('');
+  const f=(TABS.find(t=>t[0]===TB.tab)||TABS[1])[3],L=dasar.filter(f);
   const kunci={penetapan:r=>r.nomorPenetapan||'',nama:r=>r.nama||'',jenis:r=>r.jenis||'',lokasi:r=>provinsiBerkas(r)+lokasiBerkas(r).kota,sumpah:r=>r.tglSumpah||'',status:r=>st.get(r).k,dibuat:r=>tglDibuat(r)||''}[TB.sort]||(r=>tglDibuat(r)||'');
   L.sort((a,b)=>String(kunci(a)).localeCompare(String(kunci(b)),'id')*TB.dir);
   const lbl={penetapan:'No. Penetapan',nama:'Nama',jenis:'Jenis',lokasi:'Lokasi',sumpah:'Tanggal Sumpah',status:'Status',dibuat:'Tanggal Dibuat'}[TB.sort];
