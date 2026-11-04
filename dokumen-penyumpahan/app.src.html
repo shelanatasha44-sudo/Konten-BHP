@@ -220,6 +220,15 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* ===== Daftar Berkas: tampilan tabel (gaya SPS) ===== */
+/* lipat: daftar berkas di kiri & menu samping (desktop) */
+.aside-h{display:flex;justify-content:space-between;align-items:center;gap:8px}.lipat-btn{font-size:11.5px;padding:4px 9px;border-radius:8px;font-weight:600;color:var(--mut)}
+.wrap.listhide{grid-template-columns:1fr}.wrap.listhide>aside{display:none}.buka-list{display:none;font-size:12.5px;padding:6px 12px;border-radius:9px;font-weight:600;margin:0 0 10px}.wrap.listhide .buka-list{display:inline-flex}
+.lipat-side{display:none}
+@media(min-width:901px){.lipat-side{display:block;position:absolute;top:22px;right:10px;background:#ffffff14;border:0;color:#cfd5ea;border-radius:8px;width:26px;height:26px;padding:0;font-size:14px;line-height:1;cursor:pointer;z-index:2}.lipat-side:hover{background:#ffffff26}
+  body.side-mini{padding-left:72px}body.side-mini .side{width:72px;overflow-x:hidden}body.side-mini .side .brand div,body.side-mini .side .nav span,body.side-mini .side .sec,body.side-mini .side .foot{display:none!important}
+  body.side-mini .side .brand{justify-content:center;padding:58px 8px 14px}body.side-mini .side .nav{justify-content:center;margin:2px 8px;padding:11px 0}body.side-mini .side .nav.sec-hide{display:flex}
+  body.side-mini .lipat-side{right:23px;transform:rotate(180deg)}}
+@media(max-width:900px){.lipat-btn,.buka-list{display:none!important}.wrap.listhide>aside{display:block}}
 .side .sec.lipat{cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;border-radius:8px;margin:0 8px;padding-left:12px;padding-right:12px}
 .side .sec.lipat:hover{opacity:.9;background:#ffffff0d}.side .sec.lipat::after{content:'▾';font-size:12px}.side .sec.lipat.tutup::after{content:'▸'}
 @media(min-width:901px){.side .nav.sec-hide{display:none}}body.menu-m .side .nav.sec-hide{display:none!important}
@@ -250,6 +259,7 @@ table.tb .kode b{display:block;font-size:13px}table.tb .kode small,table.tb .sub
 </head>
 <body>
 <nav class="side">
+  <button class="lipat-side" onclick="setLipat('side',!document.body.classList.contains('side-mini'))" title="Ciutkan / lebarkan menu">«</button>
   <div class="brand"><img id="brandLogo" alt=""><div><b>BHP MEDAN</b><small>Dokumen Penyumpahan</small></div></div>
   <div class="sec">DASHBOARD</div>
   <a class="nav on" data-v="berkas" onclick="goBerkas()"><i>🏠</i> <span>Daftar Berkas</span></a>
@@ -272,7 +282,7 @@ table.tb .kode b{display:block;font-size:13px}table.tb .kode small,table.tb .sub
 
 <div class="wrap">
   <aside class="card">
-    <h3>Daftar Berkas</h3>
+    <h3 class="aside-h">Daftar Berkas <button class="lipat-btn" onclick="setLipat('list',true)" title="Sembunyikan daftar — formulir berkas tampil lebar">⟨ Sembunyikan</button></h3>
     <div class="lfil"><select id="fGrp" onchange="setFil('grp',this.value)" title="Pisahkan daftar berdasarkan"><option value="prov">Provinsi → kota/kabupaten</option><option value="plt">Provinsi → kota/kab → tanggal dibuat</option><option value="lok">Per kota/kabupaten</option><option value="lt">Kota/kab → tanggal dibuat</option><option value="tgl">Per tanggal dibuat</option><option value="">Tanpa pemisah</option></select>
       <select id="fProv" onchange="setFil('prov',this.value)" title="Saring provinsi"></select><select id="fLok" onchange="setFil('lok',this.value)" title="Saring kota/kabupaten"></select><select id="fBln" onchange="setFil('bln',this.value)" title="Saring bulan dibuat"></select></div>
     <div class="list" id="list"></div>
@@ -2599,6 +2609,15 @@ function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q
   secs.forEach(sec=>{const k=sec.textContent.trim();sec.classList.add('lipat');sec.setAttribute('role','button');sec.tabIndex=0;sec.title='Klik untuk menampilkan / menyembunyikan';atur(sec,!!st[k]);
     const klik=()=>{st=baca();st[k]=!sec.classList.contains('tutup');atur(sec,st[k]);try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
     sec.addEventListener('click',e=>{e.stopPropagation();klik()});sec.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();klik()}})})})();
+
+/* ===== Lipat daftar berkas & menu samping (diingat per perangkat) ===== */
+const LIPAT=(()=>{try{return JSON.parse(localStorage.getItem('bhp_lipat2')||'{}')}catch(e){return{}}})();
+function terapkanLipat(){document.body.classList.toggle('side-mini',!!LIPAT.side);document.querySelectorAll('.side .nav').forEach(n=>{if(!n.title){const t=n.querySelector('span');if(t)n.title=t.textContent.trim()}});const w=$('.wrap');if(w)w.classList.toggle('listhide',!!LIPAT.list&&!!cur&&!WZ.on)}
+function setLipat(k,v){LIPAT[k]=v;try{localStorage.setItem('bhp_lipat2',JSON.stringify(LIPAT))}catch(e){}terapkanLipat()}
+(function(){const asli=renderMain;renderMain=function(){const r=asli.apply(this,arguments);
+  try{terapkanLipat();if(cur&&!WZ.on&&!$('#main .buka-list')){const b=document.createElement('button');b.className='buka-list';b.textContent='☰ Tampilkan Daftar Berkas';b.onclick=()=>setLipat('list',false);$('#main').prepend(b)}}catch(e){console.warn(e)}
+  return r}})();
+terapkanLipat();
 </script>
 </body>
 </html>
