@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-10-19.6-sipp';
+  var VERSI = '2026-10-19.7-tambah';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -297,9 +297,25 @@
     return out;
   }
 
+  /* Data tambahan hasil SIPP (nama wali, anak, tanggal) disimpan di file Drive PRIBADI — bukan di GitHub publik.
+   * Aplikasi mengisikannya ke kolom kosong saja (isiDariPen). */
+  var TAMBAH_FILE = ['10nrFTLcZqrxMAtb_HtsjchfObY3gFIO_'];
+  function tambahData(t) {
+    user_(t);
+    var cache = CacheService.getScriptCache(), c = cache.get('tambah_data');
+    if (c) return JSON.parse(c);
+    var gab = {};
+    TAMBAH_FILE.forEach(function (id) {
+      try { var j = JSON.parse(DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8')); Object.keys(j.data || {}).forEach(function (k) { gab[k] = j.data[k]; }); } catch (e) { }
+    });
+    try { cache.put('tambah_data', JSON.stringify(gab), 600); } catch (e) { }
+    return gab;
+  }
+
   return {
     versi: VERSI,
     sipp: sipp,
+    tambahData: tambahData,
     jadwalStatus: jadwalStatus,
     jadwalAtur: jadwalAtur,
     jadwalJalan: function (t) { super_(t); return terjadwal(240000); },
