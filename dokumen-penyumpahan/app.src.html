@@ -216,6 +216,26 @@ html,body{max-width:100%;overflow-x:hidden}
   .card,.item,.paper,.nav.on{box-shadow:none!important}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ===== Daftar Berkas: tampilan tabel (gaya SPS) ===== */
+.wrap.tblmode{grid-template-columns:1fr}.wrap.tblmode>aside{display:none}.wrap.tblmode>#main{background:transparent;border:0;box-shadow:none;padding:0}
+.tb-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 2px #1b234508}
+.tb-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.tb-head h3{margin:0;font-size:19px;color:var(--ink)}.tb-head p{margin:3px 0 0;color:var(--mut);font-size:13px}
+.tb-filter h4{margin:0 0 12px;font-size:15px}.tb-fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tb-fgrid label{display:block;font-size:12px;font-weight:600;color:var(--ink);margin:0 0 5px}.tb-fgrid input,.tb-fgrid select{width:100%;font-size:13px;padding:9px 10px;border-radius:10px}
+.tb-srow{display:flex;gap:10px;align-items:flex-end;margin-top:12px;flex-wrap:wrap}.tb-srow>div{flex:1;min-width:220px}.tb-srow label{display:block;font-size:12px;font-weight:600;margin:0 0 5px}
+.tb-srow input{width:100%;font-size:13px;padding:9px 12px;border-radius:10px}.tb-srow button{padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px}
+.tb-tabs{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:18px 0 10px}.tb-tabs button{flex:1;border:0;border-radius:0;background:var(--card);padding:11px 10px;font-weight:600;font-size:12.5px;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px}
+.tb-tabs button+button{border-left:1px solid var(--line)}.tb-tabs button.on{background:var(--navy,#1b2345);color:#fff}.tb-tabs i{font-style:normal;background:#eef1f9;color:var(--navy,#1b2345);border-radius:99px;padding:1px 8px;font-size:11px}.tb-tabs button.on i{background:#ffffff26;color:#fff}
+.tb-meta{display:flex;justify-content:flex-end;align-items:center;gap:10px;color:var(--mut);font-size:12px;margin-bottom:8px}.tb-meta span{border:1px solid var(--line);border-radius:7px;padding:2px 8px;font-size:11px}
+table.tb{width:100%;border-collapse:collapse;font-size:13px}table.tb th{text-align:left;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--mut);font-weight:600;padding:11px 10px;border-bottom:1px solid var(--line);background:#fafbfd;cursor:pointer;white-space:nowrap;user-select:none}
+table.tb th small{opacity:.55;margin-left:3px}table.tb td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink)}table.tb tr{cursor:pointer}table.tb tbody tr:hover td{background:#f7f8fc}
+table.tb .kode b{display:block;font-size:13px}table.tb .kode small,table.tb .sub{display:block;color:var(--mut);font-size:11.5px;margin-top:2px}table.tb .mut{color:var(--mut)}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;background:#eef1f9;color:var(--navy,#1b2345)}.pill.pg{background:#fff6db;color:#8a6100}.pill.ok{background:#e7f6ee;color:#0f7a4f}.pill.no{background:#fdecec;color:#b42318}.pill.wr{background:#fff1e6;color:#b54708}
+.tb-empty{text-align:center;color:var(--mut);padding:28px 10px}.tb-more{display:block;margin:12px auto 0;padding:8px 18px;border-radius:10px}
+@media(max-width:900px){.tb-card{padding:14px}.tb-fgrid{grid-template-columns:1fr 1fr}.tb-tabs button{font-size:11px;padding:9px 4px;flex-direction:column;gap:3px}
+  table.tb thead{display:none}table.tb,table.tb tbody,table.tb tr,table.tb td{display:block;width:100%}table.tb tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:6px 4px}
+  table.tb td{border:0;padding:5px 10px;display:flex;justify-content:space-between;gap:12px;text-align:right}table.tb td::before{content:attr(data-l);color:var(--mut);font-size:11px;text-transform:uppercase;text-align:left;flex:none}
+  table.tb td.kode,table.tb td.nm{display:block;text-align:left}table.tb td.kode::before,table.tb td.nm::before{display:none}}
 </style>
 </head>
 <body>
@@ -816,7 +836,7 @@ function renderHeader(){$('#who').innerHTML=`${FOLDER?`<a class="btn" href="${FO
 function setNav(v,t){if(v!=='baru')$('.wrap').classList.remove('wzmode');document.querySelectorAll('.side .nav').forEach(n=>n.classList.toggle('on',n.dataset.v===v));$('#pgTitle').textContent=t}
 /* berkas terhapus dipisah ke menu sendiri: Daftar Berkas & semua hitungannya hanya berkas aktif */
 let LIHAT_HAPUS=false;
-function goBerkas(){WZ.on=false;if(LIHAT_HAPUS){LIHAT_HAPUS=false;if(cur&&cur._dihapus)cur=null}setNav('berkas','Daftar Berkas');renderMain();renderList()}
+function goBerkas(){WZ.on=false;if(cur){clearTimeout(saveT);flush()}cur=null;if(LIHAT_HAPUS){LIHAT_HAPUS=false;if(cur&&cur._dihapus)cur=null}setNav('berkas','Daftar Berkas');renderMain();renderList()}
 function bukaTerhapus(){WZ.on=false;LIHAT_HAPUS=true;if(cur&&!cur._dihapus)cur=null;setNav('hapus','Berkas Dihapus');renderMain();renderList()}
 async function pulihkanSemua(btn){const L=DB.filter(r=>r._dihapus&&LIST_TAMPIL.includes(r.id));if(!L.length)return;
   if(!confirm(`Pulihkan ${L.length} berkas yang sedang tampil ke Daftar Berkas?`))return;btn.disabled=true;let n=0;
@@ -1153,7 +1173,7 @@ function provinsiHitung(r){const s=[r.kelurahan,r.alamat].filter(Boolean).join('
 function tglDibuat(r){const v=(r._meta&&r._meta.dibuatPada)||r.dibuatPada||'';if(!v)return'';const d=new Date(v);if(isNaN(d))return String(v).slice(0,10);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function hariTgl(s){const d=pd(s);return d?HARI[d.getDay()]+', '+tgl(s):'Tanggal dibuat tidak tercatat'}
-function renderList(){const q=($('#q').value||'').toLowerCase();
+function renderList(){if(!cur&&!WZ.on&&$('#tbBody'))isiTabel();const q=($('#q').value||'').toLowerCase();
   const nH=DB.filter(r=>r._dihapus).length,eH=$('#nHapus');if(eH)eH.textContent=nH?'('+nH+')':'';
   const semua=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS&&(r.nama+' '+derive(r).objek).toLowerCase().includes(q));
   /* pilihan saringan (dengan jumlah) */
@@ -1198,7 +1218,9 @@ function setv(p,v){if(cur._dihapus){toast('Berkas terhapus tidak bisa diubah');r
   save();clearTimeout(listT);listT=setTimeout(renderList,300);if(p==='jenis')renderMain()}
 function renderMain(){
   if(WZ.on)return wizard(WZ.step);
-  if(!cur){const n=DB.filter(r=>!r._dihapus),pg=n.filter(r=>r.jenis!=='Perwalian').length;
+  if(!cur){$('.wrap').classList.add('tblmode');$('#main').innerHTML=tabelBerkasHtml();isiTabel();return}
+  $('.wrap').classList.remove('tblmode');
+  if(false){const n=DB.filter(r=>!r._dihapus),pg=n.filter(r=>r.jenis!=='Perwalian').length;
     $('#main').innerHTML=`<div style="padding:10px 6px"><h2 style="margin:0 0 4px">Selamat datang, ${esc((ME&&ME.nama)||'')} 👋</h2><p class="hint" style="margin:0 0 18px">Buat berkas dari penetapan pengadilan; data terisi otomatis, dokumen tinggal diunduh ke Google Docs.</p>
     <button class="pri" style="padding:12px 20px;border-radius:12px" onclick="wizard(1)">📑 Buat Berkas Baru →</button>
     <div class="dash"><div class="card"><b>${n.length}</b><span>Total berkas</span></div><div class="card"><b>${pg}</b><span>Pengampuan</span></div><div class="card"><b>${n.length-pg}</b><span>Perwalian</span></div></div>
@@ -2503,6 +2525,45 @@ function segarkanLurahBox(){const b=$('#lurahBox');if(b)b.innerHTML=lurahBoxHtml
 function tulisNamaKantor(){const nk=namaKantorLurah(cur);if(!nk)return;cur.alamatKelurahan=nk+', ';save();const i=document.querySelector('[data-f="alamatKelurahan"] input');if(i){i.value=cur.alamatKelurahan;i.focus();i.setSelectionRange(i.value.length,i.value.length)}segarkanLurahBox()}
 /* link ikut berubah saat mengetik di kolom kantor lurah atau kolom kelurahan */
 document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[data-f="alamatKelurahan"],[data-kel]'))segarkanLurahBox()});
+
+/* ===== Daftar Berkas: tabel dengan filter, tab & urutan (gaya SPS) ===== */
+const TB={tab:'semua',dari:'',sampai:'',jenis:'',prov:'',cari:'',sort:'dibuat',dir:-1,batas:50};
+function tbStatus(r){const t=(cekKelayakan(r).tolak||[]).length,e=cekCetak(r).filter(x=>x.lvl==='e').length;
+  return t?{k:'no',t:'Ditolak'}:e?{k:'wr',t:e+' perlu dilengkapi'}:{k:'ok',t:'Lengkap'}}
+function tabelBerkasHtml(){const opt=(arr,v,semua)=>`<option value="">${semua}</option>`+arr.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
+  const provs=[...new Set(DB.filter(r=>!r._dihapus).map(provinsiBerkas))].sort();
+  return `<div class="tb-card tb-head"><div><h3>${LIHAT_HAPUS?'Berkas Dihapus':'Daftar Berkas'}</h3><p>${LIHAT_HAPUS?'Berkas yang dihapus — bisa dipulihkan':'Kelola dan pantau berkas penyumpahan perwalian & pengampuan'}</p></div>
+  ${LIHAT_HAPUS?`<a href="#" onclick="event.preventDefault();goBerkas()" class="mut" style="font-size:13px">← Kembali ke Daftar Berkas</a>`:`<button class="pri" style="padding:10px 18px;border-radius:10px;font-weight:600" onclick="wizard(1)">＋ Berkas Baru</button>`}</div>
+  <div class="tb-card"><div class="tb-filter"><h4>Filter &amp; Pencarian</h4>
+  <div class="tb-fgrid"><div><label>Tanggal Sumpah Mulai</label><input type="date" id="tbDari" value="${TB.dari}"></div><div><label>Tanggal Sumpah Akhir</label><input type="date" id="tbSampai" value="${TB.sampai}"></div>
+  <div><label>Jenis</label><select id="tbJenis">${opt(['Pengampuan','Perwalian'],TB.jenis,'Semua Jenis')}</select></div><div><label>Provinsi</label><select id="tbProv">${opt(provs,TB.prov,'Semua Provinsi')}</select></div></div>
+  <div class="tb-srow"><div><label>Pencarian</label><input id="tbCari" value="${esc(TB.cari)}" placeholder="🔍 Cari nama pemohon, anak/terampu, nomor penetapan, kelurahan…" onkeydown="if(event.key==='Enter')tbTerapkan()"></div>
+  <button class="pri" onclick="tbTerapkan()">⏷ Terapkan Filter</button><button onclick="tbReset()">↻ Reset Filter</button></div></div>
+  <div class="tb-tabs" id="tbTabs"></div><div class="tb-meta" id="tbMeta"></div>
+  <table class="tb"><thead><tr>${[['penetapan','No. Penetapan'],['nama','Nama Pemohon'],['jenis','Jenis'],['lokasi','Lokasi'],['sumpah','Tgl Sumpah'],['status','Status']].map(([k,l])=>`<th onclick="tbUrut('${k}')">${l}<small>${TB.sort===k?(TB.dir>0?'▲':'▼'):'⇅'}</small></th>`).join('')}</tr></thead><tbody id="tbBody"></tbody></table><div id="tbMore"></div></div>`}
+function tbTerapkan(){TB.dari=$('#tbDari').value;TB.sampai=$('#tbSampai').value;TB.jenis=$('#tbJenis').value;TB.prov=$('#tbProv').value;TB.cari=$('#tbCari').value.trim();TB.batas=50;isiTabel()}
+function tbReset(){Object.assign(TB,{dari:'',sampai:'',jenis:'',prov:'',cari:'',batas:50});const q=$('#q');if(q)q.value='';renderMain()}
+function tbUrut(k){TB.dir=TB.sort===k?-TB.dir:(k==='dibuat'||k==='sumpah'?-1:1);TB.sort=k;renderMain()}
+function tbTab(t){TB.tab=t;TB.batas=50;isiTabel()}
+function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q=[TB.cari,(($('#q')||{}).value||'')].map(x=>x.toLowerCase().replace(/\s+/g,' ').trim()).filter(Boolean);
+  const dasar=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS).filter(r=>(!TB.jenis||r.jenis===TB.jenis)&&(!TB.prov||provinsiBerkas(r)===TB.prov)&&(!TB.dari||(r.tglSumpah||'')>=TB.dari)&&(!TB.sampai||(r.tglSumpah&&r.tglSumpah<=TB.sampai))
+    &&(!q.length||(t=>q.every(w=>t.includes(w)))([r.nama,derive(r).objek,r.nomorPenetapan,r.pengadilan,r.kelurahan,r.alamat].join(' ').toLowerCase())));
+  const st=new Map(dasar.map(r=>[r,tbStatus(r)]));
+  const TABS=[['hari','Sumpah Hari Ini',r=>r.tglSumpah===hari],['semua','Semua Berkas',()=>true],['kurang','Perlu Dilengkapi',r=>st.get(r).k==='wr'],['tolak','Ditolak',r=>st.get(r).k==='no']];
+  $('#tbTabs').innerHTML=TABS.map(([k,l,f])=>`<button class="${TB.tab===k?'on':''}" onclick="tbTab('${k}')">${l} <i>${dasar.filter(f).length}</i></button>`).join('');
+  const f=(TABS.find(t=>t[0]===TB.tab)||TABS[1])[2],L=dasar.filter(f);
+  const kunci={penetapan:r=>r.nomorPenetapan||'',nama:r=>r.nama||'',jenis:r=>r.jenis||'',lokasi:r=>provinsiBerkas(r)+lokasiBerkas(r).kota,sumpah:r=>r.tglSumpah||'',status:r=>st.get(r).k,dibuat:r=>tglDibuat(r)||''}[TB.sort]||(r=>tglDibuat(r)||'');
+  L.sort((a,b)=>String(kunci(a)).localeCompare(String(kunci(b)),'id')*TB.dir);
+  const lbl={penetapan:'No. Penetapan',nama:'Nama',jenis:'Jenis',lokasi:'Lokasi',sumpah:'Tanggal Sumpah',status:'Status',dibuat:'Tanggal Dibuat'}[TB.sort];
+  $('#tbMeta').innerHTML=`Total: ${L.length} berkas <span>⇅ ${lbl} (${TB.dir>0?'A → Z / terlama':'Z → A / terbaru'})</span>`;
+  body.innerHTML=L.slice(0,TB.batas).map(r=>{const d=derive(r),s=st.get(r),lk=lokasiBerkas(r);
+    return `<tr onclick="pick('${r.id}')"><td class="kode" data-l="No. Penetapan"><b>${esc(r.nomorPenetapan||'—')}</b><small>${esc(r.pengadilan||'')}</small></td>
+    <td class="nm" data-l="Pemohon"><b>${esc(r.nama||'(tanpa nama)')}</b><span class="sub">${esc(d.objek||'-')}</span></td>
+    <td data-l="Jenis"><span class="pill ${r.jenis==='Perwalian'?'':'pg'}">${esc(r.jenis||'-')}</span></td>
+    <td data-l="Lokasi"><span>${esc(lk.kota)}<span class="sub">${esc(provinsiBerkas(r))}</span></span></td>
+    <td data-l="Tgl Sumpah" class="${r.tglSumpah?'':'mut'}">${r.tglSumpah?tgl(r.tglSumpah):'Belum dijadwalkan'}</td>
+    <td data-l="Status"><span class="pill ${s.k}">${s.t}</span></td></tr>`}).join('')||`<tr><td colspan="6" class="tb-empty">${DB.length?'Tidak ada berkas yang cocok dengan filter.':'Belum ada berkas. Klik “＋ Berkas Baru” untuk memulai.'}</td></tr>`;
+  $('#tbMore').innerHTML=L.length>TB.batas?`<button class="tb-more" onclick="TB.batas+=50;isiTabel()">Tampilkan ${Math.min(50,L.length-TB.batas)} berkas berikutnya (${L.length-TB.batas} lagi)</button>`:''}
 </script>
 </body>
 </html>
