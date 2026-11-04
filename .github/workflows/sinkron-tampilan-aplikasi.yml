@@ -1,12 +1,12 @@
 # Sinkron otomatis tampilan aplikasi Dokumen Penyumpahan ke repo yang dibaca Apps Script.
 #
 # Aplikasi yang terpasang (Code.gs → UI_URL) mengambil tampilan dari:
-#   damayantielsintha-wq/Kalender-Kerja-Wilayah-II  branch claude/dokumen-penyumpahan-app-3s2ts5  penyumpahan/Index.html
+#   shelanatasha-bhpmedan/Kalender-Kerja-Wilayah-II (dulu damayantielsintha-wq/…; URL lama dialihkan otomatis)  branch claude/dokumen-penyumpahan-app-3s2ts5  penyumpahan/Index.html
 # Workflow ini menyalin dokumen-penyumpahan/Index.html (dan sumbernya) dari repo ini ke sana setiap kali berubah,
 # sehingga perubahan tampil sendiri di aplikasi (paling lambat 10 menit, atau langsung dengan …/exec?segar=1).
 #
 # Perlu SEKALI dipasang oleh pemilik akun:
-#   Secret repo ini bernama AKTIF_REPO_TOKEN = fine-grained personal access token milik damayantielsintha-wq
+#   Secret repo ini bernama AKTIF_REPO_TOKEN = fine-grained personal access token milik shelanatasha-bhpmedan
 #   dengan akses HANYA ke repo Kalender-Kerja-Wilayah-II, izin "Contents: Read and write".
 # Tanpa secret itu workflow hanya memberi catatan dan tidak melakukan apa pun.
 name: Sinkron tampilan aplikasi
@@ -33,7 +33,7 @@ jobs:
       - name: Salin ke repo aplikasi aktif
         env:
           TOKEN: ${{ secrets.AKTIF_REPO_TOKEN }}
-          TUJUAN: damayantielsintha-wq/Kalender-Kerja-Wilayah-II
+          TUJUAN: shelanatasha-bhpmedan/Kalender-Kerja-Wilayah-II
           CABANG: claude/dokumen-penyumpahan-app-3s2ts5
         run: |
           if [ -z "$TOKEN" ]; then
