@@ -220,6 +220,11 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* ===== Daftar Berkas: tampilan tabel (gaya SPS) ===== */
+.pandu{display:flex;gap:12px;align-items:flex-start;background:#f4f6fc;border:1px solid #dfe4f3;border-radius:12px;padding:11px 14px;margin:0 0 14px;font-size:13px;line-height:1.5}
+.pandu b.n{flex:none;background:var(--navy,#1b2345);color:#fff;border-radius:99px;padding:2px 9px;font-size:11.5px;margin-top:1px}.pandu .st{display:block;margin-top:3px;font-size:12px;font-weight:600}.pandu .st.ok{color:#0f7a4f}.pandu .st.no{color:#b42318}
+.navtab{display:flex;justify-content:space-between;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}.navtab button{padding:10px 16px;border-radius:10px;font-weight:600}
+.alur{counter-reset:a;list-style:none;padding:0;margin:8px 0}.alur li{counter-increment:a;position:relative;padding:8px 0 10px 40px;border-left:2px solid #e4e7ef;margin-left:13px}.alur li::before{content:counter(a);position:absolute;left:-14px;top:6px;width:26px;height:26px;border-radius:99px;background:var(--navy,#1b2345);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+.alur li:last-child{border-left-color:transparent}.alur b{display:block}.alur small{color:var(--mut)}
 /* lipat: daftar berkas di kiri & menu samping (desktop) */
 .aside-h{display:flex;justify-content:space-between;align-items:center;gap:8px}.lipat-btn{font-size:11.5px;padding:4px 9px;border-radius:8px;font-weight:600;color:var(--mut)}
 .wrap.listhide{grid-template-columns:1fr}.wrap.listhide>aside{display:none}.buka-list{display:none;font-size:12.5px;padding:6px 12px;border-radius:9px;font-weight:600;margin:0 0 10px}.wrap.listhide .buka-list{display:inline-flex}
@@ -263,6 +268,7 @@ table.tb .kode b{display:block;font-size:13px}table.tb .kode small,table.tb .sub
   <div class="brand"><img id="brandLogo" alt=""><div><b>BHP MEDAN</b><small>Dokumen Penyumpahan</small></div></div>
   <div class="sec">DASHBOARD</div>
   <a class="nav on" data-v="berkas" onclick="goBerkas()"><i>🏠</i> <span>Daftar Berkas</span></a>
+  <a class="nav" onclick="panduan()"><i>❓</i> <span>Panduan Pengisian</span></a>
   <a class="nav superOnly" data-v="hapus" onclick="bukaTerhapus()"><i>🗑</i> <span>Berkas Dihapus <small id="nHapus" style="opacity:.75"></small></span></a>
   <div class="sec">PENYUMPAHAN</div>
   <a class="nav" data-v="baru" onclick="wizard(1)"><i>📑</i> <span>Berkas Baru</span></a>
@@ -1259,7 +1265,7 @@ function renderMain(){
   let h=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><div class="seg">${['Pengampuan','Perwalian'].map(j=>`<button class="${cur.jenis===j?'on':''}" onclick="setv('jenis','${j}')">${j}</button>`).join('')}</div>
   <span style="margin-right:auto"><span class="hint" id="stat">✓ Tersimpan</span><br><span class="meta">${cur._meta?`Dibuat ${esc(cur._meta.dibuatOleh||'')} · diubah terakhir oleh <b>${esc(cur._meta.diubahOleh||'')}</b>, ${wkt(cur._meta.diubahPada)}`:''}</span></span>
   <button onclick="setRingkas(!RINGKAS)" title="Mode ringkas: hanya kolom wajib yang tampil; kolom opsional yang masih kosong disembunyikan">${RINGKAS?'🧾 Ringkas ✓':'🧾 Tampilan lengkap'}</button><button onclick="cekSippBerkas()" title="Cari nama asli (yang disamarkan) &amp; cocokkan dengan SIPP pengadilan">🔎 SIPP</button><button onclick="screenshot('#main',cur.nama)" title="Simpan tampilan ini sebagai gambar PNG">📸 Screenshot</button><button onclick="dupRec()">⧉ Duplikat</button>${isSuper()?(cur._dihapus?'<button onclick="restoreRec()">♻️ Pulihkan</button>':'<button onclick="delRec()" style="color:var(--warn)">🗑 Hapus</button>'):''}</div>
-  ${bannerKelayakan(cur)}${cekBar(CL)}<div class="steps">${Object.entries(TABS).map(([k,v])=>{const q=CL.filter(x=>x.tab===k),e=q.some(x=>x.lvl==='e');return`<button class="${tab===k?'on':''}" onclick="tab='${k}';renderMain()">${v}${q.length?`<span class="dot ${e?'':'w'}">${q.length}</span>`:''}</button>`}).join('')}</div><div class="grid">`;
+  ${bannerKelayakan(cur)}${cekBar(CL)}<div class="steps">${Object.entries(TABS).map(([k,v])=>{const q=CL.filter(x=>x.tab===k),e=q.some(x=>x.lvl==='e');return`<button class="${tab===k?'on':''}" onclick="tab='${k}';renderMain()">${v}${q.length?`<span class="dot ${e?'':'w'}">${q.length}</span>`:''}</button>`}).join('')}</div>${panduanTab(TABS,CL,d)}<div class="grid">`;
   const pjOpt=v=>{const c=pjCari(v).nama;return SET.pejabat.map(p=>`<option ${p.nama===c?'selected':''} value="${esc(p.nama)}">${esc(p.nama||'(isi di Pengaturan)')} — ${esc(p.jabatan||'')}</option>`).join('')};
   if(tab==='umum')h+=`<div class="full"><label class="btn" style="display:inline-block;margin:0;color:var(--ink)">📑 Isi otomatis dari PDF Penetapan<input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this,true)"></label>${idDrive(cur.linkPenetapan)?` <a class="btn" style="display:inline-block;margin:0" href="${esc(cur.linkPenetapan)}" target="_blank" rel="noopener">📄 Buka PDF penetapan</a> <button onclick="bacaPdfDrive(this)">📑 Baca ulang dari PDF Drive</button>`:''}</div>`+F('pengadilan','Pengadilan')+FX('provinsi','Provinsi','select',['',...PROV.map(x=>x[0]),'Lainnya'],cur.provinsi||'',' data-f="provinsi" title="Kosongkan agar ditebak otomatis dari pengadilan/alamat"').replace('<option selected></option>','<option value="" selected>Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>').replace('<option ></option>','<option value="">Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>')+F('nomorPenetapan','Nomor Penetapan')+F('linkPenetapan','Tautan PDF penetapan (Google Drive)')+F('sippDomain',`Alamat SIPP (kosong = otomatis: ${esc(sippDom(cur)||'-')})`)+F('tglPenetapan','Tanggal Penetapan','date')+F('tanggalSurat','Tanggal Surat','date')+
     F('nomorSurat',`Nomor Surat ke ${d.J} (otomatis dari SPS)`)+F('nomorLurah','Nomor Surat ke Lurah (otomatis dari SPS)')+F('nomorBAP','Nomor BAP (diisi petugas di hari H; kosong = awalan saja)')+F('nomorBA','Nomor BA Sumpah (diisi petugas di hari H)')+F('nomorBAHarta','Nomor BA Inventarisasi (diisi petugas di hari H)');
@@ -1290,7 +1296,7 @@ function renderMain(){
     ${gdocBtn(g,o.keys,nm)}<div style="display:flex;flex-wrap:wrap;gap:6px">${o.keys.map(k=>`<button style="flex:1 1 auto" onclick="preview('${k}')">👁 ${o.keys.length>1?{permohonan:'Permohonan',bap:'BAP',ba:'BA Sumpah',harta:'BA Inventarisasi'}[k]:'Pratinjau'}</button>`).join('')}</div></div>`}).join('')}</div>
     <p class="hint">Kolom kuning = belum diisi. Dokumen dibuat sebagai <b>Google Docs</b> (bisa langsung diedit) di folder Drive berkas ini${cur.folderUrl?` — <a href="${cur.folderUrl}" target="_blank" rel="noopener">📁 buka folder</a>`:''}. Nomor surat antar diambil dari SPS (tanggal hari ini) setelah isian lengkap; nomor BA, BAP dan BA Inventarisasi diisi manual oleh petugas di hari penyumpahan. Semua tercatat di riwayat.</p><div id="prev"></div></div>`;
   if(tab==='riw')h+=`<div class="full"><div id="riw"></div></div>`;
-  $('#main').innerHTML=h+'</div>';
+  $('#main').innerHTML=h+'</div>'+navTab(TABS);
   if(tab==='dok')preview('permohonan');
   if(tab==='riw')tabRiwayat();
   if(RINGKAS)ringkasForm();
@@ -2568,7 +2574,7 @@ function tbStatus(r){const t=(cekKelayakan(r).tolak||[]).length,e=cekCetak(r).fi
 function tabelBerkasHtml(){const opt=(arr,v,semua)=>`<option value="">${semua}</option>`+arr.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
   const provs=[...new Set(DB.filter(r=>!r._dihapus).map(provinsiBerkas))].sort();
   return `<div class="tb-card tb-head"><div><h3>${LIHAT_HAPUS?'Berkas Dihapus':'Daftar Berkas'}</h3><p>${LIHAT_HAPUS?'Berkas yang dihapus — bisa dipulihkan':'Kelola dan pantau berkas penyumpahan perwalian & pengampuan'}</p></div>
-  ${LIHAT_HAPUS?`<a href="#" onclick="event.preventDefault();goBerkas()" class="mut" style="font-size:13px">← Kembali ke Daftar Berkas</a>`:`<button class="pri" style="padding:10px 18px;border-radius:10px;font-weight:600" onclick="wizard(1)">＋ Berkas Baru</button>`}</div>
+  ${LIHAT_HAPUS?`<a href="#" onclick="event.preventDefault();goBerkas()" class="mut" style="font-size:13px">← Kembali ke Daftar Berkas</a>`:`<div style="display:flex;gap:8px;flex-wrap:wrap"><button style="padding:10px 14px;border-radius:10px;font-weight:600" onclick="panduan()">❓ Panduan</button><button class="pri" style="padding:10px 18px;border-radius:10px;font-weight:600" onclick="wizard(1)">＋ Berkas Baru</button></div>`}</div>
   <div class="tb-card"><div class="tb-filter"><h4>Filter &amp; Pencarian</h4>
   <div class="tb-fgrid"><div><label>Tanggal Sumpah Mulai</label><input type="date" id="tbDari" value="${TB.dari}"></div><div><label>Tanggal Sumpah Akhir</label><input type="date" id="tbSampai" value="${TB.sampai}"></div>
   <div><label>Jenis</label><select id="tbJenis">${opt(['Pengampuan','Perwalian'],TB.jenis,'Semua Jenis')}</select></div><div><label>Provinsi</label><select id="tbProv">${opt(provs,TB.prov,'Semua Provinsi')}</select></div></div>
@@ -2618,6 +2624,32 @@ function setLipat(k,v){LIPAT[k]=v;try{localStorage.setItem('bhp_lipat2',JSON.str
   try{terapkanLipat();if(cur&&!WZ.on&&!$('#main .buka-list')){const b=document.createElement('button');b.className='buka-list';b.textContent='☰ Tampilkan Daftar Berkas';b.onclick=()=>setLipat('list',false);$('#main').prepend(b)}}catch(e){console.warn(e)}
   return r}})();
 terapkanLipat();
+
+/* ===== Panduan pengisian: petunjuk per langkah + tombol lanjut + alur kerja ===== */
+const URUT_TAB=['umum','pihak','objek','jadwal','harta','dok'];
+function petunjukTab(k,d){const J=d.J,O=d.w?'anak':'terampu';return{
+  umum:`Isi data perkara sesuai penetapan pengadilan. <b>Paling cepat:</b> klik <i>📑 Isi otomatis dari PDF Penetapan</i>, lalu periksa hasilnya kolom demi kolom.`,
+  pihak:`Periksa identitas <b>${J}</b> (pemohon): nama, NIK, tanggal lahir, agama, pekerjaan, alamat lengkap, dan hubungan dengan ${O}. Kolom merah wajib diisi.`,
+  objek:d.w?`Isi data <b>anak</b>: nama, jenis kelamin, tanggal lahir. Usia dihitung otomatis; anak yang sudah 17 tahun otomatis tidak ikut diwalikan.`:`Isi data <b>terampu</b>: nama, jenis kelamin, tanggal lahir, dan kondisi (diagnosis & surat keterangan dokter).`,
+  jadwal:`Pilih <b>tanggal sumpah</b> di kalender, lalu waktu, tempat, dan pejabat. Belum ada tanggal? Boleh dikosongkan — surat antar otomatis berisi permintaan konfirmasi kesediaan.`,
+  harta:`Isi <b>harta</b> ${O} (untuk BA Inventarisasi) dan <b>isi BAP</b>. Isi BAP bisa disusun AI dari penetapan, lalu diperiksa.`,
+  dok:`Buat dokumen: <b>① Surat antar</b> (ke ${J} & lurah) — ambil nomor SPS lalu kirim <i>sebelum</i> hari sumpah. <b>② Dokumen Penyumpahan</b> (Permohonan, BAP, BA Sumpah, BA Inventarisasi) — dicetak & ditandatangani <i>pada</i> hari sumpah.`,
+  riw:`Catatan siapa mengubah apa dan kapan pada berkas ini.`}[k]||''}
+function panduanTab(TABS,CL,d){const i=URUT_TAB.indexOf(tab),q=CL.filter(x=>x.tab===tab),e=q.filter(x=>x.lvl==='e').length,w=q.length-e;
+  const st=tab==='riw'||tab==='dok'?'':e?`<span class="st no">⛔ ${e} kolom wajib belum benar${w?` · ${w} perlu dicek`:''} — kolom bertanda merah</span>`:w?`<span class="st" style="color:#b54708">⚠ ${w} kolom perlu dicek (tidak menghalangi)</span>`:`<span class="st ok">✓ Langkah ini sudah lengkap</span>`;
+  return`<div class="pandu"><b class="n">${i>=0?`Langkah ${i+1}/${URUT_TAB.length}`:'Info'}</b><div>${petunjukTab(tab,d)}${st}</div></div>`}
+function navTab(TABS){const i=URUT_TAB.indexOf(tab);if(i<0)return'';const pv=URUT_TAB[i-1],nx=URUT_TAB[i+1];
+  return`<div class="navtab">${pv?`<button onclick="tab='${pv}';renderMain();scrollTo(0,0)">← ${esc(TABS[pv])}</button>`:'<span></span>'}${nx?`<button class="pri" onclick="tab='${nx}';renderMain();scrollTo(0,0)">Lanjut: ${esc(TABS[nx])} →</button>`:`<button class="pri" onclick="goBerkas();scrollTo(0,0)">✓ Selesai — kembali ke Daftar Berkas</button>`}</div>`}
+function panduan(){dlg(`<h3>❓ Panduan Pengisian — Dokumen Penyumpahan</h3><p class="hint">Alur kerja satu berkas, dari penetapan sampai dokumen ditandatangani.</p>
+<ol class="alur">
+<li><b>Buat berkas</b><small>Menu <i>📑 Berkas Baru</i> → unggah PDF penetapan. Data terisi otomatis (AI), lalu periksa.</small></li>
+<li><b>Lengkapi data per langkah</b><small>Buka berkas → ikuti tab <i>1. Perkara → 2. Wali/Pengampu → 3. Anak/Terampu → 4. Jadwal → 5. BAP &amp; Harta</i>. Angka merah di tab = kolom yang masih kurang. Tekan <i>Lanjut →</i> di bawah tiap langkah.</small></li>
+<li><b>Tentukan jadwal sumpah</b><small>Pilih tanggal di kalender (atau kosongkan dulu bila menunggu konfirmasi kesediaan wali/pengampu).</small></li>
+<li><b>Kirim surat antar</b><small>Tab <i>📄 Dokumen</i> → Surat antar ke wali/pengampu &amp; ke lurah → <i>Ambil nomor SPS</i> → <i>Buat Google Doc</i> → kirim (WA/email/pos). Banyak berkas sekaligus: filter di Daftar Berkas lalu <i>📦 Surat antar (ZIP)</i>.</small></li>
+<li><b>Hari sumpah</b><small>Tab <i>📄 Dokumen</i> → <i>Dokumen Penyumpahan</i> (Permohonan, BAP, BA Sumpah, BA Inventarisasi). Isi nomor BA/BAP, cetak, tempel meterai, tanda tangan bersama saksi.</small></li>
+<li><b>Selesai</b><small>Status berkas di Daftar Berkas menjadi <i>Lengkap</i>. Semua perubahan tercatat di <i>🕘 Riwayat</i>.</small></li>
+</ol><p class="hint">Tips: kolom <b>merah</b> wajib · kolom <b>kuning</b> sebaiknya dicek · tab <b>Perlu Dilengkapi</b> di Daftar Berkas menampilkan berkas yang masih kurang.</p>
+<p style="text-align:right;margin-top:10px"><button class="pri" onclick="dlgClose()">Mengerti</button></p>`)}
 </script>
 </body>
 </html>
