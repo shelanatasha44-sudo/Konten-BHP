@@ -66,32 +66,58 @@ kbd{font-family:var(--font);background:var(--chip);border:1px solid var(--line);
 
   // {kota} {pn} {n} diganti otomatis. vol: [min,max] → angka untuk kolom volume/jumlah.
   var BANK = [
+    // --- Tusi perwalian & pengampuan ---
     { u: 'Melakukan penelaahan berkas penetapan {pn} tentang perwalian anak di bawah umur sebagai dasar penyusunan dokumen penyumpahan wali', o: 'Hasil telaah berkas penetapan perwalian', s: 'Berkas', vol: [2, 5] },
     { u: 'Melakukan penelaahan berkas penetapan {pn} tentang pengampuan dan memeriksa kelengkapan dokumen pemohon', o: 'Hasil telaah berkas penetapan pengampuan', s: 'Berkas', vol: [1, 3] },
     { u: 'Menyusun konsep Surat Antar kepada Wali/Pengampu wilayah {kota} beserta surat pengantar kepada Lurah/Camat setempat', o: 'Konsep surat antar wali/pengampu dan surat ke kelurahan', s: 'Surat', vol: [3, 8] },
     { u: 'Mengajukan permohonan penomoran surat keluar melalui aplikasi SPS untuk surat antar dan undangan Wali/Pengampu', o: 'Nomor surat keluar dari aplikasi SPS', s: 'Surat', vol: [3, 10] },
     { u: 'Melaksanakan penyumpahan Wali/Pengampu serta menyusun Berita Acara Sumpah dan Berita Acara Pemeriksaan (BAP)', o: 'Berita Acara Sumpah dan BAP', s: 'Dokumen', vol: [1, 3] },
     { u: 'Melakukan inventarisasi harta kekayaan anak di bawah umur/terampu dan menyusun Berita Acara Inventarisasi Harta', o: 'Berita Acara Inventarisasi Harta', s: 'Dokumen', vol: [1, 3] },
+    { u: 'Menatausahakan dan membukukan harta kekayaan anak di bawah umur/terampu yang berada dalam pengawasan Balai Harta Peninggalan', o: 'Pembukuan harta terampu', s: 'Berkas', vol: [2, 6] },
+    { u: 'Menyusun laporan pertanggungjawaban pengurusan harta Wali/Pengampu sebagai bahan pengawasan Balai Harta Peninggalan', o: 'Laporan pertanggungjawaban harta', s: 'Laporan', vol: [1, 3] },
     { u: 'Melakukan penelusuran data perkara perwalian/pengampuan pada SIPP {pn} untuk melengkapi dan memverifikasi data berkas', o: 'Data perkara terverifikasi dari SIPP', s: 'Perkara', vol: [3, 8] },
     { u: 'Menginput dan memutakhirkan data berkas perwalian/pengampuan pada aplikasi Dokumen Penyumpahan BHP Medan', o: 'Data berkas perwalian/pengampuan yang mutakhir', s: 'Berkas', vol: [4, 12] },
     { u: 'Melakukan monitoring pelaporan Wali/Pengampu melalui formulir SAPA WALI dan merekap kondisi anak/terampu serta asetnya', o: 'Rekap monitoring SAPA WALI', s: 'Laporan', vol: [1, 1] },
+    { u: 'Menindaklanjuti laporan Wali/Pengampu yang memerlukan tindak lanjut (kendala aset/domisili) hasil monitoring SAPA WALI', o: 'Catatan tindak lanjut monitoring', s: 'Berkas', vol: [1, 4] },
     { u: 'Menghubungi Wali/Pengampu wilayah {kota} melalui telepon/WhatsApp untuk konfirmasi kesediaan dan jadwal penyumpahan', o: 'Konfirmasi jadwal Wali/Pengampu', s: 'Orang', vol: [3, 8] },
     { u: 'Memberikan layanan konsultasi hukum kepada masyarakat terkait perwalian, pengampuan, dan pengurusan harta anak di bawah umur', o: 'Layanan konsultasi hukum', s: 'Orang', vol: [1, 4] },
+    { u: 'Melayani pemohon/Wali yang datang ke kantor terkait pengurusan perwalian, pengampuan, dan penyampaian laporan harta', o: 'Layanan tatap muka pemohon', s: 'Orang', vol: [1, 4] },
     { u: 'Melakukan verifikasi alamat kantor kelurahan/kecamatan di {kota} sebagai tujuan pengiriman surat antar Wali/Pengampu', o: 'Data alamat kantor kelurahan/kecamatan', s: 'Kelurahan', vol: [3, 10] },
     { u: 'Menyusun surat undangan penyumpahan Wali/Pengampu beserta lampiran jadwal pelaksanaan', o: 'Surat undangan penyumpahan', s: 'Surat', vol: [2, 6] },
+    { u: 'Menyusun konsep surat konfirmasi kesediaan Wali/Pengampu untuk berkas yang belum memiliki jadwal penyumpahan', o: 'Konsep surat konfirmasi kesediaan', s: 'Surat', vol: [2, 6] },
     { u: 'Memeriksa dan mengoreksi draf dokumen penyumpahan (permohonan, BA Sumpah, BAP, BA Inventarisasi) sebelum diajukan untuk ditandatangani', o: 'Dokumen penyumpahan yang telah dikoreksi', s: 'Dokumen', vol: [3, 8] },
     { u: 'Mengirimkan surat antar dan undangan kepada Wali/Pengampu serta kantor kelurahan/kecamatan melalui email resmi dan ekspedisi', o: 'Surat terkirim beserta daftar pengiriman', s: 'Surat', vol: [4, 12] },
     { u: 'Menata dan mengarsipkan berkas perwalian/pengampuan yang telah selesai disumpah ke arsip fisik dan arsip digital', o: 'Berkas terarsip', s: 'Berkas', vol: [3, 10] },
     { u: 'Menghitung dan memverifikasi PNBP layanan perwalian/pengampuan sesuai PP Nomor 30 Tahun 2026', o: 'Perhitungan PNBP terverifikasi', s: 'Berkas', vol: [2, 6] },
-    { u: 'Mengikuti rapat koordinasi Seksi Harta Peninggalan Wilayah II membahas progres penyelesaian berkas perwalian/pengampuan', o: 'Catatan hasil rapat koordinasi', s: 'Kegiatan', vol: [1, 1] },
     { u: 'Melakukan penelaahan permohonan izin penjualan/pengalihan harta anak di bawah umur yang diajukan oleh Wali', o: 'Hasil telaah permohonan izin', s: 'Berkas', vol: [1, 2] },
-    { u: 'Menyusun konsep surat konfirmasi kesediaan Wali/Pengampu untuk berkas yang belum memiliki jadwal penyumpahan', o: 'Konsep surat konfirmasi kesediaan', s: 'Surat', vol: [2, 6] },
     { u: 'Mencocokkan data penetapan pengadilan (nama, NIK, tanggal lahir, hubungan) dengan dokumen kependudukan Wali/Pengampu dan anak/terampu', o: 'Data berkas yang tervalidasi', s: 'Berkas', vol: [3, 8] },
-    { u: 'Menyiapkan bahan, daftar berkas, dan rencana jadwal kunjungan penyumpahan Wali/Pengampu ke Provinsi Kepulauan Riau', o: 'Rencana dan bahan kunjungan Kepri', s: 'Dokumen', vol: [1, 1] },
     { u: 'Menyusun rekapitulasi berkas perwalian/pengampuan per kabupaten/kota di Wilayah II beserta status penyelesaiannya', o: 'Rekapitulasi berkas Wilayah II', s: 'Laporan', vol: [1, 1] },
-    { u: 'Melayani pemohon/Wali yang datang ke kantor terkait pengurusan perwalian, pengampuan, dan penyampaian laporan harta', o: 'Layanan tatap muka pemohon', s: 'Orang', vol: [1, 4] },
     { u: 'Menyusun laporan pelaksanaan tugas pengawasan terhadap Wali/Pengampu sebagai bahan laporan kinerja seksi', o: 'Laporan pengawasan Wali/Pengampu', s: 'Laporan', vol: [1, 1] },
-    { u: 'Menindaklanjuti laporan Wali/Pengampu yang memerlukan tindak lanjut (kendala aset/domisili) hasil monitoring SAPA WALI', o: 'Catatan tindak lanjut monitoring', s: 'Berkas', vol: [1, 4] }
+    { u: 'Menyiapkan bahan, daftar berkas, dan rencana jadwal kunjungan penyumpahan Wali/Pengampu ke Provinsi Kepulauan Riau', o: 'Rencana dan bahan kunjungan Kepri', s: 'Dokumen', vol: [1, 1] },
+    // --- Koordinasi ke Pengadilan ---
+    { u: 'Melakukan koordinasi ke Pengadilan Negeri {kota} untuk mengambil salinan penetapan perwalian/pengampuan yang telah berkekuatan hukum tetap', o: 'Salinan penetapan dari pengadilan', s: 'Berkas', vol: [2, 6] },
+    { u: 'Berkoordinasi dengan Kepaniteraan {pn} terkait kelengkapan dan pemutakhiran data perkara perwalian/pengampuan', o: 'Hasil koordinasi dengan kepaniteraan', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengantar dan mengambil berkas permohonan ke Pengadilan Negeri {kota} dalam rangka penyelesaian perwalian/pengampuan', o: 'Berkas terkirim/terterima dari pengadilan', s: 'Berkas', vol: [1, 4] },
+    // --- Rapat & Zoom ---
+    { u: 'Mengikuti rapat koordinasi Seksi Harta Peninggalan Wilayah II membahas progres penyelesaian berkas perwalian/pengampuan', o: 'Catatan hasil rapat koordinasi', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti rapat koordinasi secara daring (Zoom) dengan Kantor Wilayah/Direktorat Jenderal AHU terkait pelaksanaan tugas kurator keperdataan', o: 'Catatan hasil rapat daring', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti sosialisasi/bimbingan teknis perwalian dan pengampuan secara daring melalui Zoom Meeting', o: 'Catatan hasil bimbingan teknis', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti rapat internal Seksi Harta Peninggalan Wilayah II melalui Zoom membahas pembagian dan progres berkas', o: 'Notulen rapat internal', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti webinar/FGD peningkatan kompetensi kurator keperdataan secara daring', o: 'Sertifikat/catatan webinar', s: 'Kegiatan', vol: [1, 1] },
+    // --- Zona Integritas (ZI) / WBK-WBBM ---
+    { u: 'Mengikuti rapat tim kerja Pembangunan Zona Integritas (ZI) menuju WBK/WBBM Balai Harta Peninggalan Medan', o: 'Catatan hasil rapat ZI', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Menyusun dan memutakhirkan dokumen bukti dukung (evidence) Lembar Kerja Evaluasi Zona Integritas pada area perubahan', o: 'Dokumen bukti dukung ZI', s: 'Dokumen', vol: [2, 6] },
+    { u: 'Menyiapkan bahan dan dokumentasi kegiatan pembangunan Zona Integritas menuju WBK/WBBM', o: 'Bahan dan dokumentasi ZI', s: 'Dokumen', vol: [1, 4] },
+    // --- Manajemen Risiko (MR) ---
+    { u: 'Mengikuti rapat penyusunan dan pemantauan Manajemen Risiko (MR) pada Seksi Harta Peninggalan Wilayah II', o: 'Catatan hasil rapat Manajemen Risiko', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Menyusun dan memutakhirkan register risiko beserta rencana tindak pengendalian kegiatan seksi', o: 'Register risiko dan RTP', s: 'Dokumen', vol: [1, 3] },
+    // --- SPIP ---
+    { u: 'Mengikuti rapat penyelenggaraan dan penilaian Sistem Pengendalian Intern Pemerintah (SPIP) di lingkungan Balai Harta Peninggalan Medan', o: 'Catatan hasil rapat SPIP', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Menyiapkan dokumen pendukung penilaian mandiri penyelenggaraan SPIP', o: 'Dokumen pendukung SPIP', s: 'Dokumen', vol: [1, 4] },
+    // --- Administrasi & pelaporan ---
+    { u: 'Menyusun laporan bulanan pelaksanaan kegiatan Seksi Harta Peninggalan Wilayah II', o: 'Laporan bulanan seksi', s: 'Laporan', vol: [1, 1] },
+    { u: 'Menyusun notulen dan tindak lanjut hasil rapat kegiatan seksi', o: 'Notulen dan tindak lanjut rapat', s: 'Dokumen', vol: [1, 2] },
+    { u: 'Menyiapkan bahan dan mengisi laporan kinerja harian/bulanan pada aplikasi e-Kinerja', o: 'Laporan kinerja terisi', s: 'Laporan', vol: [1, 1] }
   ];
 
   // Kegiatan khusus selama kunjungan dinas (mis. Kepri 23–27 Nov 2026).
