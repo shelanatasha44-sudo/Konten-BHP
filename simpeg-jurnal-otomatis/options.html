@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Pengaturan Jurnal SIMPEG</title>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--fg:#1f2937;--mut:#6b7280;--br:#e5e7eb;--pri:#0f5132}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--card:#111827;--fg:#e5e7eb;--mut:#9ca3af;--br:#374151;--pri:#059669}}
+body{font:14px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg);margin:0;padding:16px}
+main{max-width:760px;margin:auto}
+section{background:var(--card);border:1px solid var(--br);border-radius:10px;padding:14px 16px;margin:12px 0}
+h1{font-size:20px}h2{font-size:15px;margin:0 0 8px}
+label{display:block;margin:8px 0 2px;font-weight:600}small,.mut{color:var(--mut);font-weight:400}
+input[type=text],input[type=url],input[type=time],input[type=number],textarea,select{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--br);border-radius:6px;background:transparent;color:inherit;font:inherit}
+textarea{min-height:90px;font-family:ui-monospace,monospace;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+.cek{display:flex;gap:8px;align-items:center;font-weight:400}
+button{padding:8px 14px;border-radius:6px;border:0;background:var(--pri);color:#fff;font:inherit;cursor:pointer}
+#pesan{margin-left:8px}
+</style></head><body><main>
+<h1>⚙ Jurnal Harian SIMPEG Otomatis</h1>
+<p class="mut">Plugin membuka Jurnal Harian SIMPEG di tab latar, memilih tanggal, klik Tambah, mengisi 3–4 kegiatan (+ apel pagi & ISHOMA), lalu Simpan. Anda cukup login SIMPEG di Chrome; captcha tetap Anda isi sendiri.</p>
+
+<section><h2>1. Halaman SIMPEG</h2>
+<label>Alamat (URL) halaman Jurnal Harian <small>— bawaan: Kinerja → Jurnal Harian</small></label>
+<input type="url" id="url" placeholder="https://simpeg.kemenkum.go.id/devp/siap/skp_journal.php">
+<div class="grid">
+  <div><label>Teks tombol pembuka form <small>(kosong = "Tambah")</small></label><input type="text" id="tombolTambah"></div>
+  <div><label>Teks tombol simpan <small>(kosong = "Simpan")</small></label><input type="text" id="tombolSimpan"></div>
+  <div><label>Jeda antar kegiatan (ms)</label><input type="number" id="jedaMs" min="500" step="500"></div>
+</div>
+</section>
+
+<section><h2>2. Jadwal</h2>
+<div class="grid">
+  <div><label>Jam pengisian (Senin–Jumat)</label><input type="time" id="jam"></div>
+  <div><label>Kegiatan per hari (min–maks)</label><div class="grid" style="grid-template-columns:1fr 1fr"><input type="number" id="jumlahMin" min="1" max="4"><input type="number" id="jumlahMax" min="1" max="4"></div></div>
+</div>
+<label class="cek"><input type="checkbox" id="aktif"> Isi otomatis aktif</label>
+<label class="cek"><input type="checkbox" id="simpanOtomatis"> Tekan Simpan otomatis <span class="mut">(matikan untuk uji coba: form hanya diisi)</span></label>
+<label class="cek"><input type="checkbox" id="isiKemarin"> Susulkan H-1 bila kemarin belum terisi (mis. laptop tidak dibuka)</label>
+<label>Hari libur / cuti (satu tanggal per baris, yyyy-mm-dd)</label><textarea id="libur"></textarea>
+<label>Kunjungan dinas (satu per baris: mulai,selesai,kota) <small>— kegiatan diganti tema penyumpahan di lokasi</small></label><textarea id="kunjungan"></textarea>
+</section>
+
+<section><h2>3. Isi form</h2>
+<label>Pilihan "SKP Tahunan/Tugas Tambahan/Kreatifitas" untuk kegiatan kerja <small>(kosong = butir SKP tahunan pertama, mis. "Membantu kepala seksi dalam penyiapan bahan penyelesaian pengampuan…")</small></label><input type="text" id="nilaiSkp">
+<label class="cek"><input type="checkbox" id="apelPagi"> Tambah "Zoom Apel Pagi" 07.30–08.00 (SKP Lain-Lain)</label>
+<label class="cek"><input type="checkbox" id="ishoma"> Tambah "ISHOMA" 12.00–13.00, Jumat 11.30–13.30 (SKP Lain-Lain)</label>
+<label class="cek"><input type="checkbox" id="jagaSesi"> Jaga sesi tetap login (SIMPEG disentuh tiap 15 menit selama Chrome menyala)</label>
+</section>
+
+<section><h2>4. Kegiatan tambahan</h2>
+<p class="mut">Satu per baris: <code>uraian | output | satuan | volMin-volMax</code>. Ikut diacak bersama bank kegiatan Wilayah II bawaan ({kota} dan {pn} diganti otomatis).</p>
+<textarea id="kegiatanTambahan" placeholder="Menyusun konsep nota dinas ... | Konsep nota dinas | Dokumen | 1-2"></textarea>
+</section>
+
+<button id="simpan">Simpan pengaturan</button><span id="pesan" class="mut"></span>
+<script src="kegiatan.js"></script>
+<script src="options.js"></script>
+</main></body></html>
