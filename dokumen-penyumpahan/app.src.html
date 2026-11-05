@@ -2038,7 +2038,11 @@ function jadwalkan(id){const r=DB.find(x=>x.id===id);if(!r)return;if(!HARI_KERJA
   cur=r;r.tglSumpah=KAL.sel;save();catat('JADWAL',r.id,r.nama,'Dijadwalkan sumpah '+tgl(KAL.sel)).catch(()=>{});renderList();renderKalender();toast('📅 '+r.nama+' dijadwalkan '+tgl(KAL.sel))}
 /* ---------------- cek silang ke SIPP pengadilan ---------------- */
 const SIPP={hasil:{},jalan:false,filter:'masalah'};
-function sippDom(r){if(r.sippDomain)return r.sippDomain;let s=String(r.pengadilan||'').toLowerCase().replace(/kelas\s+\S+/g,'');const j=/agama|syar/.test(s)?'pa':/negeri/.test(s)?'pn':(/\bPA\b|PA\./.test(r.nomorPenetapan||'')?'pa':'pn');
+/* alamat SIPP yang tidak mengikuti pola sipp.pn-<kota>.go.id */
+const SIPP_KHUSUS={'sipp.pn-pematangsiantar.go.id':'sipp.pn-pematangsiantarkota.go.id'};
+const sippBetul=d=>{d=String(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'');return SIPP_KHUSUS[d]||d};
+function sippDom(r){return sippBetul(sippDomAsal(r))}
+function sippDomAsal(r){if(r.sippDomain)return r.sippDomain;let s=String(r.pengadilan||'').toLowerCase().replace(/kelas\s+\S+/g,'');const j=/agama|syar/.test(s)?'pa':/negeri/.test(s)?'pn':(/\bPA\b|PA\./.test(r.nomorPenetapan||'')?'pa':'pn');
   const k=s.replace(/pengadilan|agama|negeri|mahkamah|syar.iyah|kota|kabupaten|\b(pn|pa)\b/g,' ').trim().split(/\s+/).join('');return k?`sipp.${j}-${k}.go.id`:''}
 const SIPP_LBL={cocok:['✅','Cocok','#0b6b48'],beda:['⚠️','Nama tidak ada di SIPP','#b45309'],tidak_ada:['❓','Perkara tidak ditemukan','#b91c1c'],gagal:['⛔','Gagal menghubungi SIPP','#b91c1c'],lewat:['➖','Dilewati','var(--mut)']};
 /* nama disamarkan di penetapan: "ANAK I", "P***", "XXX", inisial "A.B.", kosong */

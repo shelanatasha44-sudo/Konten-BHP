@@ -267,6 +267,9 @@
     var nomor = String(d.nomorPenetapan || '').trim();
     if (!nomor) return { status: 'lewat', pesan: 'Nomor penetapan kosong' };
     var dom = String(d.sippDomain || '').trim() || sippDomain_(d.pengadilan, nomor);
+    /* alamat SIPP yang tidak mengikuti pola sipp.pn-<kota>.go.id */
+    dom = String(dom || '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    dom = ({ 'sipp.pn-pematangsiantar.go.id': 'sipp.pn-pematangsiantarkota.go.id' })[dom] || dom;
     if (!dom) return { status: 'lewat', pesan: 'Nama pengadilan tidak dikenali' };
     var cache = CacheService.getScriptCache(), ck = 'sipp3_' + Utilities.base64EncodeWebSafe(dom + nomor).slice(0, 200), s = null;
     try { s = JSON.parse(cache.get(ck) || 'null'); } catch (e) { }
