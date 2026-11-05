@@ -301,7 +301,7 @@ table.tb .kode b{display:block;font-size:13px}table.tb .kode small,table.tb .sub
   <aside class="card">
     <h3 class="aside-h">Daftar Berkas <button class="lipat-btn" onclick="setLipat('list',true)" title="Sembunyikan daftar — formulir berkas tampil lebar">⟨ Sembunyikan</button></h3>
     <div class="lfil"><select id="fGrp" onchange="setFil('grp',this.value)" title="Pisahkan daftar berdasarkan"><option value="prov">Provinsi → kota/kabupaten</option><option value="plt">Provinsi → kota/kab → tanggal dibuat</option><option value="lok">Per kota/kabupaten</option><option value="lt">Kota/kab → tanggal dibuat</option><option value="tgl">Per tanggal dibuat</option><option value="">Tanpa pemisah</option></select>
-      <select id="fProv" onchange="setFil('prov',this.value)" title="Saring provinsi"></select><select id="fLok" onchange="setFil('lok',this.value)" title="Saring kota/kabupaten"></select><select id="fBln" onchange="setFil('bln',this.value)" title="Saring bulan dibuat"></select></div>
+      <select id="fProv" hidden onchange="setFil('prov',this.value)" title="Saring provinsi"></select><select id="fLok" onchange="setFil('lok',this.value)" title="Saring kota/kabupaten"></select><select id="fBln" onchange="setFil('bln',this.value)" title="Saring bulan dibuat"></select></div>
     <div class="list" id="list"></div>
   </aside>
 
@@ -1224,6 +1224,8 @@ function renderList(){if(!cur&&!WZ.on&&$('#tbBody'))isiTabel();const q=($('#q').
   const semua=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS&&(r.nama+' '+derive(r).objek).toLowerCase().includes(q));
   /* pilihan saringan (dengan jumlah) */
   const hit=(arr,f)=>arr.reduce((m,r)=>{const k=f(r);m[k]=(m[k]||0)+1;return m},{});
+  /* tampilan depan: saring langsung per kabupaten/kota (pilihan provinsi disembunyikan) */
+  FIL.prov='';
   const provN=hit(semua,provinsiBerkas),lokN=hit(semua.filter(r=>!FIL.prov||provinsiBerkas(r)===FIL.prov),r=>lokasiBerkas(r).kota),blnN=hit(semua,r=>(tglDibuat(r)||'').slice(0,7)||'-');
   if(FIL.prov&&!provN[FIL.prov])FIL.prov='';if(FIL.lok&&!lokN[FIL.lok])FIL.lok='';if(FIL.bln&&!blnN[FIL.bln])FIL.bln='';
   const fg=$('#fGrp');if(fg)fg.value=FIL.grp;
