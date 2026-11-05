@@ -8,8 +8,13 @@ function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c
 async function muat() {
   var s = await chrome.storage.sync.get('cfg');
   cfg = Object.assign({}, J.DEFAULTS, s.cfg || {});
-  document.getElementById('info').textContent = (cfg.aktif ? '⏰ Otomatis tiap Senin–Jumat pukul ' + cfg.jam : '⏸ Otomatis dimatikan') +
-    (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)');
+  var ls = await chrome.storage.local.get('sesi');
+  var sesi = ls.sesi
+    ? (ls.sesi.habis ? '🔴 Sesi SIMPEG habis — login sekali, lalu isian lanjut sendiri' : '🟢 SIMPEG masih login (dicek ' + ls.sesi.cek + ')')
+    : '⚪ Status sesi belum dicek — buka SIMPEG sekali';
+  document.getElementById('info').innerHTML =
+    (cfg.aktif ? '⏰ Otomatis Senin–Jumat pukul ' + cfg.jam : '⏸ Otomatis dimatikan') +
+    (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)') + '<br>' + sesi;
   if (!tgl.value) tgl.value = J.iso(new Date());
   tampil();
 }
