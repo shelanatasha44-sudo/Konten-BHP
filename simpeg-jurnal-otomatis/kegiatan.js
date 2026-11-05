@@ -1,0 +1,153 @@
+/* Bank kegiatan + penyusun jurnal harian.
+ * Dipakai oleh background.js (importScripts), popup.js dan options.js.
+ * Hasil untuk satu tanggal SELALU sama (acak berbibit tanggal), jadi pratinjau = yang diisikan.
+ */
+(function (root) {
+  'use strict';
+
+  var KOTA = ['Medan', 'Batam', 'Tanjungpinang', 'Bintan', 'Karimun', 'Pematangsiantar', 'Deli Serdang'];
+  var PENGADILAN = ['PN Medan', 'PA Medan', 'PN Batam', 'PA Batam', 'PN Tanjungpinang', 'PA Tanjungpinang',
+    'PN Lubuk Pakam', 'PA Lubuk Pakam', 'PN Pematangsiantar', 'PN Tanjung Balai Karimun'];
+
+  // {kota} {pn} {n} diganti otomatis. vol: [min,max] → angka untuk kolom volume/jumlah.
+  var BANK = [
+    { u: 'Melakukan penelaahan berkas penetapan {pn} tentang perwalian anak di bawah umur sebagai dasar penyusunan dokumen penyumpahan wali', o: 'Hasil telaah berkas penetapan perwalian', s: 'Berkas', vol: [2, 5] },
+    { u: 'Melakukan penelaahan berkas penetapan {pn} tentang pengampuan dan memeriksa kelengkapan dokumen pemohon', o: 'Hasil telaah berkas penetapan pengampuan', s: 'Berkas', vol: [1, 3] },
+    { u: 'Menyusun konsep Surat Antar kepada Wali/Pengampu wilayah {kota} beserta surat pengantar kepada Lurah/Camat setempat', o: 'Konsep surat antar wali/pengampu dan surat ke kelurahan', s: 'Surat', vol: [3, 8] },
+    { u: 'Mengajukan permohonan penomoran surat keluar melalui aplikasi SPS untuk surat antar dan undangan Wali/Pengampu', o: 'Nomor surat keluar dari aplikasi SPS', s: 'Surat', vol: [3, 10] },
+    { u: 'Melaksanakan penyumpahan Wali/Pengampu serta menyusun Berita Acara Sumpah dan Berita Acara Pemeriksaan (BAP)', o: 'Berita Acara Sumpah dan BAP', s: 'Dokumen', vol: [1, 3] },
+    { u: 'Melakukan inventarisasi harta kekayaan anak di bawah umur/terampu dan menyusun Berita Acara Inventarisasi Harta', o: 'Berita Acara Inventarisasi Harta', s: 'Dokumen', vol: [1, 3] },
+    { u: 'Melakukan penelusuran data perkara perwalian/pengampuan pada SIPP {pn} untuk melengkapi dan memverifikasi data berkas', o: 'Data perkara terverifikasi dari SIPP', s: 'Perkara', vol: [3, 8] },
+    { u: 'Menginput dan memutakhirkan data berkas perwalian/pengampuan pada aplikasi Dokumen Penyumpahan BHP Medan', o: 'Data berkas perwalian/pengampuan yang mutakhir', s: 'Berkas', vol: [4, 12] },
+    { u: 'Melakukan monitoring pelaporan Wali/Pengampu melalui formulir SAPA WALI dan merekap kondisi anak/terampu serta asetnya', o: 'Rekap monitoring SAPA WALI', s: 'Laporan', vol: [1, 1] },
+    { u: 'Menghubungi Wali/Pengampu wilayah {kota} melalui telepon/WhatsApp untuk konfirmasi kesediaan dan jadwal penyumpahan', o: 'Konfirmasi jadwal Wali/Pengampu', s: 'Orang', vol: [3, 8] },
+    { u: 'Memberikan layanan konsultasi hukum kepada masyarakat terkait perwalian, pengampuan, dan pengurusan harta anak di bawah umur', o: 'Layanan konsultasi hukum', s: 'Orang', vol: [1, 4] },
+    { u: 'Melakukan verifikasi alamat kantor kelurahan/kecamatan di {kota} sebagai tujuan pengiriman surat antar Wali/Pengampu', o: 'Data alamat kantor kelurahan/kecamatan', s: 'Kelurahan', vol: [3, 10] },
+    { u: 'Menyusun surat undangan penyumpahan Wali/Pengampu beserta lampiran jadwal pelaksanaan', o: 'Surat undangan penyumpahan', s: 'Surat', vol: [2, 6] },
+    { u: 'Memeriksa dan mengoreksi draf dokumen penyumpahan (permohonan, BA Sumpah, BAP, BA Inventarisasi) sebelum diajukan untuk ditandatangani', o: 'Dokumen penyumpahan yang telah dikoreksi', s: 'Dokumen', vol: [3, 8] },
+    { u: 'Mengirimkan surat antar dan undangan kepada Wali/Pengampu serta kantor kelurahan/kecamatan melalui email resmi dan ekspedisi', o: 'Surat terkirim beserta daftar pengiriman', s: 'Surat', vol: [4, 12] },
+    { u: 'Menata dan mengarsipkan berkas perwalian/pengampuan yang telah selesai disumpah ke arsip fisik dan arsip digital', o: 'Berkas terarsip', s: 'Berkas', vol: [3, 10] },
+    { u: 'Menghitung dan memverifikasi PNBP layanan perwalian/pengampuan sesuai PP Nomor 30 Tahun 2026', o: 'Perhitungan PNBP terverifikasi', s: 'Berkas', vol: [2, 6] },
+    { u: 'Mengikuti rapat koordinasi Seksi Harta Peninggalan Wilayah II membahas progres penyelesaian berkas perwalian/pengampuan', o: 'Catatan hasil rapat koordinasi', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Melakukan penelaahan permohonan izin penjualan/pengalihan harta anak di bawah umur yang diajukan oleh Wali', o: 'Hasil telaah permohonan izin', s: 'Berkas', vol: [1, 2] },
+    { u: 'Menyusun konsep surat konfirmasi kesediaan Wali/Pengampu untuk berkas yang belum memiliki jadwal penyumpahan', o: 'Konsep surat konfirmasi kesediaan', s: 'Surat', vol: [2, 6] },
+    { u: 'Mencocokkan data penetapan pengadilan (nama, NIK, tanggal lahir, hubungan) dengan dokumen kependudukan Wali/Pengampu dan anak/terampu', o: 'Data berkas yang tervalidasi', s: 'Berkas', vol: [3, 8] },
+    { u: 'Menyiapkan bahan, daftar berkas, dan rencana jadwal kunjungan penyumpahan Wali/Pengampu ke Provinsi Kepulauan Riau', o: 'Rencana dan bahan kunjungan Kepri', s: 'Dokumen', vol: [1, 1] },
+    { u: 'Menyusun rekapitulasi berkas perwalian/pengampuan per kabupaten/kota di Wilayah II beserta status penyelesaiannya', o: 'Rekapitulasi berkas Wilayah II', s: 'Laporan', vol: [1, 1] },
+    { u: 'Melayani pemohon/Wali yang datang ke kantor terkait pengurusan perwalian, pengampuan, dan penyampaian laporan harta', o: 'Layanan tatap muka pemohon', s: 'Orang', vol: [1, 4] },
+    { u: 'Menyusun laporan pelaksanaan tugas pengawasan terhadap Wali/Pengampu sebagai bahan laporan kinerja seksi', o: 'Laporan pengawasan Wali/Pengampu', s: 'Laporan', vol: [1, 1] },
+    { u: 'Menindaklanjuti laporan Wali/Pengampu yang memerlukan tindak lanjut (kendala aset/domisili) hasil monitoring SAPA WALI', o: 'Catatan tindak lanjut monitoring', s: 'Berkas', vol: [1, 4] }
+  ];
+
+  // Kegiatan khusus selama kunjungan dinas (mis. Kepri 23–27 Nov 2026).
+  var BANK_KUNJUNGAN = [
+    { u: 'Melaksanakan perjalanan dinas ke {kota} dalam rangka penyumpahan dan pembinaan Wali/Pengampu', o: 'Pelaksanaan perjalanan dinas', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Melaksanakan penyumpahan Wali/Pengampu di {kota} dan menyusun Berita Acara Sumpah serta BAP', o: 'Berita Acara Sumpah dan BAP', s: 'Dokumen', vol: [3, 8] },
+    { u: 'Melakukan inventarisasi harta anak di bawah umur/terampu di {kota} dan menyusun Berita Acara Inventarisasi', o: 'Berita Acara Inventarisasi Harta', s: 'Dokumen', vol: [2, 6] },
+    { u: 'Memberikan pendampingan dan konsultasi hukum kepada Wali/Pengampu di {kota} terkait kewajiban pengurusan harta anak/terampu', o: 'Layanan pendampingan dan konsultasi', s: 'Orang', vol: [3, 8] },
+    { u: 'Berkoordinasi dengan kantor kelurahan/kecamatan di {kota} terkait penyampaian surat dan kehadiran Wali/Pengampu', o: 'Hasil koordinasi dengan kelurahan/kecamatan', s: 'Kegiatan', vol: [1, 3] },
+    { u: 'Menghubungi Wali/Pengampu di {kota} melalui WhatsApp untuk penjadwalan hari dan jam penyumpahan', o: 'Jadwal penyumpahan terkonfirmasi', s: 'Orang', vol: [4, 10] }
+  ];
+
+  var DEFAULTS = {
+    url: 'https://simpeg.kemenkum.go.id/',
+    jam: '08:15',            // jam pengisian otomatis (waktu laptop)
+    jumlahMin: 3,
+    jumlahMax: 4,
+    aktif: true,
+    simpanOtomatis: true,    // false = hanya mengisi form (uji coba), tidak menekan Simpan
+    isiKemarin: true,        // susulkan H-1 bila kemarin hari kerja & belum terisi
+    formatTanggal: 'dd-mm-yyyy',
+    tombolTambah: '',        // teks tombol untuk membuka form (mis. "Tambah"); kosong = otomatis
+    tombolSimpan: '',        // teks tombol simpan; kosong = otomatis (Simpan/Save/Kirim)
+    jedaMs: 2500,
+    selectors: { tanggal: '', jamMulai: '', jamSelesai: '', uraian: '', output: '', volume: '', satuan: '', keterangan: '', skp: '' },
+    nilaiSkp: '',            // teks pilihan dropdown SKP/rencana kinerja (bila ada)
+    libur: [                 // libur nasional & cuti bersama yang tersisa 2026 (ubah di Pengaturan)
+      '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
+    ],
+    kunjungan: [{ mulai: '2026-11-23', selesai: '2026-11-27', kota: 'Batam' }],
+    kegiatanTambahan: []     // [{u,o,s,vol:[a,b]}] dari Pengaturan
+  };
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseIso(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(s, n) { var d = parseIso(s); d.setDate(d.getDate() + n); return iso(d); }
+  function hariKerja(s, cfg) {
+    var g = parseIso(s).getDay();
+    if (g === 0 || g === 6) return false;
+    return !((cfg && cfg.libur) || []).includes(s);
+  }
+  function formatTanggal(s, fmt) {
+    var p = s.split('-');
+    return (fmt || 'dd-mm-yyyy').replace('yyyy', p[0]).replace('mm', p[1]).replace('dd', p[2]);
+  }
+
+  // PRNG deterministik (mulberry32) berbibit string.
+  function seedOf(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function shuffle(arr, r) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  function kunjunganPada(s, cfg) {
+    var k = (cfg.kunjungan || []).filter(function (x) { return x.mulai <= s && s <= x.selesai; });
+    return k[0] || null;
+  }
+
+  // Senin minggu itu → semua hari dalam satu minggu memakai urutan acak yang sama,
+  // lalu tiap hari mengambil potongan berbeda: kegiatan tidak berulang dalam satu minggu.
+  function seninDari(s) { var d = parseIso(s); var g = (d.getDay() + 6) % 7; d.setDate(d.getDate() - g); return iso(d); }
+
+  function slotJam(n, jumat) {
+    var siangMulai = jumat ? '13:30' : '13:00';
+    var pagiAkhir = jumat ? '11:30' : '12:00';
+    if (n <= 3) return [['08:00', '10:00'], ['10:00', pagiAkhir], [siangMulai, '16:00']];
+    return [['08:00', '09:45'], ['09:45', pagiAkhir], [siangMulai, '14:45'], ['14:45', '16:00']];
+  }
+
+  function isi(t, r, kotaTetap) {
+    var kota = kotaTetap || KOTA[Math.floor(r() * KOTA.length)];
+    var pn = PENGADILAN[Math.floor(r() * PENGADILAN.length)];
+    return t.replace(/\{kota\}/g, kota).replace(/\{pn\}/g, pn);
+  }
+
+  function susunJurnal(tanggal, cfgIn) {
+    var cfg = Object.assign({}, DEFAULTS, cfgIn || {});
+    var r = rng(seedOf('jurnal:' + tanggal));
+    var lo = Math.max(1, cfg.jumlahMin | 0), hi = Math.max(lo, cfg.jumlahMax | 0);
+    var n = lo + Math.floor(r() * (hi - lo + 1));
+    var kj = kunjunganPada(tanggal, cfg);
+    var dipilih;
+    if (kj) {
+      // hari pertama: perjalanan dinas di urutan pertama; hari lain: penyumpahan selalu ada
+      var sisa = shuffle(BANK_KUNJUNGAN.slice(2), r);
+      dipilih = (tanggal === kj.mulai ? [BANK_KUNJUNGAN[0], BANK_KUNJUNGAN[1]] : [BANK_KUNJUNGAN[1]]).concat(sisa).slice(0, n);
+    } else {
+      var bank = BANK.concat(cfg.kegiatanTambahan || []);
+      var urut = shuffle(bank, rng(seedOf('minggu:' + seninDari(tanggal))));
+      var hariKe = (parseIso(tanggal).getDay() + 6) % 7; // 0=Senin
+      dipilih = [];
+      for (var i = 0; i < n; i++) dipilih.push(urut[(hariKe * 4 + i) % urut.length]);
+    }
+    var jam = slotJam(n, parseIso(tanggal).getDay() === 5);
+    return dipilih.map(function (k, i) {
+      var vol = k.vol || [1, 1];
+      return {
+        tanggal: tanggal,
+        jamMulai: jam[i][0],
+        jamSelesai: jam[i][1],
+        uraian: isi(k.u, r, kj && kj.kota),
+        output: isi(k.o || '', r, kj && kj.kota),
+        satuan: k.s || 'Kegiatan',
+        volume: String(vol[0] + Math.floor(r() * (vol[1] - vol[0] + 1))),
+        keterangan: 'Selesai'
+      };
+    });
+  }
+
+  root.JurnalBHP = {
+    DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays,
+    formatTanggal: formatTanggal
+  };
+})(typeof self !== 'undefined' ? self : globalThis);

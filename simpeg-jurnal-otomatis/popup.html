@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Jurnal SIMPEG</title>
+<style>
+:root{--bg:#fff;--fg:#1f2937;--mut:#6b7280;--br:#e5e7eb;--pri:#0f5132;--ok:#15803d;--err:#b91c1c;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root{--bg:#111827;--fg:#e5e7eb;--mut:#9ca3af;--br:#374151;--pri:#34d399}}
+body{font:13px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg);width:400px;margin:0;padding:12px}
+h1{font-size:15px;margin:0 0 4px}.mut{color:var(--mut)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
+button{border:1px solid var(--br);background:transparent;color:var(--fg);border-radius:6px;padding:5px 9px;cursor:pointer;font:inherit}
+button.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+ol{padding-left:18px;margin:6px 0}li{margin:4px 0}
+.jam{font-variant-numeric:tabular-nums;color:var(--mut);font-size:12px}
+.st{padding:6px 8px;border-radius:6px;border:1px solid var(--br);margin:6px 0}
+.log{max-height:150px;overflow:auto;font-size:11.5px;border-top:1px solid var(--br);padding-top:6px}
+.ok{color:var(--ok)}.galat{color:var(--err)}.peringatan{color:var(--warn)}
+input[type=date]{font:inherit;padding:3px}
+</style></head><body>
+<h1>📝 Jurnal Harian SIMPEG</h1>
+<div class="mut" id="info"></div>
+<div class="row">
+  <button data-d="-1">H-1</button><button data-d="0" class="pri">Hari ini (H)</button><button data-d="1">H+1</button>
+  <input type="date" id="tgl">
+</div>
+<div class="st" id="status"></div>
+<ol id="daftar"></ol>
+<div class="row">
+  <button id="isi" class="pri">Isi sekarang</button>
+  <button id="uji">Uji isi form (tanpa simpan)</button>
+  <button id="tandai">Tandai sudah</button>
+  <button id="opsi">⚙ Pengaturan</button>
+</div>
+<div class="log" id="log"></div>
+<script src="kegiatan.js"></script>
+<script src="popup.js"></script>
+</body></html>

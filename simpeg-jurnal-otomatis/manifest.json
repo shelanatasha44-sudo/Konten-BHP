@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "SIMPEG Jurnal Harian Otomatis — BHP Medan Wil. II",
+  "short_name": "Jurnal SIMPEG",
+  "version": "1.0.0",
+  "description": "Mengisi jurnal harian SIMPEG otomatis tiap hari kerja (Senin–Jumat) dengan 3–4 kegiatan Seksi Harta Peninggalan Wilayah II.",
+  "permissions": [
+    "alarms",
+    "storage",
+    "scripting",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://*.kemenkum.go.id/*",
+    "https://*.kemenkumham.go.id/*",
+    "http://*.kemenkum.go.id/*",
+    "http://*.kemenkumham.go.id/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Jurnal SIMPEG Otomatis",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png"
+    }
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
