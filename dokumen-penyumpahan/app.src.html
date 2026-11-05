@@ -1873,7 +1873,7 @@ function alasanLewat(r){const dp=dupDari(r);if(dp)return`ganda dengan berkas ${d
 /* surat massal: semua berkas Kepri (menu) atau berkas yang sedang tampil di Daftar Berkas (hasil cari/saring) */
 let SM_IDS=null,SM_JUDUL='',TB_IDS=[];
 const berkasMassal=()=>SM_IDS?DB.filter(r=>!r._dihapus&&SM_IDS.includes(r.id)).sort((a,b)=>String(kotaBerkas(a)).localeCompare(String(kotaBerkas(b)))||String(a.nama||'').localeCompare(String(b.nama||''))):berkasKepri();
-function suratTampil(){SM_IDS=TB_IDS.slice();SM_JUDUL=TB.cari||(($('#q')||{}).value||'').trim()||TB.prov||TB.jenis||'berkas terpilih';dlgKepri()}
+function suratTampil(){SM_IDS=TB_IDS.slice();SM_JUDUL=TB.cari||(($('#q')||{}).value||'').trim()||TB.kota||TB.jenis||'berkas terpilih';dlgKepri()}
 function dlgKepri(){const L=berkasMassal(),k=kunjKepriCfg(),blm=L.filter(r=>!alasanLewat(r)&&kurangKepri(r).length).length,lw=L.filter(r=>alasanLewat(r)).length;
   const cb=(id,t,on)=>`<label style="margin:0;display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="${id}" style="width:auto;margin:0" ${on?'checked':''}> ${t}</label>`;
   dlg(`<h3>📦 ${SM_IDS?'Surat Antar — '+esc(SM_JUDUL):'Surat Massal Kepulauan Riau'}</h3><p class="hint">Surat Antar ke Wali/Pengampu dan Surat Antar ke Lurah untuk ${SM_IDS?'berkas yang tampil di Daftar Berkas':'semua berkas Provinsi Kepulauan Riau'} dibuat sekaligus (DOCX, format sama dengan unduhan satuan) dalam satu file ZIP, dikelompokkan per kota/kabupaten, beserta <b>Daftar Pengiriman.csv</b>.<br>Jadwal di surat: <b>${k?esc(rentangHari(k.mulai,k.sampai)+', '+rentangTgl(k.mulai,k.sampai)):'belum diatur'}</b> — hari & jam dipilih sendiri oleh wali/pengampu${isSuper()?' (ubah di ⚙ Pengaturan)':''}.</p>
@@ -2580,27 +2580,30 @@ function tulisNamaKantor(){const nk=namaKantorLurah(cur);if(!nk)return;cur.alama
 document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('[data-f="alamatKelurahan"],[data-kel]'))segarkanLurahBox()});
 
 /* ===== Daftar Berkas: tabel dengan filter, tab & urutan (gaya SPS) ===== */
-const TB={tab:'semua',dari:'',sampai:'',jenis:'',prov:'',cari:'',sort:'dibuat',dir:-1,batas:50};
+const TB={tab:'semua',dari:'',sampai:'',jenis:'',kota:'',cari:'',sort:'dibuat',dir:-1,batas:50};
 const tglPendek=s=>{const d=pd(s);return d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(2)}`:'—'};
 function tbStatus(r){const t=(cekKelayakan(r).tolak||[]).length,e=cekCetak(r).filter(x=>x.lvl==='e').length;
   return t?{k:'no',t:'Ditolak'}:e?{k:'wr',t:e+' perlu dilengkapi'}:{k:'ok',t:'Lengkap'}}
-function tabelBerkasHtml(){const opt=(arr,v,semua)=>`<option value="">${semua}</option>`+arr.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
-  const provs=[...new Set(DB.filter(r=>!r._dihapus).map(provinsiBerkas))].sort();
+function tabelBerkasHtml(){const opt=(arr,v,semua)=>`<option value="">${semua}</option>`+arr.map(([x,n])=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(x)}${n?` (${n})`:''}</option>`).join('');
+  /* pilihan kabupaten/kota (dengan jumlah berkas), yang belum diisi paling bawah */
+  const hit={};DB.filter(r=>!!r._dihapus===LIHAT_HAPUS).forEach(r=>{const k=lokasiBerkas(r).kota;hit[k]=(hit[k]||0)+1});
+  const kotas=Object.entries(hit).sort((a,b)=>(/belum/i.test(a[0]))-(/belum/i.test(b[0]))||a[0].localeCompare(b[0],'id'));
+  if(TB.kota&&!hit[TB.kota])TB.kota='';
   return `<div class="tb-card tb-head"><div><h3>${LIHAT_HAPUS?'Berkas Dihapus':'Daftar Berkas'}</h3><p>${LIHAT_HAPUS?'Berkas yang dihapus — bisa dipulihkan':'Kelola dan pantau berkas penyumpahan perwalian & pengampuan'}</p></div>
   ${LIHAT_HAPUS?`<a href="#" onclick="event.preventDefault();goBerkas()" class="mut" style="font-size:13px">← Kembali ke Daftar Berkas</a>`:`<div style="display:flex;gap:8px;flex-wrap:wrap"><button style="padding:10px 14px;border-radius:10px;font-weight:600" onclick="panduan()">❓ Panduan</button><button class="pri" style="padding:10px 18px;border-radius:10px;font-weight:600" onclick="wizard(1)">＋ Berkas Baru</button></div>`}</div>
   <div class="tb-card"><div class="tb-filter"><h4>Filter &amp; Pencarian</h4>
-  <div class="tb-fgrid"><div><label>Tanggal Sumpah Mulai</label><input type="date" id="tbDari" value="${TB.dari}"></div><div><label>Tanggal Sumpah Akhir</label><input type="date" id="tbSampai" value="${TB.sampai}"></div>
-  <div><label>Jenis</label><select id="tbJenis">${opt(['Pengampuan','Perwalian'],TB.jenis,'Semua Jenis')}</select></div><div><label>Provinsi</label><select id="tbProv">${opt(provs,TB.prov,'Semua Provinsi')}</select></div></div>
+  <div class="tb-fgrid"><div><label>Tanggal Sumpah Mulai</label><input type="date" id="tbDari" value="${TB.dari}" onchange="tbTerapkan()"></div><div><label>Tanggal Sumpah Akhir</label><input type="date" id="tbSampai" value="${TB.sampai}" onchange="tbTerapkan()"></div>
+  <div><label>Jenis</label><select id="tbJenis" onchange="tbTerapkan()">${opt([['Pengampuan'],['Perwalian']],TB.jenis,'Semua Jenis')}</select></div><div><label>Kabupaten/Kota</label><select id="tbKota" onchange="tbTerapkan()">${opt(kotas,TB.kota,'Semua Kabupaten/Kota')}</select></div></div>
   <div class="tb-srow"><div><label>Pencarian</label><input id="tbCari" value="${esc(TB.cari)}" placeholder="🔍 Cari nama pemohon, anak/terampu, nomor penetapan, kelurahan…" onkeydown="if(event.key==='Enter')tbTerapkan()"></div>
   <button class="pri" onclick="tbTerapkan()">⏷ Terapkan Filter</button><button onclick="tbReset()">↻ Reset Filter</button></div></div>
   <div class="tb-tabs" id="tbTabs"></div><div class="tb-meta" id="tbMeta"></div>
   <div class="tb-scroll"><table class="tb"><thead><tr>${[['penetapan','No. Penetapan'],['nama','Nama Pemohon'],['jenis','Jenis'],['lokasi','Lokasi'],['sumpah','Tgl Sumpah'],['status','Status']].map(([k,l])=>`<th class="${k==='lokasi'?'c-lok':''}" onclick="tbUrut('${k}')">${l}<small>${TB.sort===k?(TB.dir>0?'▲':'▼'):'⇅'}</small></th>`).join('')}</tr></thead><tbody id="tbBody"></tbody></table></div><div id="tbMore"></div></div>`}
-function tbTerapkan(){TB.dari=$('#tbDari').value;TB.sampai=$('#tbSampai').value;TB.jenis=$('#tbJenis').value;TB.prov=$('#tbProv').value;TB.cari=$('#tbCari').value.trim();TB.batas=50;isiTabel()}
-function tbReset(){Object.assign(TB,{dari:'',sampai:'',jenis:'',prov:'',cari:'',batas:50});const q=$('#q');if(q)q.value='';renderMain()}
+function tbTerapkan(){TB.dari=$('#tbDari').value;TB.sampai=$('#tbSampai').value;TB.jenis=$('#tbJenis').value;TB.kota=$('#tbKota').value;TB.cari=$('#tbCari').value.trim();TB.batas=50;isiTabel()}
+function tbReset(){Object.assign(TB,{dari:'',sampai:'',jenis:'',kota:'',cari:'',batas:50});const q=$('#q');if(q)q.value='';renderMain()}
 function tbUrut(k){TB.dir=TB.sort===k?-TB.dir:(k==='dibuat'||k==='sumpah'?-1:1);TB.sort=k;renderMain()}
 function tbTab(t){TB.tab=t;TB.batas=50;isiTabel()}
 function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q=[TB.cari,(($('#q')||{}).value||'')].map(x=>x.toLowerCase().replace(/\s+/g,' ').trim()).filter(Boolean);
-  const dasar=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS).filter(r=>(!TB.jenis||r.jenis===TB.jenis)&&(!TB.prov||provinsiBerkas(r)===TB.prov)&&(!TB.dari||(r.tglSumpah||'')>=TB.dari)&&(!TB.sampai||(r.tglSumpah&&r.tglSumpah<=TB.sampai))
+  const dasar=DB.filter(r=>!!r._dihapus===LIHAT_HAPUS).filter(r=>(!TB.jenis||r.jenis===TB.jenis)&&(!TB.kota||lokasiBerkas(r).kota===TB.kota)&&(!TB.dari||(r.tglSumpah||'')>=TB.dari)&&(!TB.sampai||(r.tglSumpah&&r.tglSumpah<=TB.sampai))
     &&(!q.length||(t=>q.every(w=>t.includes(w)))([r.nama,derive(r).objek,r.nomorPenetapan,r.pengadilan,r.kelurahan,r.alamat].join(' ').toLowerCase())));
   const st=new Map(dasar.map(r=>[r,tbStatus(r)]));
   const TABS=[['hari','📅','Sumpah Hari Ini',r=>r.tglSumpah===hari],['semua','☰','Semua Berkas',()=>true],['kurang','⚠','Perlu Dilengkapi',r=>st.get(r).k==='wr'],['tolak','⊘','Ditolak',r=>st.get(r).k==='no']];
@@ -2609,7 +2612,7 @@ function isiTabel(){const body=$('#tbBody');if(!body)return;const hari=today(),q
   const kunci={penetapan:r=>r.nomorPenetapan||'',nama:r=>r.nama||'',jenis:r=>r.jenis||'',lokasi:r=>provinsiBerkas(r)+lokasiBerkas(r).kota,sumpah:r=>r.tglSumpah||'',status:r=>st.get(r).k,dibuat:r=>tglDibuat(r)||''}[TB.sort]||(r=>tglDibuat(r)||'');
   L.sort((a,b)=>String(kunci(a)).localeCompare(String(kunci(b)),'id')*TB.dir);
   const lbl={penetapan:'No. Penetapan',nama:'Nama',jenis:'Jenis',lokasi:'Lokasi',sumpah:'Tanggal Sumpah',status:'Status',dibuat:'Tanggal Dibuat'}[TB.sort];
-  TB_IDS=L.map(r=>r.id);const saring=!LIHAT_HAPUS&&L.length&&(TB.cari||TB.jenis||TB.prov||TB.dari||TB.sampai||(($('#q')||{}).value||'').trim()||TB.tab!=='semua');
+  TB_IDS=L.map(r=>r.id);const saring=!LIHAT_HAPUS&&L.length&&(TB.cari||TB.jenis||TB.kota||TB.dari||TB.sampai||(($('#q')||{}).value||'').trim()||TB.tab!=='semua');
   $('#tbMeta').innerHTML=(saring?`<button style="margin-right:auto;padding:6px 12px;border-radius:9px;font-size:12px" onclick="suratTampil()" title="Surat antar ke wali/pengampu & lurah untuk semua berkas yang tampil — nomor SPS & nama file otomatis">📦 Surat antar ${L.length} berkas (ZIP)</button>`:'')+`Total: ${L.length} berkas <span>⇅ ${lbl} (${TB.dir>0?'A → Z / terlama':'Z → A / terbaru'})</span>`;
   body.innerHTML=L.slice(0,TB.batas).map(r=>{const d=derive(r),s=st.get(r),lk=lokasiBerkas(r);
     return `<tr onclick="pick('${r.id}')"><td class="kode" data-l="No. Penetapan"><b>${esc(r.nomorPenetapan||'—').replace(/\//g,'/<wbr>')}</b><small>${esc(r.pengadilan||'')}</small></td>
