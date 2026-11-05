@@ -16,15 +16,14 @@ button{padding:8px 14px;border-radius:6px;border:0;background:var(--pri);color:#
 #pesan{margin-left:8px}
 </style></head><body><main>
 <h1>⚙ Jurnal Harian SIMPEG Otomatis</h1>
-<p class="mut">Plugin membuka halaman jurnal harian SIMPEG di tab latar, mengisi 3–4 kegiatan, lalu menekan Simpan. Anda cukup tetap login SIMPEG di Chrome.</p>
+<p class="mut">Plugin membuka Jurnal Harian SIMPEG di tab latar, memilih tanggal, klik Tambah, mengisi 3–4 kegiatan (+ apel pagi & ISHOMA), lalu Simpan. Anda cukup login SIMPEG di Chrome; captcha tetap Anda isi sendiri.</p>
 
 <section><h2>1. Halaman SIMPEG</h2>
-<label>Alamat (URL) halaman jurnal harian / form tambah jurnal <small>— buka menu Jurnal Harian di SIMPEG, salin alamat dari address bar</small></label>
-<input type="url" id="url" placeholder="https://simpeg.kemenkum.go.id/...">
+<label>Alamat (URL) halaman Jurnal Harian <small>— bawaan: Kinerja → Jurnal Harian</small></label>
+<input type="url" id="url" placeholder="https://simpeg.kemenkum.go.id/devp/siap/skp_journal.php">
 <div class="grid">
-  <div><label>Format tanggal di form</label><select id="formatTanggal"><option>dd-mm-yyyy</option><option>dd/mm/yyyy</option><option>yyyy-mm-dd</option><option>mm/dd/yyyy</option></select></div>
-  <div><label>Teks tombol pembuka form <small>(opsional, mis. Tambah)</small></label><input type="text" id="tombolTambah"></div>
-  <div><label>Teks tombol simpan <small>(opsional)</small></label><input type="text" id="tombolSimpan"></div>
+  <div><label>Teks tombol pembuka form <small>(kosong = "Tambah")</small></label><input type="text" id="tombolTambah"></div>
+  <div><label>Teks tombol simpan <small>(kosong = "Simpan")</small></label><input type="text" id="tombolSimpan"></div>
   <div><label>Jeda antar kegiatan (ms)</label><input type="number" id="jedaMs" min="500" step="500"></div>
 </div>
 </section>
@@ -41,10 +40,11 @@ button{padding:8px 14px;border-radius:6px;border:0;background:var(--pri);color:#
 <label>Kunjungan dinas (satu per baris: mulai,selesai,kota) <small>— kegiatan diganti tema penyumpahan di lokasi</small></label><textarea id="kunjungan"></textarea>
 </section>
 
-<section><h2>3. Selektor kolom (lanjutan)</h2>
-<p class="mut">Kosongkan agar dideteksi otomatis dari label kolom. Isi selektor CSS (mis. <code>#uraian</code>, <code>textarea[name=kegiatan]</code>) bila hasil "Uji isi form" ada kolom yang meleset.</p>
-<div class="grid" id="selektor"></div>
-<label>Pilihan dropdown SKP / Rencana Hasil Kerja <small>(bila form mewajibkan; teks sebagian cukup)</small></label><input type="text" id="nilaiSkp">
+<section><h2>3. Isi form</h2>
+<label>Pilihan "SKP Tahunan/Tugas Tambahan/Kreatifitas" untuk kegiatan kerja <small>(kosong = butir SKP tahunan pertama, mis. "Membantu kepala seksi dalam penyiapan bahan penyelesaian pengampuan…")</small></label><input type="text" id="nilaiSkp">
+<label class="cek"><input type="checkbox" id="apelPagi"> Tambah "Zoom Apel Pagi" 07.30–08.00 (SKP Lain-Lain)</label>
+<label class="cek"><input type="checkbox" id="ishoma"> Tambah "ISHOMA" 12.00–13.00, Jumat 11.30–13.30 (SKP Lain-Lain)</label>
+<label class="cek"><input type="checkbox" id="jagaSesi"> Jaga sesi tetap login (SIMPEG disentuh tiap 15 menit selama Chrome menyala)</label>
 </section>
 
 <section><h2>4. Kegiatan tambahan</h2>

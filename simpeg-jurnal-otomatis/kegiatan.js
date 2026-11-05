@@ -50,19 +50,20 @@
   ];
 
   var DEFAULTS = {
-    url: 'https://simpeg.kemenkum.go.id/',
+    url: 'https://simpeg.kemenkum.go.id/devp/siap/skp_journal.php',
     jam: '08:15',            // jam pengisian otomatis (waktu laptop)
     jumlahMin: 3,
     jumlahMax: 4,
     aktif: true,
+    apelPagi: true,          // tambah 'Zoom Apel Pagi' 07.30–08.00 (SKP Lain-Lain)
+    ishoma: true,
+    jagaSesi: true,          // sentuh SIMPEG tiap 15 menit agar tetap login            // tambah 'ISHOMA' (SKP Lain-Lain)
     simpanOtomatis: true,    // false = hanya mengisi form (uji coba), tidak menekan Simpan
     isiKemarin: true,        // susulkan H-1 bila kemarin hari kerja & belum terisi
-    formatTanggal: 'dd-mm-yyyy',
-    tombolTambah: '',        // teks tombol untuk membuka form (mis. "Tambah"); kosong = otomatis
-    tombolSimpan: '',        // teks tombol simpan; kosong = otomatis (Simpan/Save/Kirim)
+    tombolTambah: '',        // kosong = tombol "Tambah"
+    tombolSimpan: '',        // kosong = tombol "Simpan"
     jedaMs: 2500,
-    selectors: { tanggal: '', jamMulai: '', jamSelesai: '', uraian: '', output: '', volume: '', satuan: '', keterangan: '', skp: '' },
-    nilaiSkp: '',            // teks pilihan dropdown SKP/rencana kinerja (bila ada)
+    nilaiSkp: '',            // kosong = butir SKP tahunan pertama di dropdown
     libur: [                 // libur nasional & cuti bersama yang tersisa 2026 (ubah di Pengaturan)
       '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
     ],
@@ -129,7 +130,11 @@
       dipilih = [];
       for (var i = 0; i < n; i++) dipilih.push(urut[(hariKe * 4 + i) % urut.length]);
     }
-    var jam = slotJam(n, parseIso(tanggal).getDay() === 5);
+    var jumat = parseIso(tanggal).getDay() === 5;
+    var jam = slotJam(n, jumat);
+    var rutin = [];
+    if (cfg.apelPagi && !kj) rutin.push({ tanggal: tanggal, jamMulai: '07:30', jamSelesai: '08:00', uraian: 'Zoom Apel Pagi', output: '', satuan: 'kegiatan', volume: '1', skp: 'Lain-Lain', keterangan: '' });
+    if (cfg.ishoma) rutin.push({ tanggal: tanggal, jamMulai: jumat ? '11:30' : '12:00', jamSelesai: jumat ? '13:30' : '13:00', uraian: 'ISHOMA', output: '', satuan: 'kegiatan', volume: '0', skp: 'Lain-Lain', keterangan: '' });
     return dipilih.map(function (k, i) {
       var vol = k.vol || [1, 1];
       return {
@@ -138,11 +143,12 @@
         jamSelesai: jam[i][1],
         uraian: isi(k.u, r, kj && kj.kota),
         output: isi(k.o || '', r, kj && kj.kota),
-        satuan: k.s || 'Kegiatan',
+        satuan: (k.s || 'kegiatan').toLowerCase(),
         volume: String(vol[0] + Math.floor(r() * (vol[1] - vol[0] + 1))),
-        keterangan: 'Selesai'
+        keterangan: 'Selesai',
+        skp: ''   // kosong = butir SKP tahunan utama
       };
-    });
+    }).concat(rutin).sort(function (a, b) { return a.jamMulai < b.jamMulai ? -1 : 1; });
   }
 
   root.JurnalBHP = {
