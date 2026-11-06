@@ -116,6 +116,33 @@
   function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function shuffle(arr, r) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
+  // Data dari GitHub (data/kegiatan.json) dipakai bila ada & valid; kalau tidak, pakai bawaan di atas.
+  function validBank(b) {
+    return Array.isArray(b) && b.length >= 5 && b.every(function (k) {
+      return k && typeof k.u === 'string' && k.u.length > 10 && (!k.vol || (Array.isArray(k.vol) && k.vol.length === 2));
+    });
+  }
+  function sumber(cfg) {
+    var d = cfg.dataRemote || {};
+    return {
+      bank: validBank(d.bank) ? d.bank : BANK,
+      bankKunjungan: validBank(d.bankKunjungan) ? d.bankKunjungan : BANK_KUNJUNGAN,
+      kota: Array.isArray(d.kota) && d.kota.length ? d.kota : KOTA,
+      pengadilan: Array.isArray(d.pengadilan) && d.pengadilan.length ? d.pengadilan : PENGADILAN
+    };
+  }
+  /** Gabungkan data GitHub ke pengaturan: libur & kunjungan ditambahkan, bank kegiatan diganti. */
+  function gabungRemote(cfg, data) {
+    if (!data) return cfg;
+    var c = Object.assign({}, cfg, { dataRemote: data });
+    if (Array.isArray(data.libur)) c.libur = Array.from(new Set((cfg.libur || []).concat(data.libur)));
+    if (Array.isArray(data.kunjungan)) {
+      var ada = {}; (cfg.kunjungan || []).forEach(function (k) { ada[k.mulai] = 1; });
+      c.kunjungan = (cfg.kunjungan || []).concat(data.kunjungan.filter(function (k) { return k && k.mulai && !ada[k.mulai]; }));
+    }
+    return c;
+  }
+
   function kunjunganPada(s, cfg) {
     var k = (cfg.kunjungan || []).filter(function (x) { return x.mulai <= s && s <= x.selesai; });
     return k[0] || null;
@@ -125,21 +152,43 @@
   // lalu tiap hari mengambil potongan berbeda: kegiatan tidak berulang dalam satu minggu.
   function seninDari(s) { var d = parseIso(s); var g = (d.getDay() + 6) % 7; d.setDate(d.getDate() - g); return iso(d); }
 
-  function slotJam(n, jumat) {
-    var siangMulai = jumat ? '13:30' : '13:00';
-    var pagiAkhir = jumat ? '11:30' : '12:00';
-    if (n <= 3) return [['08:00', '10:00'], ['10:00', pagiAkhir], [siangMulai, '16:00']];
-    return [['08:00', '09:45'], ['09:45', pagiAkhir], [siangMulai, '14:45'], ['14:45', '16:00']];
+  // Jam kerja penuh 07.30–16.30 tanpa celah. Pagi s.d. ISHOMA (12.00, Jumat 11.30),
+  // siang dari 13.00 (Jumat 13.30) s.d. 16.30. Titik pergantian diacak per tanggal
+  // (kelipatan 15 menit, tiap kegiatan minimal 1 jam) supaya jamnya tidak seragam.
+  function menit(hhmm) { var p = hhmm.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  function hhmm(m) { return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+  function potong(awal, akhir, bagian, r) {
+    var titik = [awal];
+    for (var i = 1; i < bagian; i++) {
+      var sisaBagian = bagian - i;
+      var lo = titik[i - 1] + 60, hi = akhir - 60 * sisaBagian;
+      var pilihan = [];
+      for (var t = Math.ceil(lo / 15) * 15; t <= hi; t += 15) pilihan.push(t);
+      titik.push(pilihan.length ? pilihan[Math.floor(r() * pilihan.length)] : Math.round((titik[i - 1] + akhir) / 2));
+    }
+    titik.push(akhir);
+    var hasil = [];
+    for (var j = 0; j < bagian; j++) hasil.push([hhmm(titik[j]), hhmm(titik[j + 1])]);
+    return hasil;
+  }
+  function slotJam(n, jumat, r, mulai) {
+    var pagiAkhir = menit(jumat ? '11:30' : '12:00');
+    var siangMulai = menit(jumat ? '13:30' : '13:00');
+    var pulang = menit('16:30');
+    var pagi = n >= 4 ? 2 : (r() < 0.5 ? 1 : 2);
+    var siang = Math.max(1, n - pagi);
+    return potong(menit(mulai), pagiAkhir, pagi, r).concat(potong(siangMulai, pulang, siang, r));
   }
 
-  function isi(t, r, kotaTetap) {
-    var kota = kotaTetap || KOTA[Math.floor(r() * KOTA.length)];
-    var pn = PENGADILAN[Math.floor(r() * PENGADILAN.length)];
+  function isi(t, r, kotaTetap, src) {
+    var kota = kotaTetap || src.kota[Math.floor(r() * src.kota.length)];
+    var pn = src.pengadilan[Math.floor(r() * src.pengadilan.length)];
     return t.replace(/\{kota\}/g, kota).replace(/\{pn\}/g, pn);
   }
 
   function susunJurnal(tanggal, cfgIn) {
     var cfg = Object.assign({}, DEFAULTS, cfgIn || {});
+    var src = sumber(cfg);
     var r = rng(seedOf('jurnal:' + tanggal));
     var lo = Math.max(1, cfg.jumlahMin | 0), hi = Math.max(lo, cfg.jumlahMax | 0);
     var n = lo + Math.floor(r() * (hi - lo + 1));
@@ -147,19 +196,21 @@
     var dipilih;
     if (kj) {
       // hari pertama: perjalanan dinas di urutan pertama; hari lain: penyumpahan selalu ada
-      var sisa = shuffle(BANK_KUNJUNGAN.slice(2), r);
-      dipilih = (tanggal === kj.mulai ? [BANK_KUNJUNGAN[0], BANK_KUNJUNGAN[1]] : [BANK_KUNJUNGAN[1]]).concat(sisa).slice(0, n);
+      var BK = src.bankKunjungan;
+      var sisa = shuffle(BK.slice(2), r);
+      dipilih = (tanggal === kj.mulai ? [BK[0], BK[1]] : [BK[1]]).concat(sisa).slice(0, n);
     } else {
-      var bank = BANK.concat(cfg.kegiatanTambahan || []);
+      var bank = src.bank.concat(cfg.kegiatanTambahan || []);
       var urut = shuffle(bank, rng(seedOf('minggu:' + seninDari(tanggal))));
       var hariKe = (parseIso(tanggal).getDay() + 6) % 7; // 0=Senin
       dipilih = [];
       for (var i = 0; i < n; i++) dipilih.push(urut[(hariKe * 4 + i) % urut.length]);
     }
     var jumat = parseIso(tanggal).getDay() === 5;
-    var jam = slotJam(n, jumat);
+    var adaApel = cfg.apelPagi && !kj;
+    var jam = slotJam(n, jumat, rng(seedOf('jam:' + tanggal)), adaApel ? '08:00' : '07:30');
     var rutin = [];
-    if (cfg.apelPagi && !kj) rutin.push({ tanggal: tanggal, jamMulai: '07:30', jamSelesai: '08:00', uraian: 'Zoom Apel Pagi', output: '', satuan: 'kegiatan', volume: '1', skp: 'Lain-Lain', keterangan: '' });
+    if (adaApel) rutin.push({ tanggal: tanggal, jamMulai: '07:30', jamSelesai: '08:00', uraian: 'Zoom Apel Pagi', output: '', satuan: 'kegiatan', volume: '1', skp: 'Lain-Lain', keterangan: '' });
     if (cfg.ishoma) rutin.push({ tanggal: tanggal, jamMulai: jumat ? '11:30' : '12:00', jamSelesai: jumat ? '13:30' : '13:00', uraian: 'ISHOMA', output: '', satuan: 'kegiatan', volume: '0', skp: 'Lain-Lain', keterangan: '' });
     return dipilih.map(function (k, i) {
       var vol = k.vol || [1, 1];
@@ -167,8 +218,8 @@
         tanggal: tanggal,
         jamMulai: jam[i][0],
         jamSelesai: jam[i][1],
-        uraian: isi(k.u, r, kj && kj.kota),
-        output: isi(k.o || '', r, kj && kj.kota),
+        uraian: isi(k.u, r, kj && kj.kota, src),
+        output: isi(k.o || '', r, kj && kj.kota, src),
         satuan: (k.s || 'kegiatan').toLowerCase(),
         volume: String(vol[0] + Math.floor(r() * (vol[1] - vol[0] + 1))),
         keterangan: 'Selesai',
@@ -178,7 +229,9 @@
   }
 
   root.JurnalBHP = {
-    DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN,
+    DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
+    gabungRemote: gabungRemote, validBank: validBank,
+    DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
     susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays,
     formatTanggal: formatTanggal
   };

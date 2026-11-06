@@ -9,8 +9,27 @@ var sedangJalan = false;
 
 async function ambilCfg() {
   var s = await chrome.storage.sync.get('cfg');
+  var l = await chrome.storage.local.get('dataRemote');
   var cfg = Object.assign({}, J.DEFAULTS, s.cfg || {});
-  return cfg;
+  return J.gabungRemote(cfg, l.dataRemote && l.dataRemote.data);
+}
+
+/* Auto-update data: ambil data/kegiatan.json dari GitHub (bank kegiatan, libur, kunjungan).
+ * Bila gagal/tidak valid, data terakhir yang tersimpan (atau bawaan plugin) tetap dipakai. */
+async function perbaruiData(alasan) {
+  try {
+    var r = await fetch(J.DATA_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var data = await r.json();
+    if (!J.validBank(data.bank)) throw new Error('isi bank kegiatan tidak valid');
+    var lama = (await chrome.storage.local.get('dataRemote')).dataRemote;
+    await chrome.storage.local.set({ dataRemote: { data: data, versi: data.versi || '?', waktu: new Date().toLocaleString('id-ID') } });
+    if (!lama || lama.versi !== data.versi) await catat('Data kegiatan diperbarui dari GitHub → versi ' + (data.versi || '?') + ' (' + data.bank.length + ' kegiatan)', 'ok');
+    return { ok: true, versi: data.versi, jumlah: data.bank.length };
+  } catch (e) {
+    await catat('Gagal ambil data kegiatan dari GitHub (' + alasan + '): ' + e.message + ' — memakai data terakhir.', 'peringatan');
+    return { ok: false, pesan: e.message };
+  }
 }
 async function ambilStatus() {
   var s = await chrome.storage.local.get(['selesai', 'log', 'tertunda']);
@@ -128,6 +147,8 @@ async function rutin(alasan) {
   var st = await ambilStatus();
   target = target.filter(function (t) { return !(st.selesai[t] && st.selesai[t].jumlah >= J.susunJurnal(t, cfg).length); });
   if (!target.length) return;
+  await perbaruiData('sebelum mengisi');
+  cfg = await ambilCfg();
   sedangJalan = true;
   try {
     await catat('Mulai (' + alasan + '): ' + target.join(', '), 'info');
@@ -147,16 +168,19 @@ function jadwalkan() {
     chrome.alarms.create('tepat', { when: t.getTime(), periodInMinutes: 1440 });
     chrome.alarms.create('cek', { periodInMinutes: 30 });
     chrome.alarms.create('jagaSesi', { periodInMinutes: 15 });
+    chrome.alarms.create('perbaruiData', { periodInMinutes: 360 });
   });
 }
 
 chrome.runtime.onInstalled.addListener(function (d) {
   jadwalkan();
+  perbaruiData('pasang/muat ulang');
   if (d.reason === 'install') chrome.runtime.openOptionsPage();
 });
-chrome.runtime.onStartup.addListener(function () { jadwalkan(); setTimeout(function () { rutin('Chrome dibuka'); }, 60000); });
+chrome.runtime.onStartup.addListener(function () { jadwalkan(); perbaruiData('Chrome dibuka'); setTimeout(function () { rutin('Chrome dibuka'); }, 60000); });
 chrome.alarms.onAlarm.addListener(function (a) {
   if (a.name === 'jagaSesi') return jagaSesi();
+  if (a.name === 'perbaruiData') return perbaruiData('berkala');
   rutin(a.name === 'tepat' ? 'jadwal harian' : 'cek berkala');
 });
 
@@ -201,6 +225,8 @@ chrome.runtime.onMessage.addListener(function (m, _s, balas) {
       try { balas(await isiTanggal(m.tanggal, { paksa: m.paksa, uji: m.uji })); }
       catch (e) { balas({ ok: false, pesan: e.message }); }
       finally { sedangJalan = false; }
+    } else if (m.aksi === 'perbarui') {
+      balas(await perbaruiData('diminta'));
     } else if (m.aksi === 'tandai') {
       var st = await ambilStatus();
       if (m.selesai) st.selesai[m.tanggal] = { jumlah: 99, waktu: 'ditandai manual' }; else delete st.selesai[m.tanggal];
