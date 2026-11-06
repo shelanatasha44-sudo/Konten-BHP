@@ -59,14 +59,61 @@ function tungguMuat(tabId) {
   });
 }
 
+async function suntik(tabId, fn, args) {
+  try {
+    var r = await chrome.scripting.executeScript({ target: { tabId: tabId }, world: 'MAIN', func: fn, args: args || [] });
+    return (r && r[0] && r[0].result) || { ok: false, pesan: 'Tidak ada balasan dari halaman.' };
+  } catch (e) { return { ok: false, pesan: 'Gagal menjalankan skrip di halaman: ' + e.message }; }
+}
+
+/* Tab khusus plugin (tidak mengambil alih tab SIMPEG yang sedang dipakai). */
 async function bukaTab(url) {
-  var host = new URL(url).host;
-  var tabs = await chrome.tabs.query({});
-  var ada = tabs.find(function (t) { try { return t.url && new URL(t.url).host === host; } catch (e) { return false; } });
-  if (ada) { await chrome.tabs.update(ada.id, { url: url }); await tungguMuat(ada.id); return ada.id; }
+  var s = await chrome.storage.session.get('tabJurnal').catch(function () { return {}; });
+  if (s.tabJurnal) {
+    try { await chrome.tabs.get(s.tabJurnal); return s.tabJurnal; } catch (e) { /* sudah ditutup */ }
+  }
   var tab = await chrome.tabs.create({ url: url, active: false });
   await tungguMuat(tab.id);
+  await chrome.storage.session.set({ tabJurnal: tab.id }).catch(function () {});
   return tab.id;
+}
+
+async function muatUrl(tabId, url) {
+  await chrome.tabs.update(tabId, { url: url });
+  await tungguMuat(tabId);
+  await tidur(1200);
+}
+async function tungguSetelahKlik(tabId) {
+  await tidur(900);
+  var t = await chrome.tabs.get(tabId);
+  if (t.status === 'loading') await tungguMuat(tabId);
+  await tidur(1300);
+}
+
+/* Buka halaman Jurnal Harian. SIMPEG bisa membelokkan alamat langsung ke Beranda, jadi bila
+ * perlu lewat menu seperti manusia: Kinerja (skp.php) → "Jurnal Harian". */
+var lewatMenu = false;
+async function keJurnal(tabId, cfg) {
+  var p = { path: '?' };
+  for (var coba = 0; coba < 2; coba++) {
+    if (!lewatMenu) {
+      await muatUrl(tabId, cfg.url);
+      p = await suntik(tabId, simpegCekHalaman);
+      if (p.login) return { ok: false, login: true, pesan: 'Halaman login SIMPEG' };
+      if (p.jurnal) return { ok: true };
+    }
+    await muatUrl(tabId, new URL('skp.php', cfg.url).href);
+    p = await suntik(tabId, simpegCekHalaman);
+    if (p.login) return { ok: false, login: true, pesan: 'Halaman login SIMPEG' };
+    if (!p.jurnal) {
+      var k = await suntik(tabId, simpegKlikMenuJurnal);
+      if (k.ok) await tungguSetelahKlik(tabId);
+      p = await suntik(tabId, simpegCekHalaman);
+    }
+    if (p.login) return { ok: false, login: true, pesan: 'Halaman login SIMPEG' };
+    if (p.jurnal) { lewatMenu = true; return { ok: true, lewatMenu: true }; }
+  }
+  return { ok: false, pesan: 'Halaman Jurnal Harian tidak terbuka (terakhir di ' + (p.path || '?') + ' — "' + (p.judul || '') + '"). Buka SIMPEG → Kinerja → Jurnal Harian sekali secara manual lalu coba lagi.' };
 }
 
 /** Isi jurnal satu tanggal. opsi: { paksa, uji } */
@@ -81,17 +128,12 @@ async function isiTanggal(tanggal, opsi) {
   var mulaiDari = opsi.paksa ? 0 : sudah;   // lanjutkan dari kegiatan yang belum tersimpan
 
   var tglTampil = J.formatTanggal(tanggal, 'dd-mm-yyyy');
-  async function suntik(tabId, fn, args) {
-    try {
-      var r = await chrome.scripting.executeScript({ target: { tabId: tabId }, world: 'MAIN', func: fn, args: args });
-      return (r && r[0] && r[0].result) || { ok: false, pesan: 'Tidak ada balasan dari halaman.' };
-    } catch (e) { return { ok: false, pesan: 'Gagal menjalankan skrip di halaman: ' + e.message }; }
-  }
   var tabId = await bukaTab(cfg.url);
   for (var i = mulaiDari; i < daftar.length; i++) {
-    await tidur(1200);
+    // ke halaman Jurnal Harian (langsung, atau lewat menu Kinerja → Jurnal Harian)
+    var hasil = await keJurnal(tabId, cfg);
     // pilih tanggal jurnal di kotak tanggal (datepicker) — halaman bisa memuat ulang
-    var hasil = await suntik(tabId, simpegPilihTanggal, [tglTampil]);
+    if (hasil.ok) hasil = await suntik(tabId, simpegPilihTanggal, [tglTampil]);
     if (hasil.ok && hasil.berubah) {
       await tidur(1500);
       var t = await chrome.tabs.get(tabId);
@@ -127,8 +169,8 @@ async function isiTanggal(tanggal, opsi) {
     st.selesai[tanggal] = { jumlah: i + 1, waktu: new Date().toLocaleString('id-ID') };
     await chrome.storage.local.set({ selesai: st.selesai });
     await catat(tanggal + (hasil.lewati ? ' = sudah ada ' : ' ✓ ') + daftar[i].jamMulai + '–' + daftar[i].jamSelesai + ' ' + daftar[i].uraian.slice(0, 70) + '…', 'ok');
-    // muat ulang halaman supaya form bersih untuk kegiatan berikutnya
-    if (i < daftar.length - 1) { await tidur(cfg.jedaMs || 2500); await chrome.tabs.update(tabId, { url: cfg.url }); await tungguMuat(tabId); }
+    // jeda; kegiatan berikutnya membuka ulang halaman Jurnal Harian (form bersih)
+    if (i < daftar.length - 1) await tidur(cfg.jedaMs || 2500);
   }
   await chrome.storage.local.set({ tertunda: null });
   beritahu('Jurnal SIMPEG terisi', tanggal + ': ' + daftar.length + ' kegiatan tersimpan.');

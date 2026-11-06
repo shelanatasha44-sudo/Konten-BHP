@@ -17,7 +17,7 @@ function simpegPilihTanggal(tglDdMmYyyy) {
     return !el.closest('.modal, [role=dialog]') && /^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test((el.value || '').trim());
   });
   var el = calon[0];
-  if (!el) return { ok: false, pesan: 'Kotak tanggal jurnal (dd-mm-yyyy) tidak ditemukan di halaman.' };
+  if (!el) return { ok: false, pesan: 'Kotak tanggal jurnal (dd-mm-yyyy) tidak ditemukan di halaman ' + location.pathname + '.' };
   if (el.value.trim() === tglDdMmYyyy) return { ok: true, berubah: false, nilai: el.value };
   var $ = window.jQuery;
   try { if ($ && $(el).data('datepicker')) $(el).datepicker('setDate', tglDdMmYyyy); } catch (e) { /* abaikan */ }
@@ -161,4 +161,35 @@ async function simpegIsiSatuKegiatan(entri, cfg) {
     return { ok: false, pesan: 'SIMPEG menolak: ' + pesan };
   }
   return { ok: true, pesan: 'Tersimpan' + (pesan ? ' (' + pesan + ')' : '') };
+}
+
+/** Cek halaman sekarang: login? sudah di Jurnal Harian? Hasil: { login, jurnal, path, judul } */
+function simpegCekHalaman() {
+  var tampak = function (el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); };
+  var teks = function (el) { return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim(); };
+  var pw = document.querySelector('input[type=password]');
+  if (pw && tampak(pw)) return { login: true, jurnal: false, path: location.pathname, judul: document.title };
+  var judul = Array.prototype.slice.call(document.querySelectorAll('h1,h2,h3,h4,h5,b,strong,div,span,td'))
+    .some(function (el) { return el.children.length === 0 && /^jurnal harian$/i.test(teks(el)) && tampak(el); });
+  var tambah = Array.prototype.slice.call(document.querySelectorAll('button,a,input[type=button],input[type=submit]'))
+    .some(function (el) { return tampak(el) && /^\s*tambah\s*$/i.test(teks(el) || el.value || ''); });
+  var tgl = Array.prototype.slice.call(document.querySelectorAll('input')).some(function (el) {
+    return !el.closest('.modal, [role=dialog]') && /^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test((el.value || '').trim());
+  });
+  return { login: false, jurnal: !!(tambah && (judul || tgl)), adaTanggal: tgl, path: location.pathname, judul: document.title };
+}
+
+/** Klik menu "Jurnal Harian" (di halaman Kinerja/skp.php). Hasil: { ok, href } */
+function simpegKlikMenuJurnal() {
+  var tampak = function (el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); };
+  var teks = function (el) { return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim(); };
+  var calon = Array.prototype.slice.call(document.querySelectorAll('a,button,li,td,div,span'))
+    .filter(function (el) { return tampak(el) && /^jurnal harian$/i.test(teks(el)); });
+  calon.sort(function (a, b) { return (b.tagName === 'A') - (a.tagName === 'A'); });
+  var el = calon[0];
+  if (!el) return { ok: false, pesan: 'Menu "Jurnal Harian" tidak ditemukan di ' + location.pathname };
+  var a = el.closest('a') || el.querySelector('a') || el;
+  var href = a.getAttribute && a.getAttribute('href');
+  a.click();
+  return { ok: true, href: href || '' };
 }
