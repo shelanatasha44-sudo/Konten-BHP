@@ -7,14 +7,15 @@ function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c
 
 async function muat() {
   var s = await chrome.storage.sync.get('cfg');
-  cfg = Object.assign({}, J.DEFAULTS, s.cfg || {});
-  var ls = await chrome.storage.local.get('sesi');
+  var ls = await chrome.storage.local.get(['sesi', 'dataRemote']);
+  cfg = J.gabungRemote(Object.assign({}, J.DEFAULTS, s.cfg || {}), ls.dataRemote && ls.dataRemote.data);
+  var dataInfo = ls.dataRemote ? '📦 Data kegiatan v' + ls.dataRemote.versi + ' dari GitHub (' + ls.dataRemote.waktu + ')' : '📦 Data kegiatan bawaan plugin';
   var sesi = ls.sesi
     ? (ls.sesi.habis ? '🔴 Sesi SIMPEG habis — login sekali, lalu isian lanjut sendiri' : '🟢 SIMPEG masih login (dicek ' + ls.sesi.cek + ')')
     : '⚪ Status sesi belum dicek — buka SIMPEG sekali';
   document.getElementById('info').innerHTML =
     (cfg.aktif ? '⏰ Otomatis Senin–Jumat pukul ' + cfg.jam : '⏸ Otomatis dimatikan') +
-    (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)') + '<br>' + sesi;
+    (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)') + '<br>' + sesi + '<br>' + dataInfo;
   if (!tgl.value) tgl.value = J.iso(new Date());
   tampil();
 }
@@ -53,6 +54,10 @@ document.getElementById('uji').onclick = function () { kirim({ aksi: 'isi', tang
 document.getElementById('tandai').onclick = async function () {
   var st = await chrome.storage.local.get('selesai');
   chrome.runtime.sendMessage({ aksi: 'tandai', tanggal: tgl.value, selesai: !(st.selesai || {})[tgl.value] }, tampil);
+};
+document.getElementById('perbarui').onclick = function () {
+  document.getElementById('status').textContent = '⏳ Mengambil data terbaru dari GitHub…';
+  chrome.runtime.sendMessage({ aksi: 'perbarui' }, function (r) { muat(); if (r) document.getElementById('status').textContent = r.ok ? '✅ Data terbaru v' + r.versi + ' (' + r.jumlah + ' kegiatan)' : '⚠️ Gagal: ' + r.pesan; });
 };
 document.getElementById('opsi').onclick = function () { chrome.runtime.openOptionsPage(); };
 chrome.storage.onChanged.addListener(function () { tampil(); });

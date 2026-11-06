@@ -18,8 +18,18 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
 - **Tetap login**: selama Chrome menyala, SIMPEG "disentuh" tiap 15 menit supaya sesi web tidak habis karena menganggur.
 - Sesi tetap habis (mis. laptop mati semalam) → notifikasi "SIMPEG perlu login". Login sekali
   (NIP → password → captcha); pengisian yang tertunda **lanjut sendiri**. Captcha tidak diisi otomatis.
-- Kegiatan tidak berulang dalam satu minggu, jam diatur 08.00–16.00 (Jumat istirahat 11.30–13.30).
+- Kegiatan tidak berulang dalam satu minggu. Jam kerja penuh **07.30–16.30** tanpa celah: Zoom Apel Pagi 07.30–08.00, ISHOMA 12.00–13.00 (Jumat 11.30–13.30); jam pergantian kegiatan diacak per hari (kelipatan 15 menit, min. 1 jam).
 - **23–27 Nov 2026** (kunjungan Kepri, Batam) otomatis berisi kegiatan perjalanan dinas, penyumpahan, inventarisasi harta, dan konsultasi di lokasi. Tanggal/kota bisa diubah.
+
+## Update otomatis (tanpa pasang ulang)
+Isi kegiatan, hari libur, dan jadwal kunjungan diambil dari **`data/kegiatan.json`** di GitHub
+(branch utama) tiap 6 jam, saat Chrome dibuka, dan sesaat sebelum mengisi. Cukup edit file itu di
+github.com (naikkan `versi`), plugin di semua laptop ikut berubah. Tombol **⟳ Perbarui data** di popup
+mengambilnya seketika. Kalau GitHub tak terjangkau atau isinya rusak, plugin memakai data terakhir/bawaan.
+
+Perubahan **kode** plugin (cara mengisi form, dsb.) tetap perlu dimuat ulang: `chrome://extensions` →
+tombol ⟳ pada plugin (setelah file baru diunduh). Chrome tidak mengizinkan plugin "Load unpacked"
+memperbarui kodenya sendiri.
 
 ## Pasang (±3 menit)
 1. Unduh folder `simpeg-jurnal-otomatis` (GitHub → Code → Download ZIP, lalu ekstrak).
