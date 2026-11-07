@@ -355,6 +355,9 @@ function today(){const d=new Date(Date.now()+7*3600e3);return d.toISOString().sl
 function pd(s){if(!s)return null;const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)}
 function tgl(s){const d=pd(s);return d?`${String(d.getDate()).padStart(2,'0')} ${BLN[d.getMonth()]} ${d.getFullYear()}`:'…'}
 function hari(s){const d=pd(s);return d?HARI[d.getDay()]:'…'}
+/* tanggal lahir + umur untuk dokumen cetak: bila tanggal belum diisi, sediakan titik-titik yang cukup panjang untuk ditulis tangan
+   (bukan "… (…)" yang terlalu sempit sehingga harus dicoret) */
+const lahirUsia=(s,ref)=>pd(s)?`${tgl(s)} (${usia(s,ref)})`:'.................................... (........ Tahun)';
 function usia(s,ref){const d=pd(s);if(!d)return'…';const r=pd(ref)||new Date();let u=r.getFullYear()-d.getFullYear();if(r<new Date(r.getFullYear(),d.getMonth(),d.getDate()))u--;return u+' Tahun'}
 function umurTh(s,ref){const d=pd(s);if(!d)return null;const r=pd(ref)||new Date();let u=r.getFullYear()-d.getFullYear();if(r<new Date(r.getFullYear(),d.getMonth(),d.getDate()))u--;return u}
 /* ---- filter kelayakan perwalian ---- */
@@ -466,12 +469,12 @@ const saksi=r=>`<table class="ttd ctr" style="margin-top:26pt"><tr><td><b>Saksi 
 /* lebar teks (pt) dalam Arial 12 — supaya "( nama )" tetap di tengah kolom dan "NIK." sejajar kurung buka */
 let LBR_CV;function lebarPt(t){try{const g=(LBR_CV=LBR_CV||document.createElement('canvas')).getContext('2d');g.font='12pt Arial, "Liberation Sans", Helvetica, sans-serif';return g.measureText(t).width*.75}catch(e){return t.length*6}}
 const NP=(n,left,html,extra='',b)=>`<p class="ni" data-n="${n}"${b?' data-b="1"':''} style="margin-left:${left}pt${extra}">${html}</p>`;
-const identitas=r=>`${esc(r.jk)}, Lahir tanggal ${tgl(r.tglLahir)} (${usia(r.tglLahir,r.tglSumpah)}), agama ${esc(r.agama)}, Pekerjaan ${V(r.pekerjaan)}, alamat ${V(r.alamat)}`;
+const identitas=r=>`${esc(r.jk)}, Lahir tanggal ${lahirUsia(r.tglLahir,r.tglSumpah)}, agama ${esc(r.agama)}, Pekerjaan ${V(r.pekerjaan)}, alamat ${V(r.alamat)}`;
 function objekBA(r,d,o={}){const L=o.left||0;
-  if(d.w){const l=d.anak.map(a=>`<b>${esc(a.nama)}</b>, ${esc(a.jk)}, lahir pada tanggal ${tgl(a.tglLahir)} (${usia(a.tglLahir,r.tglSumpah)})`);
+  if(d.w){const l=d.anak.map(a=>`<b>${esc(a.nama)}</b>, ${esc(a.jk)}, lahir pada tanggal ${lahirUsia(a.tglLahir,r.tglSumpah)}`);
     const it=(l.length?l:[V('')]).map((x,i,a)=>`<li>${x}${a.length>1?(i<a.length-1?';':'.'):''}</li>`).join('');
     return o.nomor?`<ol${o.nomor==='a'?' type="a"':''} style="margin-left:${L}pt;margin-bottom:4pt">${it}</ol>`:`<ul class="dash" style="margin-left:${L}pt">${it}</ul>`}
-  return `<p class="ni" style="margin-left:${L}pt"><b>${V(r.terampu.nama)}</b>, ${esc(r.terampu.jk)}, lahir pada tanggal ${tgl(r.terampu.tglLahir)} (${usia(r.terampu.tglLahir,r.tglSumpah)}), berada di bawah Pengampuan dikarenakan yang bersangkutan mengalami ${V(r.terampu.kondisi)}, sehingga tidak cakap untuk mengurus kepentingan pribadinya maupun melakukan tindakan hukum.</p>`}
+  return `<p class="ni" style="margin-left:${L}pt"><b>${V(r.terampu.nama)}</b>, ${esc(r.terampu.jk)}, lahir pada tanggal ${lahirUsia(r.terampu.tglLahir,r.tglSumpah)}, berada di bawah Pengampuan dikarenakan yang bersangkutan mengalami ${V(r.terampu.kondisi)}, sehingga tidak cakap untuk mengurus kepentingan pribadinya maupun melakukan tindakan hukum.</p>`}
 const HARTA=[['hartaTetap','BARANG-BARANG TETAP','tanah'],['hartaTunai','UANG TUNAI , TABUNGAN','rekening'],['hartaEmas','BARANG-BARANG EMAS, PERAK, DLL'],['hartaSurat','SURAT-SURAT BERHARGA/PIUTANG'],
   ['hartaPerabot','PERABOT RUMAH TANGGA, BARANG DAGANG, TERNAK'],['hartaBergerak','BARANG BERGERAK','harta']];
 const hv=(r,k,old)=>r[k]??(old?r[old]:'')??'';
@@ -588,7 +591,7 @@ ${tbl([[esc(jp.replace(/\s+/g,' ')),esc(kotaPg)],['Nomor Penetapan',V(r.nomorPen
   bap:{nama:()=>'BA Penghadapan (BAP)',sty:{line:276},fn:r=>{const d=derive(r),p=bapP(r),isi=baris(r.isiBap);
     return kop()+`<p class="ctr" style="line-height:1.15"><b><u>BERITA ACARA PENGHADAPAN</u></b><br>${d.w?`Perwalian atas Anak Di Bawah Umur an. ${V(d.objek)}`:`Pengampuan atas Terampu ${V(d.objek)}`}<br><b>Nomor : ${noManual(r,'nomorBAP')}</b></p><br>
 <p>Pada hari ini, ${tglBA(r.tglSumpah)}, telah hadir dihadapan saya, <b>${V(p.nama)}, NIP. ${V(p.nip)},</b> ${esc(p.jabatan||'')} pada Balai Harta Peninggalan Medan yang dalam ini bertindak dalam jabatan tersebut, yaitu :</p>
-<table style="margin:8pt 0 8pt 36pt"><tr><td style="width:130pt">Nama</td><td>:</td><td><b>${V(r.nama)}</b></td></tr><tr><td>Tanggal Lahir/Umur</td><td>:</td><td>${tgl(r.tglLahir)} (${usia(r.tglLahir,r.tglSumpah)})</td></tr>
+<table style="margin:8pt 0 8pt 36pt"><tr><td style="width:130pt">Nama</td><td>:</td><td><b>${V(r.nama)}</b></td></tr><tr><td>Tanggal Lahir/Umur</td><td>:</td><td>${lahirUsia(r.tglLahir,r.tglSumpah)}</td></tr>
 <tr><td>Agama</td><td>:</td><td>${esc(r.agama)}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>${V(r.pekerjaan)}</td></tr><tr><td>Alamat</td><td>:</td><td>${V(r.alamat)}</td></tr></table>
 <p>Berkenaan dengan ${d.w?'perwalian':'pengampuan'} atas nama <b>${V(d.objek)}</b>, terhadap pertanyaan-pertanyaan kami, penghadap tersebut diatas telah memberikan keterangan-keterangan dan penjelasan tentang hal-hal yang akan disebut dibawah ini serta menguatkannya dengan pernyataan.</p>
 ${bapList(isi.length?r.isiBap:buatBap(r),r)}
@@ -644,10 +647,10 @@ function peranPemohon(status,jk,w){const s=String((w?hubAnak(status):status)||''
     if(/adik/.test(s))return P?'kakak kandung perempuan':'kakak kandung laki-laki';if(/anak tiri/.test(s))return P?'ibu tiri':'ayah tiri';return s?`keluarga (${s})`:''}
   if(/suami/.test(s))return'istri';if(/istri/.test(s))return'suami';if(/ibu|ayah|orang ?tua/.test(s))return'anak kandung';if(/anak/.test(s))return P?'ibu kandung':'ayah kandung';
   if(/adik/.test(s))return'kakak kandung';if(/kakak/.test(s))return'adik kandung';if(/saudara/.test(s))return'saudara kandung';return s?`keluarga (${s})`:''}
-const anakTxt=(a,r)=>`**${String(a.nama||'').toUpperCase()}**, ${a.jk||''}, lahir tanggal ${tgl(a.tglLahir)} (${usia(a.tglLahir,r.tglSumpah)})`;
+const anakTxt=(a,r)=>`**${String(a.nama||'').toUpperCase()}**, ${a.jk||''}, lahir tanggal ${lahirUsia(a.tglLahir,r.tglSumpah)}`;
 const KAT=[['hartaTetap','Barang-barang tetap','tanah'],['hartaTunai','Uang tunai / tabungan','rekening'],['hartaEmas','Barang-barang emas, perak, dan sejenisnya'],['hartaSurat','Surat-surat berharga / piutang'],['hartaPerabot','Perabot rumah tangga, barang dagang, ternak'],['hartaBergerak','Barang bergerak','harta']];
 function buatBap(r){const d=derive(r),w=d.w,L=[],urut=x=>[...x].sort((a,b)=>String(a.tglLahir||'9').localeCompare(String(b.tglLahir||'9'))),semua=w?urut(r.anak.filter(a=>a.nama)):[],dw=urut(d.anak),t=r.terampu||{};
-  const idt=`Bahwa penghadap bernama **${String(r.nama||'…').toUpperCase()}**, NIK ${r.nik||'…'}, ${r.jk}, lahir tanggal ${tgl(r.tglLahir)} (${usia(r.tglLahir,r.tglSumpah)}), agama ${r.agama||'…'}, pekerjaan ${r.pekerjaan||'…'}, bertempat tinggal di ${r.alamat||'…'}`;
+  const idt=`Bahwa penghadap bernama **${String(r.nama||'…').toUpperCase()}**, NIK ${r.nik||'…'}, ${r.jk}, lahir tanggal ${lahirUsia(r.tglLahir,r.tglSumpah)}, agama ${r.agama||'…'}, pekerjaan ${r.pekerjaan||'…'}, bertempat tinggal di ${r.alamat||'…'}`;
   const peran=peranPemohon(r.status,r.jk,w);
   if(w){L.push(idt+(peran?`, yang merupakan ${peran} dari ${dw.length>1?'anak-anak':'anak'} yang dimohonkan perwalian;`:';'));
     if(r.pasangan){L.push(`Bahwa penghadap telah melangsungkan perkawinan dengan **${r.pasangan.toUpperCase()}**${r.aktaNikah?` sebagaimana tercatat dalam ${r.aktaNikah}`:''}, dan dari perkawinan tersebut telah dikaruniai ${nTxt(semua.length)} orang anak, yaitu:`);semua.forEach(a=>L.push('- '+anakTxt(a,r)+';'))}
@@ -656,7 +659,7 @@ function buatBap(r){const d=derive(r),w=d.w,L=[],urut=x=>[...x].sort((a,b)=>Stri
     if(dw.length===1)L.push(`Bahwa anak yang masih di bawah umur (belum mencapai umur 18 tahun dan belum pernah kawin) dan berada di bawah perwalian penghadap adalah ${anakTxt(dw[0],r)};`);
     else{L.push(`Bahwa dari anak-anak tersebut, yang masih di bawah umur (belum mencapai umur 18 tahun dan belum pernah kawin) dan berada di bawah perwalian penghadap adalah ${nTxt(dw.length)} orang, yaitu:`);dw.forEach(a=>L.push('- '+anakTxt(a,r)+';'))}}
   else{L.push(idt+(peran?`, yang merupakan ${peran} dari terampu;`:';'));
-    L.push(`Bahwa terampu bernama **${String(t.nama||'…').toUpperCase()}**, ${t.jk||''}, lahir tanggal ${tgl(t.tglLahir)} (${usia(t.tglLahir,r.tglSumpah)}), merupakan ${String(r.status||'keluarga').toLowerCase()} dari penghadap;`);
+    L.push(`Bahwa terampu bernama **${String(t.nama||'…').toUpperCase()}**, ${t.jk||''}, lahir tanggal ${lahirUsia(t.tglLahir,r.tglSumpah)}, merupakan ${String(r.status||'keluarga').toLowerCase()} dari penghadap;`);
     if(t.kondisi)L.push(`Bahwa terampu mengalami ${t.kondisi}, sehingga tidak cakap untuk mengurus kepentingan pribadinya maupun melakukan tindakan hukum;`)}
   if(r.alasan)L.push(`Bahwa adapun maksud penghadap mengajukan permohonan ${w?'perwalian':'pengampuan'} adalah ${r.alasan.replace(/[.;]\s*$/,'')};`);
   const kat=KAT.map(([k,l,o])=>[l,baris(hv(r,k,o))]).filter(x=>x[1].length),hut=baris(r.hartaHutang);
