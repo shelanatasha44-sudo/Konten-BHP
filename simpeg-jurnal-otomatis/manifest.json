@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SIMPEG Jurnal Harian Otomatis — BHP Medan Wil. II",
   "short_name": "Jurnal SIMPEG",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Mengisi jurnal harian SIMPEG otomatis tiap hari kerja (Senin–Jumat) dengan 3–4 kegiatan Seksi Harta Peninggalan Wilayah II.",
   "permissions": [
     "alarms",
