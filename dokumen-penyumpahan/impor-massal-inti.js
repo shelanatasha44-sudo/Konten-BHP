@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-10-19.7-tambah';
+  var VERSI = '2026-11-07.8-opus';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -116,7 +116,7 @@
     if (!lock.tryLock(30000)) throw new Error('Impor terjadwal sedang berjalan, coba lagi sebentar.');
     try { return fn(); } finally { lock.releaseLock(); }
   }
-  function triggerKu() { return ScriptApp.getProjectTriggers().filter(function (g) { return g.getHandlerFunction() === 'imporTerjadwal'; }); }
+  function triggerKu() { var kg = PROPS.getProperty('KEG_PICU_ID'); return ScriptApp.getProjectTriggers().filter(function (g) { return g.getHandlerFunction() === 'imporTerjadwal' && g.getUniqueId() !== kg; }); }
 
   function jadwalStatus(t) {
     super_(t);
@@ -315,8 +315,246 @@
     return gab;
   }
 
+
+  /* ---------- AI pembaca penetapan generasi baru: Opus 5.5 (teliti) / Opus 5 (hemat) ----------
+   * Dipanggil aplikasi: apiImpor(token, 'bacaAI', {teks | b64+mime, prompt, mode, maks}).
+   * - model dipilih per panggilan (tidak bergantung pada deploy Code.gs);
+   * - thinking adaptif (bawaan Opus 5.x), kedalaman diatur effort: teliti = medium, hemat = low;
+   * - fallbacks "default": bila filter keamanan menolak, server Anthropic otomatis mengulang dengan model cadangan;
+   * - jawaban terpotong/bukan JSON → diperbaiki, lalu diulang sekali dengan batas token lebih besar.
+   * Script Properties CLAUDE_MODEL_TELITI / CLAUDE_MODEL_HEMAT tetap bisa menimpa model. */
+  var MODEL_AI = { teliti: 'claude-opus-5-5', hemat: 'claude-opus-5' }, MODEL_AI_VERSI = '2026-11-opus';
+  function props_() { return PropertiesService.getScriptProperties(); }
+  /* sekali saja: pembaca lama di Code.gs (apiAnalisaTeks / apiBacaPenetapanAI / BAP) ikut memakai model baru */
+  function pasangModel_() {
+    var p = props_();
+    if (p.getProperty('MODEL_AI_VERSI') === MODEL_AI_VERSI) return;
+    p.setProperties({ CLAUDE_MODEL_TELITI: MODEL_AI.teliti, CLAUDE_MODEL_HEMAT: MODEL_AI.hemat, MODEL_AI_VERSI: MODEL_AI_VERSI });
+  }
+  try { pasangModel_(); } catch (e) { }
+  function modelKu_(mode) {
+    var p = props_();
+    return mode === 'hemat' ? (p.getProperty('CLAUDE_MODEL_HEMAT') || MODEL_AI.hemat) : (p.getProperty('CLAUDE_MODEL_TELITI') || MODEL_AI.teliti);
+  }
+  function perbaikiJson(t) {
+    t = String(t || '').replace(/```(?:json)?/g, '');
+    var i = t.indexOf('{');
+    if (i < 0) throw new Error('Jawaban AI bukan JSON.');
+    t = t.slice(i);
+    var j = t.lastIndexOf('}');
+    try { return JSON.parse(t.slice(0, j + 1)); } catch (e) { }
+    /* tutup string / kurung yang terpotong; buang koma & kunci menggantung */
+    var tump = [], dlmStr = false, esc = false, o = '';
+    for (var k = 0; k < t.length; k++) {
+      var c = t[k];
+      if (dlmStr) {
+        if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') dlmStr = false;
+        else if (c === '\n' || c === '\r' || c === '\t') { o += ' '; continue; }
+      } else if (c === '"') dlmStr = true; else if (c === '{' || c === '[') tump.push(c === '{' ? '}' : ']');
+      else if (c === '}' || c === ']') tump.pop();
+      o += c;
+    }
+    if (dlmStr) o += '"';
+    o = o.replace(/,\s*"[^"]*"\s*:?\s*$/, '').replace(/[,:]\s*$/, '');
+    while (tump.length) o += tump.pop();
+    return JSON.parse(o.replace(/,\s*([}\]])/g, '$1'));
+  }
+  function panggilClaude_(content, sistem, mode, maks) {
+    var model = modelKu_(mode), kunci = props_().getProperty('CLAUDE_KEY');
+    if (!kunci) throw new Error('Kunci Claude belum diisi (Pengaturan → AI Claude).');
+    var body = { model: model, max_tokens: maks, output_config: { effort: mode === 'hemat' ? 'low' : 'medium' }, fallbacks: 'default',
+      system: [{ type: 'text', text: sistem, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: content }] };
+    var hdr = { 'x-api-key': kunci, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01' };
+    var res = null, galat = '';
+    for (var i = 0; i < 4; i++) {
+      try {
+        res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: hdr, payload: JSON.stringify(body) });
+        var c = res.getResponseCode();
+        if (c === 200) break;
+        galat = 'Claude HTTP ' + c + ': ' + res.getContentText().slice(0, 300);
+        /* fitur cadangan belum didukung akun → kirim tanpa fallbacks */
+        if (c === 400 && /fallback/i.test(galat) && body.fallbacks) { delete body.fallbacks; delete hdr['anthropic-beta']; continue; }
+        /* model hemat tidak tersedia → model teliti */
+        if ((c === 404 || (c === 400 && /model/i.test(galat))) && body.model !== modelKu_('teliti')) { body.model = modelKu_('teliti'); continue; }
+        if (!(c === 429 || c >= 500)) break;
+      } catch (e) { galat = String(e.message || e).slice(0, 200); res = null; }
+      Utilities.sleep(1200 * (i + 1));
+    }
+    if (!res || res.getResponseCode() !== 200) throw new Error(galat || 'Claude tidak bisa dihubungi');
+    var j = JSON.parse(res.getContentText());
+    try { if (typeof pakaiAI_ === 'function') pakaiAI_(j.model || body.model, j.usage); } catch (e) { }
+    if (j.stop_reason === 'refusal') throw new Error('Claude menolak memproses dokumen ini.');
+    return { teks: (j.content || []).filter(function (x) { return x.type === 'text'; }).map(function (x) { return x.text || ''; }).join(''), stop: j.stop_reason, model: j.model || body.model };
+  }
+  function bacaAI(t, o) {
+    user_(t);
+    o = o || {};
+    var mode = o.mode === 'hemat' ? 'hemat' : 'teliti', maks = Math.min(32000, Math.max(4000, Number(o.maks) || 12000));
+    var sistem = (typeof sistemAI_ === 'function' ? sistemAI_(o.prompt || '') : (o.prompt || '') + '\nBalas HANYA satu objek JSON, tanpa penjelasan.');
+    var content;
+    if (o.teks) content = [{ type: 'text', text: '<penetapan>\n' + String(o.teks).slice(0, 150000) + '\n</penetapan>' }];
+    else if (o.b64) {
+      var mime = o.mime || 'application/pdf';
+      content = [/pdf/.test(mime) ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: o.b64 } }
+        : { type: 'image', source: { type: 'base64', media_type: mime, data: o.b64 } },
+        { type: 'text', text: 'Baca dokumen penetapan terlampir sesuai instruksi. Periksa setiap halaman, termasuk lampiran dan amar.' }];
+    } else throw new Error('Tidak ada dokumen untuk dibaca.');
+    var h = panggilClaude_(content, sistem, mode, maks), d;
+    try { d = perbaikiJson(h.teks); }
+    catch (e) {
+      if (h.stop !== 'max_tokens' && !/JSON|Unexpected|position/.test(String(e.message || e))) throw e;
+      h = panggilClaude_(content, sistem, mode, Math.min(32000, maks * 2));
+      d = perbaikiJson(h.teks);
+    }
+    if (d && typeof d === 'object' && !Array.isArray(d)) d._model = h.model;
+    return d;
+  }
+  function modelAI(t) { user_(t); pasangModel_(); return { teliti: modelKu_('teliti'), hemat: modelKu_('hemat') }; }
+
+
+  /* ---------- Kalender Kegiatan Wilayah II: lampiran Drive + pengingat email H-1 ----------
+   * Disimpan di Pengaturan (kunci "kegiatan") seperti sebelumnya; kolom baru: warna, lampiran [{id,nama,url,mime}], notif.
+   * Pengingat: pemicu harian pukul ±07.00 WIB (handler imporTerjadwal, ID-nya dicatat di KEG_PICU_ID agar tidak tercampur
+   * dengan jadwal impor) mengirim email ke KEG_EMAIL untuk kegiatan bertanda notif yang berlangsung BESOK. Satu kegiatan
+   * hanya dikirimi sekali per tanggal (dicatat di KEG_TERKIRIM). Email memakai MailApp; bila izin kirim email belum diberikan
+   * (appsscript.json belum memuat script.send_mail), dikirim lewat notifikasi berbagi Google Drive sebagai cadangan. */
+  var KEG_EMAIL = 'wilayah2bhpmedan@gmail.com', KEG_PICU = 'KEG_PICU_ID', KEG_TERKIRIM = 'KEG_TERKIRIM', KEG_FOLDER = 'KEG_FOLDER_ID';
+  function kegDaftar_() { return settings_().kegiatan || []; }
+  function kegBersih_(ev, u, lama) {
+    var tgl = /^\d{4}-\d{2}-\d{2}$/, warna = /^#[0-9a-f]{6}$/i;
+    if (!ev || !tgl.test(String(ev.tgl || '')) || !String(ev.judul || '').trim()) throw new Error('Tanggal dan judul kegiatan wajib diisi.');
+    var lamp = (Array.isArray(ev.lampiran) ? ev.lampiran : []).filter(function (x) { return x && /^[\w-]{10,}$/.test(String(x.id || '')); }).slice(0, 20)
+      .map(function (x) { return { id: String(x.id), nama: String(x.nama || 'lampiran').slice(0, 150), url: 'https://drive.google.com/file/d/' + x.id + '/view', mime: String(x.mime || '').slice(0, 80) }; });
+    return { id: ev.id || Utilities.getUuid(), tgl: String(ev.tgl), sampai: tgl.test(String(ev.sampai || '')) && ev.sampai >= ev.tgl ? String(ev.sampai) : '', jam: String(ev.jam || '').slice(0, 40),
+      judul: String(ev.judul).trim().slice(0, 200), jenis: String(ev.jenis || 'Lainnya').trim().slice(0, 60) || 'Lainnya', warna: warna.test(String(ev.warna || '')) ? String(ev.warna) : '',
+      tempat: String(ev.tempat || '').slice(0, 300), ket: String(ev.ket || '').slice(0, 1500), lampiran: lamp, notif: !!ev.notif,
+      oleh: lama && lama.oleh ? lama.oleh : u.nama, diubah: u.nama, pada: new Date().toISOString() };
+  }
+  function kegSimpan(t, ev) {
+    var u = user_(t), lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      var L = kegDaftar_(), i = L.findIndex(function (x) { return x.id === (ev && ev.id); }), o = kegBersih_(ev, u, i >= 0 ? L[i] : null);
+      if (i >= 0) L[i] = o; else L.push(o);
+      setSetting_('kegiatan', L);
+      log_(u, 'KEGIATAN', o.id, o.judul, (i >= 0 ? 'Ubah ' : 'Tambah ') + o.jenis + ' ' + o.tgl + (o.notif ? ' · pengingat email H-1' : '') + (o.lampiran.length ? ' · ' + o.lampiran.length + ' lampiran' : ''));
+      if (o.notif) try { pasangPicuKeg_(); if (o.tgl === besok_()) pengingatKeg_(); } catch (e) { }
+      return L;
+    } finally { lock.releaseLock(); }
+  }
+  function kegHapus(t, id) {
+    var u = user_(t), lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      var L = kegDaftar_().filter(function (x) { return x.id !== id; });
+      setSetting_('kegiatan', L);
+      log_(u, 'KEGIATAN', id, '', 'Hapus kegiatan (lampiran tetap di Drive)');
+      return L;
+    } finally { lock.releaseLock(); }
+  }
+  function folderKeg_() {
+    var id = PROPS.getProperty(KEG_FOLDER);
+    if (id) try { var f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (e) { }
+    var b = folderRoot_().createFolder('Lampiran Kegiatan Wilayah II');
+    PROPS.setProperty(KEG_FOLDER, b.getId());
+    return b;
+  }
+  /* o = {nama, mime, b64, tgl, judul} → file di Drive: Lampiran Kegiatan Wilayah II/2026-11/<file> */
+  function kegUnggah(t, o) {
+    var u = user_(t);
+    o = o || {};
+    if (!o.b64) throw new Error('File kosong.');
+    var bytes = Utilities.base64Decode(o.b64);
+    if (bytes.length > 25 * 1024 * 1024) throw new Error('File terlalu besar (maks. 25 MB).');
+    var akar = folderKeg_(), bln = /^\d{4}-\d{2}/.test(String(o.tgl || '')) ? String(o.tgl).slice(0, 7) : Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM');
+    var it = akar.getFoldersByName(bln), f = it.hasNext() ? it.next() : akar.createFolder(bln);
+    var nama = String(o.nama || 'lampiran').replace(/[\\\/:*?"<>|]/g, '_').slice(0, 150);
+    var file = f.createFile(Utilities.newBlob(bytes, String(o.mime || 'application/octet-stream'), (o.tgl ? o.tgl + ' — ' : '') + nama));
+    log_(u, 'KEGIATAN', '', String(o.judul || ''), 'Unggah lampiran ' + nama);
+    return { id: file.getId(), nama: nama, url: file.getUrl(), mime: file.getMimeType() };
+  }
+  function picuKeg_() {
+    var id = PROPS.getProperty(KEG_PICU);
+    return id ? ScriptApp.getProjectTriggers().filter(function (g) { return g.getUniqueId() === id; })[0] || null : null;
+  }
+  function pasangPicuKeg_() {
+    if (picuKeg_()) return;
+    var g = ScriptApp.newTrigger('imporTerjadwal').timeBased().everyDays(1).atHour(7).inTimezone('Asia/Jakarta').create();
+    PROPS.setProperty(KEG_PICU, g.getUniqueId());
+  }
+  function besok_() { return Utilities.formatDate(new Date(Date.now() + 864e5), 'Asia/Jakarta', 'yyyy-MM-dd'); }
+  var BLN_ = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+    HARI_ = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  function tglPanjang_(s) { var p = String(s).split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]); return HARI_[d.getDay()] + ', ' + (+p[2]) + ' ' + BLN_[+p[1] - 1] + ' ' + p[0]; }
+  function escH_(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function isiEmailKeg_(k) {
+    var w = k.warna || '#1b2345', baris = [['Hari, tanggal', tglPanjang_(k.tgl) + (k.sampai && k.sampai !== k.tgl ? ' s.d. ' + tglPanjang_(k.sampai) : '')], ['Waktu', k.jam || '-'], ['Tempat', k.tempat || '-'], ['Jenis', k.jenis]];
+    var html = '<div style="font-family:Arial,sans-serif;max-width:560px;border:1px solid #e4e7ef;border-radius:12px;overflow:hidden">'
+      + '<div style="background:' + w + ';color:#fff;padding:14px 18px"><div style="font-size:12px;opacity:.85">PENGINGAT H-1 · KEGIATAN WILAYAH II BHP MEDAN</div><div style="font-size:18px;font-weight:bold;margin-top:4px">' + escH_(k.judul) + '</div></div>'
+      + '<table style="padding:12px 18px;font-size:14px">' + baris.map(function (b) { return '<tr><td style="color:#6b7087;padding:3px 12px 3px 0">' + b[0] + '</td><td><b>' + escH_(b[1]) + '</b></td></tr>'; }).join('') + '</table>'
+      + (k.ket ? '<p style="padding:0 18px;font-size:14px;white-space:pre-wrap">' + escH_(k.ket) + '</p>' : '')
+      + (k.lampiran && k.lampiran.length ? '<p style="padding:0 18px;font-size:14px">Dokumen: ' + k.lampiran.map(function (l) { return '<a href="' + escH_(l.url) + '">' + escH_(l.nama) + '</a>'; }).join(' · ') + '</p>' : '')
+      + '<p style="padding:8px 18px 14px;font-size:12px;color:#6b7087">Dikirim otomatis oleh aplikasi Dokumen Penyumpahan BHP Medan (dicatat oleh ' + escH_(k.oleh || '-') + ').</p></div>';
+    var teks = 'PENGINGAT H-1 — ' + k.judul + '\n' + baris.map(function (b) { return b[0] + ': ' + b[1]; }).join('\n') + (k.ket ? '\n\n' + k.ket : '')
+      + (k.lampiran && k.lampiran.length ? '\n\nDokumen:\n' + k.lampiran.map(function (l) { return '- ' + l.nama + ': ' + l.url; }).join('\n') : '');
+    return { subjek: '⏰ Besok: ' + k.judul + ' (' + tglPanjang_(k.tgl) + ')', html: html, teks: teks };
+  }
+  /* cadangan tanpa izin email: buat catatan pengingat (Google Docs) lalu bagikan ke KEG_EMAIL → Google Drive mengirim email berisi pesannya */
+  function kirimLewatDrive_(k, isi) {
+    var h = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, api = 'https://www.googleapis.com/drive/v3/files', b = 'bts' + Date.now();
+    var meta = { name: 'Pengingat H-1 — ' + k.tgl + ' — ' + k.judul, mimeType: 'application/vnd.google-apps.document', parents: [folderKeg_().getId()] };
+    var r = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id', { method: 'post', headers: h, muteHttpExceptions: true,
+      contentType: 'multipart/related; boundary=' + b,
+      payload: '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) + '\r\n--' + b + '\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n' + isi.teks + '\r\n--' + b + '--' });
+    if (r.getResponseCode() !== 200) throw new Error('Drive: ' + r.getContentText().slice(0, 200));
+    var id = JSON.parse(r.getContentText()).id;
+    var p = UrlFetchApp.fetch(api + '/' + id + '/permissions?sendNotificationEmail=true&supportsAllDrives=true&emailMessage=' + encodeURIComponent(isi.teks.slice(0, 1800)),
+      { method: 'post', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ role: 'reader', type: 'user', emailAddress: KEG_EMAIL }) });
+    if (p.getResponseCode() !== 200) throw new Error('Drive berbagi: ' + p.getContentText().slice(0, 200));
+    return 'drive';
+  }
+  function kirimKeg_(k) {
+    var isi = isiEmailKeg_(k);
+    try { MailApp.sendEmail({ to: KEG_EMAIL, subject: isi.subjek, body: isi.teks, htmlBody: isi.html, name: 'Kalender Wilayah II BHP Medan' }); return 'email'; }
+    catch (e) { if (!/izin|permission|authoriz|otoris|scope|MailApp/i.test(String(e.message || e))) throw e; return kirimLewatDrive_(k, isi); }
+  }
+  function pengingatKeg_(paksa) {
+    if (!paksa && +Utilities.formatDate(new Date(), 'Asia/Jakarta', 'H') < 7) return [];
+    var b = besok_(), sudah = {};
+    try { sudah = JSON.parse(PROPS.getProperty(KEG_TERKIRIM) || '{}'); } catch (e) { }
+    var hasil = [];
+    kegDaftar_().filter(function (k) { return k.notif && k.tgl === b && !sudah[k.id + '|' + k.tgl]; }).forEach(function (k) {
+      try { hasil.push(k.judul + ' → ' + kirimKeg_(k)); sudah[k.id + '|' + k.tgl] = new Date().toISOString(); }
+      catch (e) { hasil.push(k.judul + ' ✕ ' + String(e.message || e).slice(0, 120)); }
+    });
+    var batas = Utilities.formatDate(new Date(Date.now() - 40 * 864e5), 'Asia/Jakarta', 'yyyy-MM-dd');
+    Object.keys(sudah).forEach(function (x) { if (x.split('|')[1] < batas) delete sudah[x]; });
+    PROPS.setProperty(KEG_TERKIRIM, JSON.stringify(sudah));
+    if (hasil.length) PROPS.setProperty('KEG_LOG', JSON.stringify({ pada: new Date().toISOString(), hasil: hasil }));
+    return hasil;
+  }
+  function kegNotifStatus(t) {
+    user_(t);
+    var log = null; try { log = JSON.parse(PROPS.getProperty('KEG_LOG') || 'null'); } catch (e) { }
+    return { email: KEG_EMAIL, aktif: !!picuKeg_(), log: log };
+  }
+  /* kirim pengingat contoh sekarang (untuk mencoba) */
+  function kegNotifTes(t, id) {
+    var u = super_(t), k = kegDaftar_().filter(function (x) { return x.id === id; })[0];
+    if (!k) throw new Error('Kegiatan tidak ditemukan — simpan dulu.');
+    pasangPicuKeg_();
+    var cara = kirimKeg_(k);
+    log_(u, 'KEGIATAN', k.id, k.judul, 'Tes pengingat email ke ' + KEG_EMAIL + ' (' + cara + ')');
+    return cara;
+  }
+
   return {
     versi: VERSI,
+    kegSimpan: kegSimpan,
+    kegHapus: kegHapus,
+    kegUnggah: kegUnggah,
+    kegNotifStatus: kegNotifStatus,
+    kegNotifTes: kegNotifTes,
+    bacaAI: bacaAI,
+    modelAI: modelAI,
     sipp: sipp,
     tambahData: tambahData,
     jadwalStatus: jadwalStatus,
@@ -324,6 +562,14 @@
     jadwalJalan: function (t) { super_(t); return terjadwal(240000); },
     antrean: function (t) { super_(t); return baca().antrean; },
     selesai: selesai,
-    terjadwal: function () { return terjadwal(300000); }
+    terjadwal: function () {
+      var ing = null;
+      try { ing = pengingatKeg_(); } catch (e) { ing = ['✕ ' + String(e.message || e).slice(0, 120)]; }
+      try {
+        var d = baca(), akhir = Date.parse(d.log && d.log.terakhir || 0) || 0;
+        if (!triggerKu().length || (d.jam && Date.now() - akhir < d.jam * 36e5 * 0.75)) return { pengingat: ing, impor: 'dilewati' };
+      } catch (e) { }
+      return terjadwal(300000);
+    }
   };
 })()

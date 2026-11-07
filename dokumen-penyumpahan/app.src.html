@@ -223,6 +223,8 @@ html,body{max-width:100%;overflow-x:hidden}
 details.aksi-lain{position:relative}details.aksi-lain>summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;user-select:none}
 details.aksi-lain>summary::-webkit-details-marker{display:none}details.aksi-lain[open]>summary{border-color:var(--navy,#1b2345)}
 .aksi-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px #1b234522;padding:6px;display:flex;flex-direction:column;min-width:190px}
+.ck-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ck-mode button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card)}.ck-mode button.on{border-color:var(--navy);background:#eef2ff}.ck-mode small{color:var(--mut,#6b7280);font-size:11.5px}
+.ck-src{display:flex;gap:8px;flex-wrap:wrap}
 .aksi-menu button{border:0;text-align:left;border-radius:8px;padding:9px 12px;font-size:13.5px;background:transparent}.aksi-menu button:hover{background:#f3f5fb}
 @media(max-width:900px){.steps{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 2px 4px;margin-left:-2px;margin-right:-2px;scrollbar-width:none}.steps::-webkit-scrollbar{display:none}
   .steps button{flex:none;white-space:nowrap}.meta-ubah{display:none}.aksi-menu{right:auto;left:0}}
@@ -869,6 +871,7 @@ async function boot(){
   try{const r=INIT||await api('apiInit');INIT=null;ME=r.user;USERS=r.users||[];SPS=r.sps||SPS;SET=Object.assign(JSON.parse(JSON.stringify(DEF_SET)),r.settings||{});lengkapiPejabat();pakaiDB(r.berkas||[]);FOLDER=r.folderUrl||'';
     DB.sort((a,b)=>String(b._meta?.diubahPada||'').localeCompare(String(a._meta?.diubahPada||'')));
     if(r.ai!==undefined)ADA_AI=r.ai;else api('apiAdaAI').then(v=>ADA_AI=v).catch(()=>{});
+    setTimeout(()=>{if(ADA_AI&&GAS)api('apiImpor','modelAI').then(m=>{MODEL_AI=m}).catch(()=>{BACA_AI_ADA=false})},3000);
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
   $('#login').hidden=true;document.body.classList.remove('locked');renderHeader();cur=null;renderList();renderMain();
   setTimeout(()=>berkasDariGithub().catch(e=>console.warn('Berkas GitHub:',e)),2500);
@@ -1277,10 +1280,10 @@ function renderMain(){
   const TABS={umum:'1. Perkara',pihak:`2. ${d.J}`,objek:`3. ${w?'Anak':'Terampu'}`,jadwal:'4. Jadwal & Pejabat',harta:'5. BAP & Harta',dok:'📄 Dokumen',riw:'🕘 Riwayat'};
   let h=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><div class="seg">${['Pengampuan','Perwalian'].map(j=>`<button class="${cur.jenis===j?'on':''}" onclick="setv('jenis','${j}')">${j}</button>`).join('')}</div>
   <span style="margin-right:auto"><span class="hint" id="stat">✓ Tersimpan</span><br><span class="meta meta-ubah">${cur._meta?`Dibuat ${esc(cur._meta.dibuatOleh||'')} · diubah terakhir oleh <b>${esc(cur._meta.diubahOleh||'')}</b>, ${wkt(cur._meta.diubahPada)}`:''}</span></span>
-  <button hidden onclick="setRingkas(!RINGKAS)" title="Mode ringkas: hanya kolom wajib yang tampil; kolom opsional yang masih kosong disembunyikan">${RINGKAS?'🧾 Ringkas ✓':'🧾 Tampilan lengkap'}</button><details class="aksi-lain"><summary>⋯ Lainnya</summary><div class="aksi-menu"><button onclick="cekSippBerkas()" title="Cari nama asli (yang disamarkan) &amp; cocokkan dengan SIPP pengadilan">🔎 Cek SIPP</button><button onclick="screenshot('#main',cur.nama)" title="Simpan tampilan ini sebagai gambar PNG">📸 Screenshot</button><button onclick="dupRec()">⧉ Duplikat berkas</button>${isSuper()?(cur._dihapus?'<button onclick="restoreRec()">♻️ Pulihkan</button>':'<button onclick="delRec()" style="color:var(--warn)">🗑 Hapus berkas</button>'):''}</div></details></div>
+  <button hidden onclick="setRingkas(!RINGKAS)" title="Mode ringkas: hanya kolom wajib yang tampil; kolom opsional yang masih kosong disembunyikan">${RINGKAS?'🧾 Ringkas ✓':'🧾 Tampilan lengkap'}</button><details class="aksi-lain"><summary>⋯ Lainnya</summary><div class="aksi-menu"><button onclick="dlgCekLagi()" title="AI membaca ulang penetapan + SIPP, hanya mengisi kolom kosong">🔄 Cek lagi penetapan</button><button onclick="cekSippBerkas()" title="Cari nama asli (yang disamarkan) &amp; cocokkan dengan SIPP pengadilan">🔎 Cek SIPP</button><button onclick="screenshot('#main',cur.nama)" title="Simpan tampilan ini sebagai gambar PNG">📸 Screenshot</button><button onclick="dupRec()">⧉ Duplikat berkas</button>${isSuper()?(cur._dihapus?'<button onclick="restoreRec()">♻️ Pulihkan</button>':'<button onclick="delRec()" style="color:var(--warn)">🗑 Hapus berkas</button>'):''}</div></details></div>
   ${bannerKelayakan(cur)}${cekBar(CL)}<div class="steps">${Object.entries(TABS).map(([k,v])=>{const q=CL.filter(x=>x.tab===k),e=q.some(x=>x.lvl==='e');return`<button class="${tab===k?'on':''}" onclick="tab='${k}';renderMain()">${v}${q.length?`<span class="dot ${e?'':'w'}">${q.length}</span>`:''}</button>`}).join('')}</div>${panduanTab(TABS,CL,d)}<div class="grid">`;
   const pjOpt=v=>{const c=pjCari(v).nama;return SET.pejabat.map(p=>`<option ${p.nama===c?'selected':''} value="${esc(p.nama)}">${esc(p.nama||'(isi di Pengaturan)')} — ${esc(p.jabatan||'')}</option>`).join('')};
-  if(tab==='umum')h+=`<div class="full"><label class="btn" style="display:inline-block;margin:0;color:var(--ink)">📑 Isi otomatis dari PDF Penetapan<input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this,true)"></label>${idDrive(cur.linkPenetapan)?` <a class="btn" style="display:inline-block;margin:0" href="${esc(cur.linkPenetapan)}" target="_blank" rel="noopener">📄 Buka PDF penetapan</a> <button onclick="bacaPdfDrive(this)">📑 Baca ulang dari PDF Drive</button>`:''}</div>`+F('pengadilan','Pengadilan')+FX('provinsi','Provinsi','select',['',...PROV.map(x=>x[0]),'Lainnya'],cur.provinsi||'',' data-f="provinsi" title="Kosongkan agar ditebak otomatis dari pengadilan/alamat"').replace('<option selected></option>','<option value="" selected>Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>').replace('<option ></option>','<option value="">Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>')+F('nomorPenetapan','Nomor Penetapan')+F('linkPenetapan','Tautan PDF penetapan (Google Drive)')+F('sippDomain',`Alamat SIPP (kosong = otomatis: ${esc(sippDom(cur)||'-')})`)+F('tglPenetapan','Tanggal Penetapan','date')+F('tanggalSurat','Tanggal Surat','date')+
+  if(tab==='umum')h+=`<div class="full"><label class="btn" style="display:inline-block;margin:0;color:var(--ink)">📑 Isi otomatis dari PDF Penetapan<input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this,true)"></label>${cur.nama||cur.nomorPenetapan||idDrive(cur.linkPenetapan)?` <button class="pri" onclick="dlgCekLagi()" title="AI membaca ulang penetapan + SIPP dan hanya mengisi kolom yang masih kosong">🔄 Cek lagi penetapan &amp; SIPP</button>`:''}${idDrive(cur.linkPenetapan)?` <a class="btn" style="display:inline-block;margin:0" href="${esc(cur.linkPenetapan)}" target="_blank" rel="noopener">📄 Buka PDF penetapan</a>`:''}</div>`+F('pengadilan','Pengadilan')+FX('provinsi','Provinsi','select',['',...PROV.map(x=>x[0]),'Lainnya'],cur.provinsi||'',' data-f="provinsi" title="Kosongkan agar ditebak otomatis dari pengadilan/alamat"').replace('<option selected></option>','<option value="" selected>Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>').replace('<option ></option>','<option value="">Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>')+F('nomorPenetapan','Nomor Penetapan')+F('linkPenetapan','Tautan PDF penetapan (Google Drive)')+F('sippDomain',`Alamat SIPP (kosong = otomatis: ${esc(sippDom(cur)||'-')})`)+F('tglPenetapan','Tanggal Penetapan','date')+F('tanggalSurat','Tanggal Surat','date')+
     F('nomorSurat',`Nomor Surat ke ${d.J} (otomatis dari SPS)`)+F('nomorLurah','Nomor Surat ke Lurah (otomatis dari SPS)')+F('nomorBAP','Nomor BAP (diisi petugas di hari H; kosong = awalan saja)')+F('nomorBA','Nomor BA Sumpah (diisi petugas di hari H)')+F('nomorBAHarta','Nomor BA Inventarisasi (diisi petugas di hari H)');
   if(tab==='pihak')h+=F('nama',`Nama ${d.J}`)+F('nik','NIK')+F('jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('tempatLahir','Tempat Lahir')+F('tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
@@ -1992,14 +1995,23 @@ function kalHtml(ym,mini){const[y,m]=ym.split('-').map(Number),first=new Date(y,
   for(let i=0;i<42;i++){const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i),iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),L=per[iso]||[];
     if(i>=35&&d.getMonth()!==m-1)break;
     const lb=libur(iso),K=kg[iso]||[];
-    g+=`<div class="d${d.getMonth()!==m-1?' x':''}${d.getDay()%6===0?' we':''}${lb?' lb':''}${iso===t?' td':''}${iso===sel?' sel':''}" onclick="${mini?`pilihTglSumpah('${iso}')`:`KAL.sel='${iso}';renderKalender()`}" title="${esc([lb,L.length?L.length+' penyumpahan':'',...K.map(k=>k.jenis+': '+k.judul)].filter(Boolean).join(' · ')||'Belum ada jadwal')}"><span class="n">${d.getDate()}</span>${L.length?`<span class="c">${L.length}</span>`:''}${lb?`<span class="lbn">${esc(lb)}</span>`:''}${!mini?K.slice(0,2).map(k=>`<span class="kg" style="background:${warnaKeg(k.jenis)}">${esc(k.judul)}</span>`).join('')+(K.length>2?`<span class="lbn" style="color:var(--mut)">+${K.length-2} kegiatan</span>`:''):''}${!mini&&L.length?`<div class="nm">${L.map(r=>esc(r.nama)).join('<br>')}</div>`:''}</div>`}
+    g+=`<div class="d${d.getMonth()!==m-1?' x':''}${d.getDay()%6===0?' we':''}${lb?' lb':''}${iso===t?' td':''}${iso===sel?' sel':''}" onclick="${mini?`pilihTglSumpah('${iso}')`:`KAL.sel='${iso}';renderKalender()`}" title="${esc([lb,L.length?L.length+' penyumpahan':'',...K.map(k=>k.jenis+': '+k.judul)].filter(Boolean).join(' · ')||'Belum ada jadwal')}"><span class="n">${d.getDate()}</span>${L.length?`<span class="c">${L.length}</span>`:''}${lb?`<span class="lbn">${esc(lb)}</span>`:''}${!mini?K.slice(0,2).map(k=>`<span class="kg" style="background:${warnaKeg(k.jenis,k.warna)}">${esc(k.judul)}</span>`).join('')+(K.length>2?`<span class="lbn" style="color:var(--mut)">+${K.length-2} kegiatan</span>`:''):''}${!mini&&L.length?`<div class="nm">${L.map(r=>esc(r.nama)).join('<br>')}</div>`:''}</div>`}
   const nav=n=>mini?`KAL.ymMini='${geserYm(ym,n)}';$('#miniCal').innerHTML=kalHtml(KAL.ymMini,true)`:`KAL.ym='${geserYm(ym,n)}';renderKalender()`;
   return`<div class="cal-h"><b>${BLN[m-1]} ${y}</b><button onclick="${nav(-1)}">‹</button><button onclick="${mini?`KAL.ymMini='${t.slice(0,7)}';$('#miniCal').innerHTML=kalHtml(KAL.ymMini,true)`:`KAL.ym='${t.slice(0,7)}';KAL.sel='${t}';renderKalender()`}">Hari ini</button><button onclick="${nav(1)}">›</button></div>
     <div class="cal-g">${HR.map(x=>`<div class="hd">${x}</div>`).join('')}${g}</div>`}
 function pilihTglSumpah(iso){if(!cur||cur._dihapus)return;if(!HARI_KERJA(iso))toast('⚠ '+(libur(iso)?'Tanggal merah: '+libur(iso):hari(iso)+' bukan hari kerja'));cur.tglSumpah=iso;KAL.ymMini=iso.slice(0,7);save();renderList();renderMain()}
 function bukaKalender(){WZ.on=false;if(cur){clearTimeout(saveT);flush()}setNav('kalender','Jadwal Sumpah');$('.wrap').classList.add('wzmode');KAL.ym=KAL.ym||today().slice(0,7);KAL.sel=KAL.sel||today();renderKalender()}
-const JENIS_KEG=[['Kepailitan','#7c3aed'],['Penyumpahan luar kota','#0ea5e9'],['Rapat / Koordinasi','#0f9d6b'],['Harta Peninggalan / Pewarisan','#d97706'],['Pendaftaran Wasiat','#db2777'],['Lelang','#b91c1c'],['Kunjungan / Monitoring','#2563eb'],['Lainnya','#64748b']];
-const warnaKeg=j=>(JENIS_KEG.find(x=>x[0]===j)||JENIS_KEG.at(-1))[1];
+/* jenis kegiatan Wilayah II — setiap jenis punya warna tanda sendiri; jenis baru bisa ditulis sendiri (warna dipilih atau otomatis) */
+const JENIS_KEG=[['Kepailitan','#7c3aed'],['Rapat Kreditor / Verifikasi Piutang','#a855f7'],['Penyumpahan luar kota','#0ea5e9'],['Sidang Pengadilan','#1e3a8a'],
+  ['Rapat / Koordinasi','#0f9d6b'],['Harta Peninggalan / Pewarisan','#d97706'],['Surat Keterangan Hak Waris','#ca8a04'],['Pengelolaan Harta Tak Terurus','#92400e'],
+  ['Pendaftaran / Pembukaan Wasiat','#db2777'],['Lelang','#b91c1c'],['Kunjungan / Monitoring','#2563eb'],['Dinas Luar / Perjalanan Dinas','#0891b2'],
+  ['Sosialisasi / Penyuluhan','#16a34a'],['Pelatihan / Bimtek','#65a30d'],['Rapat Daring (Zoom)','#4f46e5'],['Audit / Pemeriksaan','#be123c'],
+  ['Pelaporan / Tenggat','#ea580c'],['Apel / Upacara / Acara Kantor','#475569'],['Cuti / Izin Pegawai','#94a3b8'],['Lainnya','#64748b']];
+const PALET_KEG=['#0d9488','#c026d3','#4d7c0f','#7c2d12','#15803d','#1d4ed8','#9333ea','#b45309','#0369a1','#be185d'];
+const warnaKeg=(j,w)=>{if(/^#[0-9a-f]{6}$/i.test(w||''))return w;const x=JENIS_KEG.find(y=>y[0]===j);if(x)return x[1];
+  const c=(SET.kegiatan||[]).find(k=>k.jenis===j&&/^#[0-9a-f]{6}$/i.test(k.warna||''));if(c)return c.warna;let h=0;for(const ch of String(j||''))h=(h*31+ch.charCodeAt(0))>>>0;return PALET_KEG[h%PALET_KEG.length]};
+/* jenis tambahan yang pernah ditulis petugas ikut muncul di pilihan */
+const jenisKegSemua=()=>{const s=new Set(JENIS_KEG.map(x=>x[0]));const ext=[...new Set((SET.kegiatan||[]).map(k=>k.jenis).filter(j=>j&&!s.has(j)))];return [...JENIS_KEG.slice(0,-1).map(x=>x[0]),...ext,'Lainnya']};
 function kegPerTgl(){const m={};(SET.kegiatan||[]).forEach(k=>{let d=pd(k.tgl);const e=pd(k.sampai&&k.sampai>=k.tgl?k.sampai:k.tgl);if(!d)return;let n=0;
   while(d<=e&&n<62){const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');(m[iso]=m[iso]||[]).push(k);d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);n++}});return m}
 function renderKalender(){const aktif=DB.filter(r=>!r._dihapus&&r.tglSumpah),ym=KAL.ym,bln=aktif.filter(r=>r.tglSumpah.startsWith(ym)),t=today();
@@ -2008,26 +2020,54 @@ function renderKalender(){const aktif=DB.filter(r=>!r._dihapus&&r.tglSumpah),ym=
   const L=aktif.filter(r=>r.tglSumpah===KAL.sel).sort((a,b)=>(a.waktu||'').localeCompare(b.waktu||'')),K=kegPerTgl()[KAL.sel]||[],lb=libur(KAL.sel);
   $('#main').innerHTML=`<div style="padding:6px 4px"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px"><div class="cal-stat" style="margin:0 auto 0 0"><div><b>${hariIni}</b>sumpah hari ini</div><div><b>${bln.length}</b>sumpah ${BLN[+ym.slice(5)-1]}</div><div><b>${kegBln}</b>kegiatan lain</div><div><b>${depan}</b>akan datang</div><div><b>${belum}</b>belum dijadwalkan</div></div>
     <button class="pri" onclick="dlgKegiatan()">＋ Kegiatan Wil. II</button>${isSuper()?'<button onclick="dlgLibur()">🗓 Tanggal merah</button>':''}</div>
-  <div class="cal-wrap"><div class="cal">${kalHtml(ym,false)}<div class="cal-leg"><span><span class="kgdot" style="background:var(--gold)"></span>angka = jumlah penyumpahan</span><span><span class="kgdot" style="background:#dc2626"></span>tanggal merah</span>${JENIS_KEG.map(([j,c])=>`<span><span class="kgdot" style="background:${c}"></span>${j}</span>`).join('')}</div></div>
+  <div class="cal-wrap"><div class="cal">${kalHtml(ym,false)}<div class="cal-leg"><span><span class="kgdot" style="background:var(--gold)"></span>angka = jumlah penyumpahan</span><span><span class="kgdot" style="background:#dc2626"></span>tanggal merah</span>${[...new Set((SET.kegiatan||[]).filter(k=>(k.tgl||'').slice(0,7)<=ym&&((k.sampai||k.tgl||'').slice(0,7)>=ym)).map(k=>k.jenis+'|'+warnaKeg(k.jenis,k.warna)))].map(x=>{const[j,c]=x.split('|');return`<span><span class="kgdot" style="background:${c}"></span>${esc(j)}</span>`}).join('')}</div></div>
   <div class="cal-side"><h4>${hari(KAL.sel)}, ${tgl(KAL.sel)}</h4>${lb?`<div class="ev" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c;cursor:default">🔴 <b>Tanggal merah</b><br><small style="color:#b91c1c">${esc(lb)}</small></div>`:''}
   <h5 style="margin:10px 0 6px;color:var(--mut);font-size:11.5px;letter-spacing:.8px">PENYUMPAHAN (${L.length})</h5>${L.length?L.map(r=>`<div class="ev" onclick="pick('${r.id}')"><b>${esc(r.nama)}</b><br><small>${esc(r.jenis)} · ${esc(r.waktu||'')} · ${esc(derive(r).objek||'-')}</small></div>`).join(''):'<p class="hint">Belum ada penyumpahan.</p>'}
-  <h5 style="margin:14px 0 6px;color:var(--mut);font-size:11.5px;letter-spacing:.8px">KEGIATAN WILAYAH II (${K.length})</h5>${K.length?K.map(k=>`<div class="ev" onclick="dlgKegiatan('${k.id}')" style="border-left:4px solid ${warnaKeg(k.jenis)}"><b>${esc(k.judul)}</b><br><small>${esc(k.jenis)}${k.jam?' · '+esc(k.jam):''}${k.tempat?' · '+esc(k.tempat):''}${k.sampai&&k.sampai!==k.tgl?' · s.d. '+tgl(k.sampai):''}</small>${k.ket?`<br><small>${esc(k.ket)}</small>`:''}</div>`).join(''):'<p class="hint">Tidak ada kegiatan lain.</p>'}
+  <h5 style="margin:14px 0 6px;color:var(--mut);font-size:11.5px;letter-spacing:.8px">KEGIATAN WILAYAH II (${K.length})</h5>${K.length?K.map(k=>`<div class="ev" onclick="dlgKegiatan('${k.id}')" style="border-left:4px solid ${warnaKeg(k.jenis,k.warna)}"><b>${esc(k.judul)}</b>${k.notif?' <span title="Pengingat email H-1 aktif">🔔</span>':''}${(k.lampiran||[]).length?` <span title="${(k.lampiran||[]).length} dokumen">📎${(k.lampiran||[]).length}</span>`:''}<br><small><span class="kgdot" style="background:${warnaKeg(k.jenis,k.warna)}"></span> ${esc(k.jenis)}${k.jam?' · '+esc(k.jam):''}${k.tempat?' · '+esc(k.tempat):''}${k.sampai&&k.sampai!==k.tgl?' · s.d. '+tgl(k.sampai):''}</small>${k.ket?`<br><small>${esc(k.ket)}</small>`:''}</div>`).join(''):'<p class="hint">Tidak ada kegiatan lain.</p>'}
   <button style="width:100%;margin-top:4px" onclick="dlgKegiatan(null,'${KAL.sel}')">＋ Tambah kegiatan di tanggal ini</button>
   ${belum?`<h5 style="margin:18px 0 6px;color:var(--mut);font-size:11.5px;letter-spacing:.8px">BELUM DIJADWALKAN (${belum})</h5>${DB.filter(r=>!r._dihapus&&!r.tglSumpah).slice(0,30).map(r=>`<div class="ev" onclick="jadwalkan('${r.id}')"><b>${esc(r.nama)}</b><br><small>Klik untuk jadwalkan di ${tgl(KAL.sel)}</small></div>`).join('')}`:''}</div></div></div>`}
-function dlgKegiatan(id,tglDef){const k=(SET.kegiatan||[]).find(x=>x.id===id)||{tgl:tglDef||KAL.sel||today(),jenis:'Kepailitan'};
+const KEG_EMAIL='wilayah2bhpmedan@gmail.com';let KEG_LAMP=[];
+function dlgKegiatan(id,tglDef){const k=(SET.kegiatan||[]).find(x=>x.id===id)||{tgl:tglDef||KAL.sel||today(),jenis:'Kepailitan',notif:true};KEG_LAMP=(k.lampiran||[]).slice();
+  const J=jenisKegSemua(),lain=k.jenis&&!J.includes(k.jenis);
   dlg(`<form onsubmit="event.preventDefault();simpanKegiatan(this,'${k.id||''}')"><h3>${k.id?'✏️ Ubah':'＋ Tambah'} Kegiatan Wilayah II</h3>
   <div class="grid"><div class="full"><label>Judul kegiatan</label><input name="judul" required value="${esc(k.judul||'')}" placeholder="mis. Rapat kreditor PT ABC (Pailit)"></div>
-  <div><label>Jenis</label><select name="jenis">${JENIS_KEG.map(([j])=>`<option ${j===k.jenis?'selected':''}>${j}</option>`).join('')}</select></div><div><label>Jam</label><input name="jam" value="${esc(k.jam||'')}" placeholder="09:00 WIB"></div>
+  <div><label>Jenis</label><div style="display:flex;gap:6px;align-items:center"><span id="kgWarnaDot" class="kgdot" style="width:14px;height:14px;flex:none;background:${warnaKeg(k.jenis,k.warna)}"></span><select name="jenis" onchange="kegJenis(this.form)">${J.map(j=>`<option ${j===k.jenis?'selected':''}>${esc(j)}</option>`).join('')}<option value="__baru" ${lain?'selected':''}>＋ Jenis lain (tulis sendiri)…</option></select></div></div>
+  <div><label>Jam</label><input name="jam" value="${esc(k.jam||'')}" placeholder="09:00 WIB"></div>
+  <div class="full" id="kgBaru" ${lain||k.jenis==='Lainnya'?'':'hidden'}><label>Nama jenis kegiatan &amp; warna tanda</label><div style="display:flex;gap:8px"><input name="jenisBaru" value="${esc(lain?k.jenis:'')}" placeholder="mis. Penandatanganan MoU" oninput="kegJenis(this.form)" style="flex:1"><input name="warna" type="color" value="${warnaKeg(k.jenis,k.warna)}" oninput="kegJenis(this.form,1)" style="width:52px;padding:2px" title="Pilih warna tanda"></div></div>
   <div><label>Tanggal</label><input name="tgl" type="date" required value="${esc(k.tgl||'')}"></div><div><label>Sampai (opsional)</label><input name="sampai" type="date" value="${esc(k.sampai||'')}"></div>
   <div class="full"><label>Tempat</label><input name="tempat" value="${esc(k.tempat||'')}" placeholder="mis. Pengadilan Niaga Medan"></div>
-  <div class="full"><label>Keterangan</label><textarea name="ket" rows="3">${esc(k.ket||'')}</textarea></div></div>
-  ${k.oleh?`<p class="hint">Dicatat oleh ${esc(k.oleh)}</p>`:''}
-  <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">${k.id?`<button type="button" style="color:var(--warn);margin-right:auto" onclick="hapusKegiatan('${k.id}')">🗑 Hapus</button>`:''}<button type="button" onclick="dlgClose()">Batal</button><button class="pri">Simpan</button></p></form>`)}
-async function simpanKegiatan(f,id){const ev={id:id||undefined,judul:f.judul.value.trim(),jenis:f.jenis.value,jam:f.jam.value.trim(),tgl:f.tgl.value,sampai:f.sampai.value,tempat:f.tempat.value.trim(),ket:f.ket.value.trim()};
+  <div class="full"><label>Keterangan</label><textarea name="ket" rows="3">${esc(k.ket||'')}</textarea></div>
+  <div class="full"><label>Dokumen <span class="hint">(opsional — undangan, surat tugas, bahan rapat; tersimpan di Google Drive)</span></label><div id="kgLamp"></div>
+    <label class="btn" style="display:inline-block;margin:6px 0 0">📎 Tambah dokumen<input type="file" multiple hidden onchange="kegUnggah(this)"></label></div>
+  <div class="full"><label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;cursor:pointer;background:#f6f8fc;border:1px solid var(--line);border-radius:12px;padding:10px 12px"><input type="checkbox" name="notif" ${k.notif?'checked':''} style="width:auto;margin-top:3px"><span><b>🔔 Kirim pengingat email H-1</b><br><small class="hint">Ke ${KEG_EMAIL}, sehari sebelum kegiatan (±07.00 WIB), berisi waktu, tempat, keterangan &amp; tautan dokumen.</small></span></label></div></div>
+  ${k.oleh?`<p class="hint">Dicatat oleh ${esc(k.oleh)}${k.diubah&&k.diubah!==k.oleh?' · diubah '+esc(k.diubah):''}</p>`:''}
+  <p style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">${k.id?`<button type="button" style="color:var(--warn);margin-right:auto" onclick="hapusKegiatan('${k.id}')">🗑 Hapus</button>`:''}${k.id&&k.notif&&isSuper()&&GAS?`<button type="button" onclick="tesPengingat('${k.id}',this)" title="Kirim contoh email pengingat sekarang">✉️ Tes kirim</button>`:''}<button type="button" onclick="dlgClose()">Batal</button><button class="pri">Simpan</button></p></form>`);kegLampTampil()}
+/* jenis baru: warna otomatis yang belum dipakai jenis lain (bisa diganti lewat pemilih warna) */
+function warnaBaru(j){const pakai=new Set([...JENIS_KEG.map(x=>x[1]),...(SET.kegiatan||[]).map(k=>warnaKeg(k.jenis,k.warna))]);const L=PALET_KEG.filter(c=>!pakai.has(c));
+  let h=0;for(const ch of String(j||''))h=(h*31+ch.charCodeAt(0))>>>0;return (L.length?L:PALET_KEG)[h%(L.length||PALET_KEG.length)]}
+function kegJenis(f,dariWarna){const v=f.jenis.value,baru=v==='__baru'||v==='Lainnya';$('#kgBaru').hidden=!baru;if(dariWarna)f.warna.dataset.manual='1';
+  const j=v==='__baru'?f.jenisBaru.value.trim():v;let c;
+  if(f.warna.dataset.manual&&baru)c=f.warna.value;else{c=v==='__baru'||(v==='Lainnya'&&f.jenisBaru.value.trim())?warnaBaru(f.jenisBaru.value.trim()||'baru'):warnaKeg(j);f.warna.value=c}
+  $('#kgWarnaDot').style.background=c}
+function kegLampTampil(){const e=$('#kgLamp');if(!e)return;e.innerHTML=KEG_LAMP.length?KEG_LAMP.map((l,i)=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:4px;font-size:13px">${l.naik?'⏳':'📄'} ${l.url?`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.nama)}</a>`:`<span style="flex:1">${esc(l.nama)} <small class="hint">mengunggah…</small></span>`}${l.naik?'':`<button type="button" class="link" onclick="KEG_LAMP.splice(${i},1);kegLampTampil()" title="Lepas dari kegiatan (file tetap di Drive)">✕</button>`}</div>`).join(''):'<p class="hint" style="margin:0">Belum ada dokumen.</p>'}
+async function kegUnggah(inp){const fs=[...inp.files];inp.value='';const f=inp.form;
+  for(const file of fs){if(file.size>25*1024*1024){toast(file.name+' terlalu besar (maks. 25 MB)');continue}const L={nama:file.name,naik:true};KEG_LAMP.push(L);kegLampTampil();
+    try{if(!GAS){Object.assign(L,{id:'demo'+newId(),url:URL.createObjectURL(file),mime:file.type});continue}
+      const b64=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(file)});
+      Object.assign(L,await api('apiImpor','kegUnggah',{nama:file.name,mime:file.type,b64,tgl:f&&f.tgl.value,judul:f&&f.judul.value}))}
+    catch(e){KEG_LAMP.splice(KEG_LAMP.indexOf(L),1);toast('Gagal mengunggah '+file.name+': '+(e.message||e))}
+    finally{delete L.naik;kegLampTampil()}}}
+async function simpanKegiatan(f,id){if(KEG_LAMP.some(l=>l.naik))return toast('Tunggu dokumen selesai diunggah…');
+  const baru=f.jenis.value==='__baru',jenis=baru?(f.jenisBaru.value.trim()||'Lainnya'):f.jenis.value;
+  const ev={id:id||undefined,judul:f.judul.value.trim(),jenis,warna:baru||(jenis==='Lainnya'&&f.jenisBaru.value.trim())?f.warna.value:'',jam:f.jam.value.trim(),tgl:f.tgl.value,sampai:f.sampai.value,tempat:f.tempat.value.trim(),ket:f.ket.value.trim(),lampiran:KEG_LAMP.map(({id,nama,url,mime})=>({id,nama,url,mime})),notif:f.notif.checked};
+  if(jenis==='Lainnya'&&f.jenisBaru.value.trim()){ev.jenis=f.jenisBaru.value.trim()}
   const b=f.querySelector('.pri');b.disabled=true;b.textContent='Menyimpan…';
-  try{if(GAS)SET.kegiatan=await api('apiKegiatanSimpan',ev);else{const L=SET.kegiatan=SET.kegiatan||[];ev.id=ev.id||newId();ev.oleh=ME.nama;const i=L.findIndex(x=>x.id===ev.id);if(i>=0)L[i]=ev;else L.push(ev)}
-    dlgClose();KAL.sel=ev.tgl;KAL.ym=ev.tgl.slice(0,7);renderKalender();toast('Kegiatan disimpan')}catch(e){b.disabled=false;b.textContent='Simpan';toast(e.message||String(e))}}
-async function hapusKegiatan(id){try{if(GAS)SET.kegiatan=await api('apiKegiatanHapus',id);else SET.kegiatan=(SET.kegiatan||[]).filter(x=>x.id!==id);dlgClose();renderKalender();toast('Kegiatan dihapus')}catch(e){toast(e.message||String(e))}}
+  try{if(GAS){try{SET.kegiatan=await api('apiImpor','kegSimpan',ev)}catch(e){if(!/tidak dikenal|apiImpor|belum bisa diambil/i.test(e.message||e))throw e;SET.kegiatan=await api('apiKegiatanSimpan',ev);toast('Server belum diperbarui — dokumen & pengingat email belum tersimpan')}}
+    else{const L=SET.kegiatan=SET.kegiatan||[];ev.id=ev.id||newId();ev.oleh=ME.nama;const i=L.findIndex(x=>x.id===ev.id);if(i>=0)L[i]=ev;else L.push(ev)}
+    dlgClose();KAL.sel=ev.tgl;KAL.ym=ev.tgl.slice(0,7);renderKalender();toast('Kegiatan disimpan'+(ev.notif?' · pengingat email H-1 aktif':''))}catch(e){b.disabled=false;b.textContent='Simpan';toast(e.message||String(e))}}
+async function hapusKegiatan(id){if(!confirm('Hapus kegiatan ini? (Dokumen di Drive tidak ikut terhapus)'))return;
+  try{if(GAS){try{SET.kegiatan=await api('apiImpor','kegHapus',id)}catch(e){if(!/tidak dikenal|apiImpor|belum bisa diambil/i.test(e.message||e))throw e;SET.kegiatan=await api('apiKegiatanHapus',id)}}else SET.kegiatan=(SET.kegiatan||[]).filter(x=>x.id!==id);dlgClose();renderKalender();toast('Kegiatan dihapus')}catch(e){toast(e.message||String(e))}}
+async function tesPengingat(id,b){b.disabled=true;b.textContent='Mengirim…';try{const c=await api('apiImpor','kegNotifTes',id);toast(c==='email'?'Email pengingat terkirim ke '+KEG_EMAIL:'Terkirim lewat notifikasi Google Drive ke '+KEG_EMAIL+' (izin email belum aktif)')}catch(e){toast(e.message||String(e))}finally{b.disabled=false;b.textContent='✉️ Tes kirim'}}
 function dlgLibur(){const L=((SET.libur&&SET.libur.length)?SET.libur:LIBUR_DEF);
   dlg(`<h3>🗓 Tanggal Merah & Cuti Bersama</h3><p class="hint">Satu baris satu tanggal: <b>YYYY-MM-DD Nama libur</b>. Tanggal tetap (1 Jan, 1 Mei, 1 Jun, 17 Agu, 25 Des) otomatis setiap tahun. Daftar awal 2026 adalah perkiraan — sesuaikan dengan SKB 3 Menteri resmi, termasuk cuti bersama.</p>
   <textarea id="lbTxt" rows="16" style="font-family:monospace;font-size:12.5px">${esc(L.map(x=>x.tgl+' '+x.nama).join('\n'))}</textarea>
@@ -2346,14 +2386,97 @@ KETELITIAN (WAJIB — data dipakai untuk dokumen resmi, salah satu angka/huruf b
 - Ubah tanggal ke YYYY-MM-DD dengan teliti (mis. "5 Maret 2012" → "2012-03-05", "05-03-2012" → "2012-03-05"); jangan menebak tanggal yang tidak lengkap.
 - Sebelum menjawab, periksa ulang nama, NIK, nomor, dan setiap tanggal dengan teks dokumen.
 NAMA DISAMARKAN: bila nama orang di penetapan disamarkan/dianonimkan (mis. "ANAK I", "Pemohon", "P***", "XXX", inisial "A.B."), isi "nama" dengan "" (string kosong) — JANGAN menyalin samarannya; data lain (jk, tanggal lahir, dll.) tetap diisi. Nama asli akan dicari aplikasi di SIPP.`;
-async function aiExtract(file,teks,mode){
+/* pembaca AI generasi baru lewat server inti (Opus 5.5 teliti / Opus 5 hemat, cadangan otomatis bila ditolak, JSON terpotong diperbaiki);
+   bila server inti belum memuat aksi bacaAI → pembaca lama di Code.gs */
+let BACA_AI_ADA=true;
+async function aiExtract(file,teks,mode,ekstra){mode=mode||(teks?'hemat':'teliti');
   const b64=teks?'':await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(file)});
-  const prompt=PROMPT_DATA;
-  const d=teks?await api('apiAnalisaTeks',teks,prompt,4000,mode||'hemat'):await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',await promptBersih(file,prompt),'teliti');if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;n._mode=teks?(mode||'hemat'):'teliti';return n}
+  const prompt=PROMPT_DATA+(ekstra||''),pr=teks?prompt:await promptBersih(file,prompt);let d=null;
+  if(BACA_AI_ADA&&GAS)try{d=await api('apiImpor','bacaAI',teks?{teks,prompt:pr,mode}:{b64,mime:file.type||'application/pdf',prompt:pr,mode})}
+    catch(e){if(/tidak dikenal|apiImpor|not a function|belum bisa diambil/i.test(e.message||e))BACA_AI_ADA=false;else throw e}
+  if(!d&&!(BACA_AI_ADA&&GAS))d=teks?await api('apiAnalisaTeks',teks,pr,12000,mode):await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',pr,mode);
+  if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;n._mode=mode;return n}
+
+/* ===== 🔄 Cek lagi penetapan & SIPP =====
+   Sumber: PDF yang sudah tersimpan (Drive) atau upload ulang. AI (Opus 5.5 teliti / Opus 5 hemat) membaca seluruh penetapan,
+   lalu SIPP pengadilan dicek. HANYA kolom yang masih kosong yang diisi (lewat isiDariPen: nama/tanggal/NIK wajib tertulis persis
+   di dokumen); isian yang sudah ada tidak pernah diubah atau dihapus. Hemat: bila 2× berturut-turut tidak ada yang bisa
+   ditambahkan dari sumber yang sama, AI tidak dipanggil lagi dan petugas diberi tahu bahwa semua informasi sudah masuk. */
+let MODEL_AI={teliti:'claude-opus-5-5',hemat:'claude-opus-5'};
+const CL2={jalan:false};
+const PESAN_LENGKAP='Semua informasi di penetapan dan sipp telah dimasukkan dalam kolom isian';
+const PROMPT_CEK_ULANG=`
+MODE CEK ULANG (MENYELURUH): berkas ini sudah sebagian terisi; tugas Anda menemukan SETIAP data yang tertulis di dokumen, termasuk yang sering terlewat — tempat & tanggal lahir, agama, pekerjaan, alamat lengkap pemohon (RT/RW, kelurahan/desa, kecamatan, kota/kabupaten), nama pasangan, akta nikah, tanggal & keterangan meninggal, semua anak/terampu beserta tanggal lahirnya, kondisi medis terampu, alasan permohonan, harta, dan keterangan saksi. Telusuri identitas, duduk perkara, bukti surat (P-1, P-2, …), keterangan saksi, pertimbangan, dan amar. Tetap hanya isi yang benar-benar tertulis.`;
+const ckMode=()=>{try{return localStorage.getItem('bhp_ckmode')||'teliti'}catch(e){return'teliti'}};
+function setCkMode(m){try{localStorage.setItem('bhp_ckmode',m)}catch(e){}document.querySelectorAll('.ck-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m))}
+const masihKosong=r=>[...kosongAI(r),...fieldSamar(r).map(f=>'nama '+f.l.toLowerCase()+' (disamarkan/kosong)'),...(kosong(r.isiBap)?['isi BAP']:[])];
+function dlgCekLagi(){const r=cur;if(!r)return;if(!ADA_AI)return alert('AI Claude belum aktif — isi kunci di menu Pengaturan → AI Claude.');
+  const dr=idDrive(r.linkPenetapan),m=ckMode(),K=masihKosong(r);
+  dlg(`<h3>🔄 Cek lagi penetapan &amp; SIPP</h3>
+  <p class="hint" style="margin:0 0 10px">AI membaca ulang <b>seluruh</b> penetapan lalu mencocokkan dengan SIPP. <b>Hanya kolom yang masih kosong yang diisi</b> — isian yang sudah ada tidak diubah atau dihapus.</p>
+  ${K.length?`<p style="font-size:13px;margin:0 0 10px">Masih kosong: <span class="hint">${esc(K.join(', '))}</span></p>`:`<p style="font-size:13px;margin:0 0 10px;color:var(--ok)">✓ Kolom utama sudah terisi — cek lagi tetap bisa menambah harta, saksi, atau data pelengkap.</p>`}
+  <div class="lbl" style="font-weight:700;font-size:13px;margin:4px 0 6px">1. Ketelitian AI</div>
+  <div class="ck-mode"><button data-m="teliti" class="${m==='teliti'?'on':''}" onclick="setCkMode('teliti')"><b>🎯 Teliti</b><small>${esc(MODEL_AI.teliti==='claude-opus-5-5'?'Opus 5.5':MODEL_AI.teliti)} · paling akurat</small></button><button data-m="hemat" class="${m==='hemat'?'on':''}" onclick="setCkMode('hemat')"><b>⚡ Hemat</b><small>${esc(MODEL_AI.hemat==='claude-opus-5'?'Opus 5':MODEL_AI.hemat)} · lebih cepat</small></button></div>
+  <div class="lbl" style="font-weight:700;font-size:13px;margin:12px 0 6px">2. Ambil penetapan dari</div>
+  <div class="ck-src">${dr?`<button class="pri" onclick="cekLagi('drive')">📄 PDF yang sudah ada</button>`:''}<label class="btn${dr?'':' pri'}" style="margin:0">⬆️ Upload PDF penetapan<input type="file" accept=".pdf,image/*" hidden onchange="cekLagiUpload(this)"></label>${!dr&&r.nomorPenetapan?`<button onclick="cekLagi('sipp')">🔎 SIPP saja</button>`:''}</div>
+  ${dr?'':'<p class="hint" style="margin:8px 0 0">Belum ada tautan PDF penetapan di berkas ini — upload PDF-nya.</p>'}
+  <p style="text-align:right;margin:14px 0 0"><button onclick="dlgClose()">Batal</button></p>`)}
+function cekLagiUpload(inp){const f=inp.files[0];inp.value='';if(f)cekLagi('upload',f)}
+const ckProg=t=>{const e=$('#ckProg');if(e)e.textContent=t};
+function dlgSemuaMasuk(r,src,file,K){CL2.ulang={src,file};
+  dlg(`<div style="text-align:center;padding:6px 4px"><div style="font-size:40px">✅</div><h3 style="margin:6px 0">${PESAN_LENGKAP}</h3>
+  ${K.length?`<p class="hint">Kolom yang masih kosong (${esc(K.join(', '))}) tidak tercantum di penetapan maupun SIPP — isi manual bila datanya ada.</p>`:''}
+  <p style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px"><button class="pri" onclick="dlgClose()">Oke</button><label class="btn" style="margin:0">⬆️ Coba PDF lain<input type="file" accept=".pdf,image/*" hidden onchange="cekLagiUpload(this)"></label><button class="link" style="font-size:12px" onclick="CL2.paksa=true;cekLagi(CL2.ulang.src,CL2.ulang.file)">Tetap cek lagi</button></p></div>`)}
+async function cekLagi(src,file){const r=cur;if(!r||CL2.jalan)return;const mode=ckMode(),paksa=CL2.paksa;CL2.paksa=false;
+  const sumber=src==='upload'?'u:'+file.name+':'+file.size:src==='drive'?'d:'+idDrive(r.linkPenetapan):'s:'+(r.nomorPenetapan||'');
+  if(r._cekSumber!==sumber)r._cekNihil=0;
+  if(!paksa&&(r._cekNihil||0)>=2)return dlgSemuaMasuk(r,src,file,masihKosong(r));
+  CL2.jalan=true;const potret=()=>JSON.stringify(r,(k,v)=>k&&k[0]==='_'?undefined:v),t0=Date.now(),awal=potret(),isi=[],tahan=[],cat=[];
+  const tambah=(h,asal)=>{h.isi.forEach(x=>isi.push(x+(asal?' ('+asal+')':'')));h.tahan.forEach(x=>tahan.push(x))};
+  const isiKosong=(k,v,lbl)=>{v=v==null?'':String(v).trim();if(v&&kosong(r[k])){r[k]=v;isi.push(lbl)}};
+  dlg(`<div style="text-align:center;padding:24px 8px"><div class="spin"></div><b id="ckProg">Menyiapkan…</b><p class="hint">AI ${mode==='teliti'?'teliti':'hemat'} sedang bekerja — biasanya 30–90 detik. Isian yang ada tidak akan diubah.</p></div>`,true);
+  try{await flush();
+    /* 1) penetapan */
+    if(src!=='sipp'){
+      if(src==='drive'){ckProg('Mengambil PDF penetapan dari Drive…');file=fileDariB64(await api('apiAmbilPdf',idDrive(r.linkPenetapan)))}
+      ckProg('Membaca teks PDF…');let teks='';try{if(!file.type.startsWith('image/'))teks=bersihTeks(await teksPdfBersih(file))}catch(e){console.warn(e)}
+      const adaTeks=teks.replace(/\s/g,'').length>1500;
+      /* isi BAP disusun bersamaan (hanya bila masih kosong) supaya total waktu tidak bertambah */
+      const pb=kosong(r.isiBap)?bapDariPenetapan(file,adaTeks?teks:null).catch(e=>{console.warn(e);return''}):null;
+      ckProg(`AI ${mode==='teliti'?'teliti':'hemat'} membaca seluruh penetapan…`);
+      let d=rapikanHasil(await aiExtract(file,adaTeks?teks:null,mode,PROMPT_CEK_ULANG),teks);
+      /* menyeluruh: teks berwatermark/scan bisa rusak → data inti yang belum ketemu dibaca dari tampilan asli dokumen */
+      if(adaTeks&&perluTeliti(d,teks)){ckProg('Memeriksa ulang dari tampilan asli dokumen…');try{d=rapikanHasil(gabung(await aiExtract(file,null,mode,PROMPT_CEK_ULANG),d),teks)}catch(e){console.warn(e)}}
+      tambah(isiDariPen(r,d,adaTeks?teks:''),'');
+      isiKosong('pengadilan',d.pengadilan,'pengadilan');isiKosong('nomorPenetapan',d.nomorPenetapan,'nomor penetapan');isiKosong('terkaitMiliter',d.terkaitMiliter,'keterkaitan TNI/Polri');
+      if(kosong(r.kelurahan)&&kelDariAlamat(r.alamat)){r.kelurahan=kelDariAlamat(r.alamat);isi.push('kelurahan')}
+      if(pb){ckProg('Menyusun isi BAP dari penetapan…');const bt=await pb;if(bt&&kosong(r.isiBap)){r.isiBap=bt;isi.push('isi BAP')}}}
+    /* 2) SIPP: nama yang disamarkan + data yang masih kosong (dibaca AI dari teks SIPP, nilainya wajib tertulis persis di SIPP) */
+    if(GAS&&r.nomorPenetapan&&(fieldSamar(r).length||kosongAI(r).length)){ckProg('Mencari di SIPP '+(sippDom(r)||'')+'…');
+      if(potret()!==awal)await simpanRec(r);
+      try{const x=(await jalankanSipp([r.id]))[0];
+        if(x&&['cocok','beda'].includes(x.status)){
+          if(x.teks&&kosongAI(r).length){ckProg('AI membaca data SIPP…');try{tambah(isiDariPen(r,await aiExtract(null,x.teks,mode,PROMPT_CEK_ULANG),x.teks),'SIPP')}catch(e){cat.push('AI SIPP: '+(e.message||e))}}
+          if(fieldSamar(r).length)isiOtomatisSipp(r,x).forEach(n=>isi.push('nama '+n+' (SIPP)'))}
+        else cat.push('SIPP: '+(x&&x.pesan||'tidak bisa dicek'))}catch(e){cat.push('SIPP: '+(e.message||e))}}
+    const berubah=potret()!==awal;r._cekSumber=sumber;r._cekNihil=berubah?0:(r._cekNihil||0)+1;
+    if(cur===r)save();else simpanRec(r);renderList();if(cur===r)renderMain();
+    if(berubah)catat('BACA_PENETAPAN',r.id,r.nama,'Cek lagi ('+mode+'): diisi '+isi.join(', ')).catch(()=>{});
+    const K=masihKosong(r),dtk=Math.round((Date.now()-t0)/1000);
+    if(!berubah&&r._cekNihil>=2)return dlgSemuaMasuk(r,src,file,K);
+    dlg(`<h3>${berubah?'✅ Kolom kosong berhasil dilengkapi':'ℹ️ Tidak ada informasi baru'}</h3>
+      ${berubah?`<p style="margin:6px 0">Diisi: <b>${esc([...new Set(isi)].join(', ')||'harta/saksi/data pelengkap')}</b></p><p class="hint">Isian lama tidak diubah. Mohon periksa kolom yang baru terisi.</p>`
+        :`<p class="hint">Semua yang bisa ditemukan sudah ada di berkas — tidak ada isian yang diubah.${mode==='hemat'?' Coba sekali lagi dengan mode <b>🎯 Teliti</b> untuk pembacaan lebih dalam.':''}</p>`}
+      ${tahan.length?`<p class="hint" style="color:#b45309">Ditahan (tidak tertulis persis di dokumen, isi manual bila yakin): ${esc([...new Set(tahan)].join(', '))}</p>`:''}
+      ${K.length?`<p class="hint">Masih kosong: ${esc(K.join(', '))}</p>`:''}${cat.length?`<p class="hint">${esc(cat.join(' · '))}</p>`:''}
+      <p class="hint" style="font-size:11.5px">Selesai ${dtk} detik · AI ${mode==='teliti'?'teliti':'hemat'}</p>
+      <p style="text-align:right;margin-top:10px"><button class="pri" onclick="dlgClose()">Oke</button></p>`)}
+  catch(e){console.warn(e);dlg(`<h3>⚠️ Cek lagi gagal</h3><p>${esc(e.message||e)}</p><p class="hint">Isian berkas tidak berubah. ${src==='drive'?'Pastikan PDF di Drive bisa dibuka akun aplikasi, atau upload PDF-nya.':'Coba lagi beberapa saat.'}</p><p style="text-align:right"><button onclick="dlgClose()">Tutup</button></p>`)}
+  finally{CL2.jalan=false}}
 
 const PEN_LBL={tempatLahir:'Tempat Lahir',jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan (terampu/anak adalah … pemohon)'};
 let PEN=null;
-function reviewHtml(d){PEN=d;const w=d.jenis==='Perwalian';if(!d.kelurahan)d.kelurahan=kelDariAlamat(d.alamat);const korT=(d._koreksi||[]).length?`<p class="hint" style="color:#0b6b48">🛠 Dikoreksi otomatis sesuai teks penetapan: ${esc([...new Set(d._koreksi)].join(', '))}</p>`:'';const cekT=korT+(d._cek||[]).length?`<div style="border:1.5px solid #f6c343;background:#fff6db;color:#6b4e00;border-radius:12px;padding:10px 14px;margin:0 0 10px"><b>🔎 Cek silang dengan teks penetapan</b><ul style="margin:6px 0 0;padding-left:18px">${d._cek.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:(d._ai&&d._text?`<p class="hint" style="color:#0b6b48">✅ Nama & tanggal hasil AI cocok dengan teks penetapan${d._detik?` · selesai ${d._detik} detik`:''}</p>`:'');
+function reviewHtml(d){PEN=d;const w=d.jenis==='Perwalian';if(!d.kelurahan)d.kelurahan=kelDariAlamat(d.alamat);const korT=(d._koreksi||[]).length?`<p class="hint" style="color:#0b6b48">🛠 Dikoreksi otomatis sesuai teks penetapan: ${esc([...new Set(d._koreksi)].join(', '))}</p>`:'';const cekT=korT+((d._cek||[]).length?`<div style="border:1.5px solid #f6c343;background:#fff6db;color:#6b4e00;border-radius:12px;padding:10px 14px;margin:0 0 10px"><b>🔎 Cek silang dengan teks penetapan</b><ul style="margin:6px 0 0;padding-left:18px">${d._cek.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:(d._ai&&d._text?`<p class="hint" style="color:#0b6b48">✅ Nama & tanggal hasil AI cocok dengan teks penetapan${d._detik?` · selesai ${d._detik} detik`:''}</p>`:''));
   const row=(k,lbl,v,type='text')=>`<div><label>${lbl}</label><input type="${type}" value="${esc(v||'')}" data-pk="${k}" style="${v?'':'background:#fff6db;border-color:#f6c343'}"></div>`;
   let h=cekT+`<div class="grid">`;
   h+=`<div><label>Jenis</label><select data-pk="jenis">${['Pengampuan','Perwalian'].map(j=>`<option ${j===d.jenis?'selected':''}>${j}</option>`).join('')}</select></div>`;
