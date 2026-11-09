@@ -70,7 +70,8 @@ function doGet(e) {
 function setup() {
   ensureSetup_();
   const ss = SpreadsheetApp.openById(PROP.getProperty('SHEET_ID'));
-  const folder = DriveApp.getFolderById(PROP.getProperty('FOLDER_ID'));
+  // folder induk (berisi Spreadsheet database + folder Lampiran) — inilah yang dibagikan ke tim
+  const folder = DriveApp.getFolderById(PROP.getProperty('ROOT_ID'));
   Logger.log('Spreadsheet : ' + ss.getUrl());
   Logger.log('Folder Drive: ' + folder.getUrl());
   Logger.log('Bagikan folder "' + folder.getName() + '" ke tim sebagai EDITOR agar semua bisa mengisi.');
