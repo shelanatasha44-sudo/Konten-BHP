@@ -2195,12 +2195,21 @@ async function handlePenetapan(file){
     if(ADA_AI){stat(adaTeks?'AI Claude (Opus 5.5) membaca & memahami seluruh penetapan…':'AI Claude (Opus 5.5) membaca dokumen penetapan…');const kirim=adaTeks?bersih:null;
       /* isi BAP disusun di latar belakang (tidak menunda hasil baca); dilewati bila berkas yang dilengkapi sudah punya isi BAP */
       if(!(penFill&&cur&&!kosong(cur.isiBap)))pb=bapDariPenetapan(file,kirim).catch(e=>{console.warn(e);return ''});
-      for(let i=0;i<2&&!data;i++)try{data=kor(await aiExtract(file,i?null:kirim,'teliti'))}catch(e){console.warn('Baca data AI percobaan '+(i+1)+' gagal:',e);if(i)toast('AI gagal membaca data, pakai pembaca biasa');else stat('Membaca ulang dengan AI…')}
-      /* hemat dulu (model ringan); hasil yang tidak lolos cek silang dengan teks asli dibaca ulang oleh model teliti */
-      if(kirim&&data&&data._mode==='hemat'&&perluTeliti(data,bersih)){stat('Memeriksa ulang dengan AI teliti…');try{data=kor(gabung(kor(await aiExtract(file,kirim,'teliti')),data))}catch(e){console.warn(e)}}
-      /* teks berwatermark bisa rusak → bila data inti tak lengkap, baca ulang dari tampilan asli dokumen (Claude membaca visual & mengabaikan watermark) */
-      if(kirim&&data&&(!data.nama&&!fieldSamarPen(data)||!data.nomorPenetapan||!data.tglPenetapan||(data.jenis==='Perwalian'&&!(data.anak||[]).length)||(data.jenis==='Pengampuan'&&!(data.terampu&&(data.terampu.nama||data.terampu.tglLahir))))){
-        stat('Teks penetapan kurang lengkap — AI membaca ulang dari tampilan asli dokumen…');try{const d2=kor(await aiExtract(file,null));data=gabung(d2,data)}catch(e){console.warn(e)}}
+      for(let i=0;i<2&&!data;i++)try{data=kor(await aiExtract(file,i?null:kirim,!i&&kirim?'cepat':'teliti'))}catch(e){console.warn('Baca data AI percobaan '+(i+1)+' gagal:',e);if(i)toast('AI gagal membaca data, pakai pembaca biasa');else stat('Membaca ulang dengan AI…')}
+      /* Pembacaan pertama: Opus 5.5 effort rendah (cepat). Hasil dicek silang dengan teks asli; bila ada yang meleset/kurang,
+         Opus 5.5 effort normal membaca ulang — tanpa menunggu berurutan:
+         - data inti kosong (teks kemungkinan rusak watermark) → baca ulang dari TEKS dan dari TAMPILAN ASLI dijalankan BERSAMAAN;
+           hasil teks dipakai bila sudah lengkap & lolos cek silang, selain itu hasil tampilan asli (yang juga memuat transkrip bersih).
+         - data lengkap tetapi cek silang gagal / jenis kelamin atau hubungan kosong → baca ulang dari teks (tampilan asli bila masih kurang). */
+      const kurang=d=>!d.nama&&!fieldSamarPen(d)||!d.nomorPenetapan||!d.tglPenetapan||(d.jenis==='Perwalian'&&!(d.anak||[]).length)||(d.jenis==='Pengampuan'&&!(d.terampu&&(d.terampu.nama||d.terampu.tglLahir)));
+      const ragu=d=>perluTeliti(d,bersih)||!d.status||(d.jenis==='Perwalian'?(d.anak||[]).some(a=>a&&a.nama&&!a.jk):!!(d.terampu&&d.terampu.nama&&!d.terampu.jk));
+      const visual=()=>aiExtract(file,null,'teliti').then(kor);
+      if(kirim&&data&&data._cepat&&kurang(data)){stat('Teks penetapan kurang lengkap — AI teliti membaca teks & tampilan asli dokumen sekaligus…');
+        const pV=visual().catch(e=>{console.warn(e);return null});let dT=null;try{dT=kor(await aiExtract(file,kirim,'teliti'))}catch(e){console.warn(e)}
+        if(dT&&!kurang(dT)&&!perluTeliti(dT,bersih))data=kor(gabung(dT,data));else{const dV=await pV;data=dV?gabung(dV,dT?gabung(dT,data):data):dT?kor(gabung(dT,data)):data}}
+      else if(kirim&&data&&data._cepat&&ragu(data)){stat('Memeriksa ulang dengan AI teliti…');try{data=kor(gabung(kor(await aiExtract(file,kirim,'teliti')),data))}catch(e){console.warn(e)}
+        if(kurang(data)){stat('Teks penetapan kurang lengkap — AI membaca ulang dari tampilan asli dokumen…');try{data=gabung(await visual(),data)}catch(e){console.warn(e)}}}
+      /* (bila percobaan pertama gagal, percobaan kedua sudah membaca tampilan asli dokumen dengan Opus 5.5 effort normal) */
 }
     let rx=null;
     if(teks.replace(/\s/g,'').length>=80){rx=parsePenetapan(teks);rx._text=teks}
@@ -2243,7 +2252,8 @@ const TEKS_FILE=new WeakMap();
 async function teksPdfBersih(file){if(!file||file.type.startsWith('image/'))return'';if(TEKS_FILE.has(file))return TEKS_FILE.get(file);
   const job=(async()=>{await loadJs(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min.js','pdf.worker.min.js');
     const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let out='';
-    try{for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);out+=teksHalaman((await pg.getTextContent()).items)+'\n';pg.cleanup()}}finally{pdf.destroy()}
+    /* semua halaman dibaca bersamaan (urutan tetap) — jauh lebih cepat untuk penetapan berhalaman banyak */
+    try{const hal=await Promise.all(Array.from({length:pdf.numPages},async(_,k)=>{const pg=await pdf.getPage(k+1);try{return teksHalaman((await pg.getTextContent()).items)}finally{pg.cleanup()}}));out=hal.join('\n')+'\n'}finally{pdf.destroy()}
     return bersihWM(out)})().catch(e=>{console.warn(e);return''});
   TEKS_FILE.set(file,job);return job}
 const WM_ATURAN=`
@@ -2395,13 +2405,15 @@ NAMA DISAMARKAN: bila nama orang di penetapan disamarkan/dianonimkan (mis. "ANAK
 /* pembaca AI generasi baru lewat server inti (Opus 5.5 teliti / Opus 5 hemat, cadangan otomatis bila ditolak, JSON terpotong diperbaiki);
    bila server inti belum memuat aksi bacaAI → pembaca lama di Code.gs */
 let BACA_AI_ADA=true;
-async function aiExtract(file,teks,mode,ekstra){mode=mode||(teks?'hemat':'teliti');
+/* mode 'cepat' = model teliti (Opus 5.5) dengan effort rendah: jauh lebih cepat untuk teks bersih; hasilnya tetap dicek silang dan
+   dibaca ulang dengan effort normal bila ada yang meleset/kurang */
+async function aiExtract(file,teks,mode,ekstra){mode=mode||(teks?'hemat':'teliti');let effort,cepat=false;if(mode==='cepat'){mode='teliti';effort='low';cepat=true}
   const b64=teks?'':await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(file)});
   const prompt=PROMPT_DATA+(ekstra||''),pr=teks?prompt:await promptBersih(file,prompt);let d=null;
-  if(BACA_AI_ADA&&GAS)try{d=await api('apiImpor','bacaAI',teks?{teks,prompt:pr,mode}:{b64,mime:file.type||'application/pdf',prompt:pr,mode})}
+  if(BACA_AI_ADA&&GAS)try{d=await api('apiImpor','bacaAI',teks?{teks,prompt:pr,mode,effort}:{b64,mime:file.type||'application/pdf',prompt:pr,mode,effort})}
     catch(e){if(/tidak dikenal|apiImpor|not a function|belum bisa diambil/i.test(e.message||e))BACA_AI_ADA=false;else throw e}
   if(!d&&!(BACA_AI_ADA&&GAS))d=teks?await api('apiAnalisaTeks',teks,pr,12000,mode):await api('apiBacaPenetapanAI',b64,file.type||'application/pdf',pr,mode);
-  if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;n._mode=mode;return n}
+  if(!d)throw new Error('AI Claude belum aktif');const n=normAI(d);n._ai=true;n._mode=mode;if(cepat)n._cepat=true;return n}
 
 /* ===== 🔄 Cek lagi penetapan & SIPP =====
    Sumber: PDF yang sudah tersimpan (Drive) atau upload ulang. AI (Opus 5.5 teliti / Opus 5 hemat) membaca seluruh penetapan,

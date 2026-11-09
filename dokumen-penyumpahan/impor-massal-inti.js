@@ -359,10 +359,12 @@
     while (tump.length) o += tump.pop();
     return JSON.parse(o.replace(/,\s*([}\]])/g, '$1'));
   }
-  function panggilClaude_(content, sistem, mode, maks) {
+  /* effort: 'low' | 'medium' | 'high' — bawaan teliti = medium, hemat = low. Pembacaan awal aplikasi memakai Opus 5.5 + low (cepat);
+     hasil yang tidak lolos cek silang dibaca ulang dengan medium. */
+  function panggilClaude_(content, sistem, mode, maks, effort) {
     var model = modelKu_(mode), kunci = props_().getProperty('CLAUDE_KEY');
     if (!kunci) throw new Error('Kunci Claude belum diisi (Pengaturan → AI Claude).');
-    var body = { model: model, max_tokens: maks, output_config: { effort: mode === 'hemat' ? 'low' : 'medium' }, fallbacks: 'default',
+    var body = { model: model, max_tokens: maks, output_config: { effort: /^(low|medium|high)$/.test(effort || '') ? effort : (mode === 'hemat' ? 'low' : 'medium') }, fallbacks: 'default',
       system: [{ type: 'text', text: sistem, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: content }] };
     var hdr = { 'x-api-key': kunci, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01' };
     var res = null, galat = '';
@@ -399,11 +401,11 @@
         : { type: 'image', source: { type: 'base64', media_type: mime, data: o.b64 } },
         { type: 'text', text: 'Baca dokumen penetapan terlampir sesuai instruksi. Periksa setiap halaman, termasuk lampiran dan amar.' }];
     } else throw new Error('Tidak ada dokumen untuk dibaca.');
-    var h = panggilClaude_(content, sistem, mode, maks), d;
+    var h = panggilClaude_(content, sistem, mode, maks, o.effort), d;
     try { d = perbaikiJson(h.teks); }
     catch (e) {
       if (h.stop !== 'max_tokens' && !/JSON|Unexpected|position/.test(String(e.message || e))) throw e;
-      h = panggilClaude_(content, sistem, mode, Math.min(32000, maks * 2));
+      h = panggilClaude_(content, sistem, mode, Math.min(32000, maks * 2), o.effort);
       d = perbaikiJson(h.teks);
     }
     if (d && typeof d === 'object' && !Array.isArray(d)) d._model = h.model;

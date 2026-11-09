@@ -39,6 +39,13 @@ ditambah perubahan di bawah. Backend `Code.gs` dan `BapSiap.gs` tidak berubah da
 - **Lebih cepat**: hasil baca langsung tampil; isi BAP disusun AI di latar belakang dan masuk ke berkas begitu selesai (hanya bila isi BAP masih kosong). Melengkapi berkas yang sudah punya isi BAP tidak lagi menyusun BAP ulang.
 - **AI dijalankan lagi = hanya mengisi yang kosong, data baru tetap masuk**: isian lama tidak pernah ditimpa; anak yang belum tercatat ditambahkan, harta & saksi baru ditambahkan (aset dengan nomor sertifikat/rekening sama atau uraian yang sama tidak diulang), slot anak kosong diisi tanpa menimpa isiannya. PDF di impor massal/terjadwal yang berkasnya sudah ada kini melengkapi kolom kosong berkas itu (sebelumnya dilewati).
 
+## Scan penetapan awal lebih cepat (9 Nov 2026)
+- **Pembacaan pertama: Opus 5.5 dengan effort rendah** (thinking lebih singkat) dari teks penetapan yang sudah dibersihkan — jauh lebih cepat. Model tetap Opus 5.5.
+- **Ketelitian dijaga cek silang**: hasil dicocokkan dengan teks asli (nama, NIK, nomor, tanggal) dan kelengkapan data inti; bila ada yang meleset, jenis kelamin anak/terampu atau hubungan kosong, Opus 5.5 effort normal membaca ulang (seperti sebelumnya).
+- **Data inti kosong** (teks rusak watermark): pembacaan ulang dari teks dan dari tampilan asli dokumen dijalankan **bersamaan**, bukan berurutan.
+- **Teks PDF dibaca semua halaman bersamaan** (urutan tetap).
+- Server (`impor-massal-inti.js` → `bacaAI`) kini menerima `effort` per panggilan; bawaan tidak berubah (teliti = medium, hemat = low).
+
 ## Pasang
 1. **Tampilan**: buka `Index.html` (raw) → Ctrl+A, Ctrl+C → di proyek Apps Script buka file **Index** → Ctrl+A, Ctrl+V → Simpan.
 2. **Impor terjadwal** (sekali): buat file skrip `ImporMassal` berisi `ImporMassal.gs`; ⚙ Setelan proyek → centang *Tampilkan file manifes* → ganti isi `appsscript.json` dengan file di sini; pilih fungsi `pasangImporMassal` → Jalankan → izinkan.
