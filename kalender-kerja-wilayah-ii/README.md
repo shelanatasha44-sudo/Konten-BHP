@@ -1,6 +1,6 @@
 # 📅 Kalender Kerja Wilayah II
 
-**🔗 Buka kalender:** <https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec>  
+**🔗 Buka kalender:** **<https://bit.ly/kalenderkerjawilayah2>** · alamat lengkap: <https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec>  
 Link langsung ke satu tanggal: `https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec?tgl=2026-11-09` · muat tampilan terbaru: `https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec?segar=1`
 
 Kalender kerja tim yang modern, bisa dipakai bersama oleh banyak akun Google, dari HP maupun laptop.
