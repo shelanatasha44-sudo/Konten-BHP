@@ -20,9 +20,44 @@ const MAX_UPLOAD_MB = 25;
 
 /* ---------------------------------------------------------------- web app */
 
-function doGet() {
+/* Tampilan diambil dari GitHub (perubahan Index.html yang di-push aktif sendiri, paling lambat 10 menit).
+   …/exec?segar=1 = muat versi terbaru sekarang · …/exec?ui=lokal = pakai file Index di proyek ini.
+   Bila GitHub tidak bisa dihubungi, otomatis memakai file Index di proyek ini. */
+const UI_URL = 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/ccr-82a96c14-ey9957/kalender-kerja-wilayah-ii/Index.html';
+const UI_CACHE_DETIK = 600, UI_POTONG = 45000;
+
+function uiDariGitHub_(segar) {
+  const cache = CacheService.getScriptCache();
+  if (!segar) {
+    const n = Number(cache.get('ui_n') || 0);
+    if (n) {
+      const keys = [];
+      for (let i = 0; i < n; i++) keys.push('ui_' + i);
+      const parts = cache.getAll(keys);
+      if (Object.keys(parts).length === n) return keys.map(function (k) { return parts[k]; }).join('');
+    }
+  }
+  try {
+    const res = UrlFetchApp.fetch(UI_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+    const html = res.getContentText('UTF-8');
+    if (res.getResponseCode() !== 200 || html.indexOf('</html>') < 0) return null;
+    const simpan = {};
+    let k = 0;
+    for (let i = 0; i < html.length; i += UI_POTONG) simpan['ui_' + (k++)] = html.slice(i, i + UI_POTONG);
+    simpan.ui_n = String(k);
+    try { cache.putAll(simpan, UI_CACHE_DETIK); } catch (e) { /* terlalu besar untuk cache: tetap tampil */ }
+    return html;
+  } catch (e) {
+    return null;
+  }
+}
+
+function doGet(e) {
   ensureSetup_();
-  return HtmlService.createTemplateFromFile('Index').evaluate()
+  const p = (e && e.parameter) || {};
+  const html = p.ui === 'lokal' ? null : uiDariGitHub_(p.segar === '1');
+  const out = html ? HtmlService.createHtmlOutput(html) : HtmlService.createTemplateFromFile('Index').evaluate();
+  return out
     .setTitle(APP_NAME)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover')
     .addMetaTag('theme-color', '#6d5dfc')
@@ -157,6 +192,7 @@ function apiBootstrap() {
   data.rootUrl = 'https://drive.google.com/drive/folders/' + PROP.getProperty('ROOT_ID');
   data.sheetUrl = 'https://docs.google.com/spreadsheets/d/' + PROP.getProperty('SHEET_ID');
   data.maxUploadMb = MAX_UPLOAD_MB;
+  try { data.appUrl = ScriptApp.getService().getUrl(); } catch (e) { data.appUrl = ''; }
   return data;
 }
 
