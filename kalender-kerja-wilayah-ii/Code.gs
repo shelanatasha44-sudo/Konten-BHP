@@ -199,6 +199,18 @@ function parseEvent_(e) {
 
 /* ---------------------------------------------------------------- API */
 
+/* jadwal penyumpahan dari Dokumen Penyumpahan (sheet "Penyumpahan", diisi otomatis oleh aplikasi itu; hanya dibaca di sini) */
+const SUMPAH_KOL = ['tgl', 'id', 'nama', 'jenis', 'waktu', 'tempat', 'objek', 'nomor', 'pengadilan', 'folderUrl', 'dokumen', 'zoom'];
+function sumpah_() {
+  const sh = ss_().getSheetByName('Penyumpahan');
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, SUMPAH_KOL.length).getDisplayValues().filter(function (r) { return /^\d{4}-\d{2}-\d{2}$/.test(r[0]); }).map(function (r) {
+    const o = {}; SUMPAH_KOL.forEach(function (c, i) { o[c] = r[i]; });
+    try { o.dokumen = JSON.parse(o.dokumen || '[]'); } catch (e) { o.dokumen = []; }
+    return o;
+  });
+}
+
 function apiBootstrap() {
   ensureSetup_();
   const data = apiData();
@@ -238,7 +250,7 @@ function apiData() {
     .map(function (f) { delete f._row; return f; });
   const comments = readAll_('comments').filter(function (c) { return c.id; })
     .map(function (c) { delete c._row; return c; });
-  return { events: events, files: files, comments: comments, version: apiVersion() };
+  return { events: events, files: files, comments: comments, sumpah: sumpah_(), version: apiVersion() };
 }
 
 function apiSaveEvent(input) {
