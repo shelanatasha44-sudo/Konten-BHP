@@ -36,8 +36,8 @@ Klik 💾 **Simpan** (Ctrl+S).
 1. **Terapkan → Deployment baru** → ikon ⚙️ → **Aplikasi web**.
 2. Isi:
    - Deskripsi: `v1`
-   - **Jalankan sebagai: Pengguna yang mengakses aplikasi web**
-   - **Yang memiliki akses: Siapa saja yang memiliki Akun Google**
+   - **Jalankan sebagai: Saya (akun pemilik)**
+   - **Yang memiliki akses: Siapa saja** (tanpa login — siapa pun yang punya link bisa membuka & mengisi; nama ditanyakan sekali per perangkat)
 3. **Terapkan** → salin **URL aplikasi web** (berakhiran `/exec`). **Inilah link khusus kalender.**
 
 ## 6. Link pendek (opsional)

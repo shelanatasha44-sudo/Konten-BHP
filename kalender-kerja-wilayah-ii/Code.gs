@@ -106,9 +106,21 @@ function sheet_(k) { return ss_().getSheetByName(SHEET_NAMES[k]); }
 function uid_() { return Utilities.getUuid().replace(/-/g, '').slice(0, 12); }
 function now_() { return new Date().toISOString(); }
 
+/* Aplikasi berjalan sebagai PEMILIK (siapa pun yang punya link bisa membuka & mengisi, tanpa login/izin).
+   Google tidak memberi tahu siapa pengunjungnya, jadi nama diketik pengguna sekali di perangkatnya dan dikirim lewat apiPanggil. */
+let PENGGUNA_ = '';
 function me_() {
-  const email = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || 'anonim';
-  return email.toLowerCase();
+  if (PENGGUNA_) return PENGGUNA_;
+  let email = '';
+  try { email = Session.getActiveUser().getEmail(); } catch (e) { }
+  return email ? email.toLowerCase() : 'tamu';
+}
+/** Pintu tunggal dari aplikasi: apiPanggil(nama, 'apiSaveEvent', [input]) — hanya fungsi api… yang boleh dipanggil. */
+function apiPanggil(nama, fn, args) {
+  fn = String(fn || '');
+  if (!/^api[A-Z]\w*$/.test(fn) || fn === 'apiPanggil' || typeof globalThis[fn] !== 'function') throw new Error('Fungsi tidak dikenal: ' + fn);
+  PENGGUNA_ = String(nama || '').replace(/[<>"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return globalThis[fn].apply(null, Array.isArray(args) ? args : []);
 }
 
 function readAll_(k) {
