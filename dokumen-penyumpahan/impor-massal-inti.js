@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-07.8-opus';
+  var VERSI = '2026-11-09.1-kalender';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -421,7 +421,131 @@
    * hanya dikirimi sekali per tanggal (dicatat di KEG_TERKIRIM). Email memakai MailApp; bila izin kirim email belum diberikan
    * (appsscript.json belum memuat script.send_mail), dikirim lewat notifikasi berbagi Google Drive sebagai cadangan. */
   var KEG_EMAIL = 'wilayah2bhpmedan@gmail.com', KEG_PICU = 'KEG_PICU_ID', KEG_TERKIRIM = 'KEG_TERKIRIM', KEG_FOLDER = 'KEG_FOLDER_ID';
-  function kegDaftar_() { return settings_().kegiatan || []; }
+  /* ---------- SATU SUMBER DATA: database Kalender Kerja Wilayah II ----------
+   * Kegiatan Wilayah II dibaca & disimpan di spreadsheet "Kalender Kerja Wilayah II — Database" (sheet Kegiatan & Lampiran),
+   * sehingga sama persis di aplikasi Kalender Kerja Wilayah II (bit.ly/kalenderkerjawilayah2) dan menu Jadwal Sumpah.
+   * Spreadsheet dicari otomatis di Drive pemilik (ID diingat di KAL_SHEET_ID). Kolom khusus Penyumpahan (jenis, warna,
+   * notif, jamTeks) ditaruh SETELAH kolom milik Kalender — Kalender mengabaikan & tidak menimpanya.
+   * Kegiatan lama di Pengaturan dipindahkan sekali (KEG_PINDAH); salinan lama tetap disimpan sebagai cadangan.
+   * Bila spreadsheet Kalender tidak ditemukan, kembali memakai Pengaturan seperti dulu. */
+  var KAL_NAMA = 'Kalender Kerja Wilayah II — Database', KAL_PROP = 'KAL_SHEET_ID';
+  var KAL_EV = ['id', 'judul', 'deskripsi', 'mulai', 'selesai', 'jamMulai', 'jamSelesai', 'seharian', 'lokasi', 'kategori', 'prioritas', 'status', 'peserta', 'checklist', 'tautan',
+    'dibuatOleh', 'dibuatPada', 'diubahOleh', 'diubahPada', 'dihapus', 'jenis', 'warna', 'notif', 'jamTeks'];
+  var KAL_FILE = ['id', 'eventId', 'fileId', 'nama', 'mime', 'ukuran', 'url', 'oleh', 'pada', 'dihapus'];
+  var KAL_LOG = ['waktu', 'pengguna', 'aksi', 'eventId', 'judul', 'detail'];
+  var KAL_KAT = ['Umum', 'Rapat', 'Koordinasi', 'Penyumpahan', 'Inventarisasi', 'Lapangan', 'Laporan', 'Pelatihan', 'Cuti', 'Lainnya'];
+  var KAL_SS_ = null;
+  function kalSs_() {
+    if (KAL_SS_) return KAL_SS_;
+    var id = PROPS.getProperty(KAL_PROP);
+    if (id) try { var a = SpreadsheetApp.openById(id); if (a.getSheetByName('Kegiatan')) return (KAL_SS_ = a); } catch (e) { }
+    var it = DriveApp.searchFiles('title = "' + KAL_NAMA + '" and mimeType = "application/vnd.google-apps.spreadsheet" and trashed = false'), pilih = null;
+    while (it.hasNext()) { var f = it.next(); if (!pilih || f.getLastUpdated() > pilih.getLastUpdated()) pilih = f; }
+    if (!pilih) return null;
+    var ss = SpreadsheetApp.openById(pilih.getId());
+    if (!ss.getSheetByName('Kegiatan')) return null;
+    PROPS.setProperty(KAL_PROP, pilih.getId());
+    return (KAL_SS_ = ss);
+  }
+  function kalTeks_(v) { v = v == null ? '' : String(v); return /^[\d:\-+=]/.test(v) ? "'" + v : v; }
+  function kalHeader_(sh, cols) {
+    var n = Math.max(sh.getLastColumn(), 1), h = sh.getRange(1, 1, 1, n).getValues()[0];
+    for (var i = 0; i < cols.length; i++) if (h[i] !== cols[i]) { sh.getRange(1, i + 1).setValue(cols[i]).setFontWeight('bold'); }
+  }
+  function kalBaca_(sh, cols) {
+    var last = sh.getLastRow();
+    if (last < 2) return [];
+    return sh.getRange(2, 1, last - 1, cols.length).getDisplayValues().map(function (r, i) {
+      var o = { _row: i + 2 }; cols.forEach(function (c, j) { o[c] = r[j]; }); return o;
+    });
+  }
+  function katDariJenis_(j) {
+    j = String(j || '');
+    if (/penyumpahan|sumpah/i.test(j)) return 'Penyumpahan';
+    if (/inventaris/i.test(j)) return 'Inventarisasi';
+    if (/koordinasi/i.test(j)) return 'Koordinasi';
+    if (/rapat|zoom|daring|meeting/i.test(j)) return 'Rapat';
+    if (/pelatihan|webinar|bimtek|sosialisasi|diklat/i.test(j)) return 'Pelatihan';
+    if (/laporan/i.test(j)) return 'Laporan';
+    if (/lapangan|kunjungan|dinas luar|monitoring/i.test(j)) return 'Lapangan';
+    if (/cuti/i.test(j)) return 'Cuti';
+    return KAL_KAT.indexOf(j) >= 0 ? j : 'Lainnya';
+  }
+  /* "10:00", "10.00 - 12.00 WIB", "09.30 s.d. selesai" → {mulai, selesai} */
+  function jamDariTeks_(t) {
+    var m = String(t || '').match(/([01]?\d|2[0-3])[:.]([0-5]\d)/g) || [];
+    var f = function (x) { var p = x.split(/[:.]/); return ('0' + p[0]).slice(-2) + ':' + p[1]; };
+    return { mulai: m[0] ? f(m[0]) : '', selesai: m[1] ? f(m[1]) : '' };
+  }
+  function kalKeKeg_(e, lamp) {
+    var j = jamDariTeks_(e.jamTeks), jamAsli = e.jamTeks && j.mulai === e.jamMulai && j.selesai === e.jamSelesai;
+    var jenis = e.jenis && katDariJenis_(e.jenis) === e.kategori ? e.jenis : (e.kategori || 'Lainnya');
+    return { id: e.id, tgl: e.mulai, sampai: e.selesai && e.selesai !== e.mulai ? e.selesai : '',
+      jam: jamAsli ? e.jamTeks : (String(e.seharian).toUpperCase() === 'TRUE' || !e.jamMulai ? '' : e.jamMulai + (e.jamSelesai ? '–' + e.jamSelesai : '')),
+      judul: e.judul, jenis: jenis, warna: jenis === e.jenis && /^#[0-9a-f]{6}$/i.test(e.warna || '') ? e.warna : '', tempat: e.lokasi, ket: e.deskripsi,
+      lampiran: lamp || [], notif: String(e.notif).toUpperCase() === 'TRUE', oleh: e.dibuatOleh, diubah: e.diubahOleh, pada: e.diubahPada,
+      status: e.status, sumber: 'kalender' };
+  }
+  function kalDaftar_(ss) {
+    var ev = kalBaca_(ss.getSheetByName('Kegiatan'), KAL_EV), sf = ss.getSheetByName('Lampiran'), per = {};
+    if (sf) kalBaca_(sf, KAL_FILE).forEach(function (x) {
+      if (x.dihapus === 'TRUE' || !x.eventId || !x.fileId) return;
+      (per[x.eventId] = per[x.eventId] || []).push({ id: x.fileId, nama: x.nama, url: 'https://drive.google.com/file/d/' + x.fileId + '/view', mime: x.mime });
+    });
+    return ev.filter(function (e) { return e.id && e.dihapus !== 'TRUE' && /^\d{4}-\d{2}-\d{2}$/.test(e.mulai); })
+      .map(function (e) { return kalKeKeg_(e, per[e.id]); });
+  }
+  function kalLog_(ss, u, aksi, id, judul, detail) {
+    var sh = ss.getSheetByName('Log');
+    if (sh) sh.appendRow([new Date().toISOString(), (u && u.nama ? u.nama : 'Dokumen Penyumpahan') + ' (Dokumen Penyumpahan)', aksi, id || '', judul || '', detail || ''].map(kalTeks_));
+  }
+  /* tulis satu kegiatan (format Penyumpahan) ke sheet Kegiatan + Lampiran; kolom khusus Kalender (prioritas, status, peserta, checklist, tautan) dipertahankan */
+  function kalTulis_(ss, o, u) {
+    var sh = ss.getSheetByName('Kegiatan'); kalHeader_(sh, KAL_EV);
+    var rows = kalBaca_(sh, KAL_EV), lama = rows.filter(function (r) { return r.id === o.id; })[0], j = jamDariTeks_(o.jam), now = new Date().toISOString();
+    var e = { id: o.id, judul: o.judul, deskripsi: o.ket, mulai: o.tgl, selesai: o.sampai || o.tgl, jamMulai: j.mulai, jamSelesai: j.mulai ? j.selesai : '', seharian: j.mulai ? 'FALSE' : 'TRUE',
+      lokasi: o.tempat, kategori: katDariJenis_(o.jenis), prioritas: lama ? lama.prioritas : 'Sedang', status: lama ? lama.status : 'Direncanakan',
+      peserta: lama && lama.peserta ? lama.peserta : '[]', checklist: lama && lama.checklist ? lama.checklist : '[]', tautan: lama && lama.tautan ? lama.tautan : '[]',
+      dibuatOleh: lama ? lama.dibuatOleh : (o.oleh || u.nama), dibuatPada: lama ? lama.dibuatPada : (o.pada || now), diubahOleh: o.diubah || u.nama, diubahPada: now, dihapus: '',
+      jenis: o.jenis, warna: o.warna || '', notif: o.notif ? 'TRUE' : 'FALSE', jamTeks: o.jam || '' };
+    var baris = KAL_EV.map(function (c) { return kalTeks_(e[c]); });
+    if (lama) sh.getRange(lama._row, 1, 1, KAL_EV.length).setValues([baris]); else sh.appendRow(baris);
+    var sf = ss.getSheetByName('Lampiran');
+    if (sf) {
+      var ada = kalBaca_(sf, KAL_FILE).filter(function (x) { return x.eventId === o.id && x.dihapus !== 'TRUE'; }), mau = {};
+      (o.lampiran || []).forEach(function (l) { mau[l.id] = l; });
+      ada.forEach(function (x) { if (!mau[x.fileId]) sf.getRange(x._row, KAL_FILE.indexOf('dihapus') + 1).setValue('TRUE'); else delete mau[x.fileId]; });
+      Object.keys(mau).forEach(function (fid) {
+        var l = mau[fid];
+        sf.appendRow([Utilities.getUuid().replace(/-/g, '').slice(0, 12), o.id, fid, l.nama, l.mime || '', '', 'https://drive.google.com/file/d/' + fid + '/view', u.nama, now, ''].map(kalTeks_));
+      });
+    }
+    return !!lama;
+  }
+  /* sekali saja: kegiatan lama di Pengaturan → database Kalender (yang id-nya belum ada) */
+  function kalPindah_(ss) {
+    if (PROPS.getProperty('KEG_PINDAH')) return;
+    var lama = settings_().kegiatan || [], ada = {};
+    kalBaca_(ss.getSheetByName('Kegiatan'), KAL_EV).forEach(function (r) { ada[r.id] = 1; });
+    var n = 0;
+    lama.forEach(function (k) { if (k && k.id && k.tgl && !ada[k.id]) { kalTulis_(ss, k, { nama: k.oleh || 'Dokumen Penyumpahan' }); n++; } });
+    if (n) kalLog_(ss, null, 'PINDAH', '', '', n + ' kegiatan Wilayah II dari Dokumen Penyumpahan dipindahkan ke kalender ini');
+    PROPS.setProperty('KEG_PINDAH', new Date().toISOString() + ' · ' + n + ' kegiatan');
+  }
+  function kegDaftar_() {
+    var ss = null;
+    try { ss = kalSs_(); } catch (e) { ss = null; }
+    if (!ss) return settings_().kegiatan || [];
+    kalPindah_(ss);
+    return kalDaftar_(ss);
+  }
+  /* dipanggil aplikasi: daftar kegiatan terbaru + sumbernya */
+  function kegDaftar(t) {
+    user_(t);
+    var ss = null; try { ss = kalSs_(); } catch (e) { }
+    if (ss) { var lock = LockService.getScriptLock(); lock.waitLock(20000); try { kalPindah_(ss); } finally { lock.releaseLock(); } }
+    return { kegiatan: ss ? kalDaftar_(ss) : (settings_().kegiatan || []), sumber: ss ? 'kalender' : 'pengaturan', url: ss ? ss.getUrl() : '' };
+  }
   function kegBersih_(ev, u, lama) {
     var tgl = /^\d{4}-\d{2}-\d{2}$/, warna = /^#[0-9a-f]{6}$/i;
     if (!ev || !tgl.test(String(ev.tgl || '')) || !String(ev.judul || '').trim()) throw new Error('Tanggal dan judul kegiatan wajib diisi.');
@@ -435,9 +559,15 @@
   function kegSimpan(t, ev) {
     var u = user_(t), lock = LockService.getScriptLock(); lock.waitLock(20000);
     try {
-      var L = kegDaftar_(), i = L.findIndex(function (x) { return x.id === (ev && ev.id); }), o = kegBersih_(ev, u, i >= 0 ? L[i] : null);
-      if (i >= 0) L[i] = o; else L.push(o);
-      setSetting_('kegiatan', L);
+      var L = kegDaftar_(), i = L.findIndex(function (x) { return x.id === (ev && ev.id); }), o = kegBersih_(ev, u, i >= 0 ? L[i] : null), ss = kalSs_();
+      if (ss) {
+        var ubah = kalTulis_(ss, o, u);
+        kalLog_(ss, u, ubah ? 'UBAH' : 'BUAT', o.id, o.judul, o.jenis + ' ' + o.tgl + (o.notif ? ' · pengingat email H-1' : ''));
+        L = kalDaftar_(ss);
+      } else {
+        if (i >= 0) L[i] = o; else L.push(o);
+        setSetting_('kegiatan', L);
+      }
       log_(u, 'KEGIATAN', o.id, o.judul, (i >= 0 ? 'Ubah ' : 'Tambah ') + o.jenis + ' ' + o.tgl + (o.notif ? ' · pengingat email H-1' : '') + (o.lampiran.length ? ' · ' + o.lampiran.length + ' lampiran' : ''));
       if (o.notif) try { pasangPicuKeg_(); if (o.tgl === besok_()) pengingatKeg_(); } catch (e) { }
       return L;
@@ -446,13 +576,29 @@
   function kegHapus(t, id) {
     var u = user_(t), lock = LockService.getScriptLock(); lock.waitLock(20000);
     try {
-      var L = kegDaftar_().filter(function (x) { return x.id !== id; });
-      setSetting_('kegiatan', L);
+      var ss = kalSs_(), L;
+      if (ss) {
+        var sh = ss.getSheetByName('Kegiatan'), r = kalBaca_(sh, KAL_EV).filter(function (x) { return x.id === id; })[0];
+        if (r) {
+          sh.getRange(r._row, KAL_EV.indexOf('dihapus') + 1).setValue('TRUE');
+          sh.getRange(r._row, KAL_EV.indexOf('diubahOleh') + 1, 1, 2).setValues([[u.nama, new Date().toISOString()]]);
+          kalLog_(ss, u, 'HAPUS', id, r.judul, 'Dihapus dari Dokumen Penyumpahan (bisa dipulihkan dari Kalender Kerja)');
+        }
+        L = kalDaftar_(ss);
+      } else {
+        L = kegDaftar_().filter(function (x) { return x.id !== id; });
+        setSetting_('kegiatan', L);
+      }
       log_(u, 'KEGIATAN', id, '', 'Hapus kegiatan (lampiran tetap di Drive)');
       return L;
     } finally { lock.releaseLock(); }
   }
   function folderKeg_() {
+    /* lampiran disimpan di folder "Lampiran" milik Kalender Kerja Wilayah II supaya tim yang punya akses kalender bisa membukanya */
+    try {
+      var ss = kalSs_();
+      if (ss) { var ps = DriveApp.getFileById(ss.getId()).getParents(); if (ps.hasNext()) { var it = ps.next().getFoldersByName('Lampiran'); if (it.hasNext()) return it.next(); } }
+    } catch (e) { }
     var id = PROPS.getProperty(KEG_FOLDER);
     if (id) try { var f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (e) { }
     var b = folderRoot_().createFolder('Lampiran Kegiatan Wilayah II');
@@ -551,6 +697,7 @@
   return {
     versi: VERSI,
     kegSimpan: kegSimpan,
+    kegDaftar: kegDaftar,
     kegHapus: kegHapus,
     kegUnggah: kegUnggah,
     kegNotifStatus: kegNotifStatus,
