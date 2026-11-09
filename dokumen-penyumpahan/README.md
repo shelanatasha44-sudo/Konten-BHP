@@ -39,11 +39,6 @@ ditambah perubahan di bawah. Backend `Code.gs` dan `BapSiap.gs` tidak berubah da
 - **Lebih cepat**: hasil baca langsung tampil; isi BAP disusun AI di latar belakang dan masuk ke berkas begitu selesai (hanya bila isi BAP masih kosong). Melengkapi berkas yang sudah punya isi BAP tidak lagi menyusun BAP ulang.
 - **AI dijalankan lagi = hanya mengisi yang kosong, data baru tetap masuk**: isian lama tidak pernah ditimpa; anak yang belum tercatat ditambahkan, harta & saksi baru ditambahkan (aset dengan nomor sertifikat/rekening sama atau uraian yang sama tidak diulang), slot anak kosong diisi tanpa menimpa isiannya. PDF di impor massal/terjadwal yang berkasnya sudah ada kini melengkapi kolom kosong berkas itu (sebelumnya dilewati).
 
-## Scan penetapan awal lebih cepat (9 Nov 2026)
-- **Teks PDF dibaca semua halaman bersamaan** (urutan tetap), bukan satu per satu — penetapan berhalaman banyak siap dikirim ke AI lebih cepat.
-- **Pemeriksaan ulang AI teliti tidak lagi berurutan**: bila hasil model hemat belum memuat data inti (nama/nomor/tanggal penetapan, anak/terampu — biasanya teks rusak watermark), pembacaan teliti dari **teks** dan dari **tampilan asli dokumen** dijalankan **sekaligus**. Hasil teks dipakai bila sudah lengkap dan lolos cek silang; selain itu hasil tampilan asli. Sebelumnya keduanya berurutan (waktu tunggu ±2× lebih lama).
-- Ketelitian tidak berkurang: cek silang, koreksi otomatis dari teks asli, dan aturan "hanya yang tertulis persis" tetap sama. Berkas yang lolos model hemat tetap selesai tanpa model teliti.
-
 ## Pasang
 1. **Tampilan**: buka `Index.html` (raw) → Ctrl+A, Ctrl+C → di proyek Apps Script buka file **Index** → Ctrl+A, Ctrl+V → Simpan.
 2. **Impor terjadwal** (sekali): buat file skrip `ImporMassal` berisi `ImporMassal.gs`; ⚙ Setelan proyek → centang *Tampilkan file manifes* → ganti isi `appsscript.json` dengan file di sini; pilih fungsi `pasangImporMassal` → Jalankan → izinkan.
