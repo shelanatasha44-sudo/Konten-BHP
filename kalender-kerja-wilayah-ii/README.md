@@ -1,5 +1,8 @@
 # 📅 Kalender Kerja Wilayah II
 
+**🔗 Buka kalender:** **<https://bit.ly/kalenderkerjawilayah2>** · alamat lengkap: <https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec>  
+Link langsung ke satu tanggal: `https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec?tgl=2026-11-09` · muat tampilan terbaru: `https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec?segar=1`
+
 Kalender kerja tim yang modern, bisa dipakai bersama oleh banyak akun Google, dari HP maupun laptop.
 Dibangun sebagai **Google Apps Script Web App**: data di Google Sheets, lampiran di Google Drive, jadi gratis dan tidak perlu server.
 
@@ -14,7 +17,12 @@ Dibangun sebagai **Google Apps Script Web App**: data di Google Sheets, lampiran
 - **Fitur canggih lainnya**: tambah cepat dengan bahasa alami (`Rapat evaluasi besok 09:00-11:00 @Aula #Rapat !tinggi`), seret-lepas untuk pindah tanggal (bisa di-*undo*), deteksi jadwal bentrok, sinkron realtime antar pengguna, command palette (`Ctrl+K`), shortcut keyboard, mode gelap, badge *LIVE*, heatmap aktivitas 12 bulan, ekspor CSV/.ics, tombol tambah ke Google Calendar pribadi, diskusi per kegiatan, duplikasi kegiatan, dan cetak.
 - **Mobile-first & ringan**: bottom navigation, tombol FAB, modal berbentuk *bottom sheet*, geser (swipe) kiri/kanan untuk ganti bulan. Di HP: kalender bulan ringkas dengan daftar kegiatan hari terpilih di bawahnya, menu berisi semua tampilan (Minggu, Papan, Log, dll.), tombol Hari ini, dan tambah cepat di form kegiatan baru. Efek blur/animasi berat dan font web dimatikan di HP, sinkron dicek tiap 30 detik (langsung saat aplikasi dibuka kembali), dan pencarian tidak menggambar ulang di setiap huruf.
 
+## 📤 Bagikan kegiatan 1 tanggal
+Pilih tanggal → **📤 Bagikan** (HP: di atas daftar kegiatan hari itu · laptop: ikon 📤 saat kursor di kotak tanggal, atau `Ctrl+K` → *Bagikan*). Teks rapi siap kirim ke **WhatsApp**, salin, email, atau **link tanggal** `…/exec?tgl=YYYY-MM-DD` yang membuka kalender langsung di tanggal itu.
+
 ## 🚀 Cara pasang (±5 menit)
+> **Panduan langkah demi langkah lengkap: [DEPLOY.md](DEPLOY.md)** (termasuk link pendek & pembaruan tampilan otomatis dari GitHub).
+
 1. Buka <https://script.google.com> lalu klik **Proyek baru**.
 2. Salin isi `Code.gs` ke file `Code.gs`. Buat file HTML bernama **`Index`** dan salin isi `Index.html` ke sana.
 3. Klik ⚙️ **Setelan proyek**, centang *Tampilkan file manifes "appsscript.json"*, lalu salin isi `appsscript.json`.
@@ -41,3 +49,6 @@ Buka `Index.html` langsung di browser. Aplikasi otomatis masuk **mode demo** (da
 - **Validasi di server**: tanggal (`YYYY-MM-DD`), jam (`HH:MM`), kategori, prioritas, status, email peserta, checklist, dan tautan diperiksa sebelum disimpan. Komentar, lampiran, dan dokumen hanya bisa ditambahkan ke kegiatan yang masih aktif.
 - **Ekspor aman**: CSV diberi pengaman terhadap rumus Excel (`=`, `+`, `-`, `@`), dan file `.ics` mengikuti standar RFC 5545 (escape teks & `DTSTAMP`).
 - Setiap aksi yang gagal (koneksi putus, kegiatan sudah dihapus rekan) menampilkan pesan, bukan gagal diam-diam.
+
+## 🛠️ Mengubah tampilan
+Edit **`Index.src.html`**, lalu jalankan `python3 build.py` untuk membuat `Index.html`. Skrip di `Index.html` dikompres & dibungkus base64 karena HtmlService Apps Script merusak JavaScript yang memuat `//` di dalam teks (gejalanya: aplikasi macet di layar memuat). Push ke branch `ccr-82a96c14-ey9957` → aktif sendiri ≤10 menit (atau buka `…/exec?segar=1`).
