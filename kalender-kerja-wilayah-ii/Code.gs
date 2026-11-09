@@ -60,7 +60,8 @@ function doGet(e) {
   return out
     .setTitle(APP_NAME)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover')
-    .addMetaTag('theme-color', '#6d5dfc')
+    // catatan: HtmlService hanya mengizinkan meta tag tertentu (viewport, mobile-web-app-capable, apple-mobile-web-app-*), 'theme-color' ditolak
+    .addMetaTag('mobile-web-app-capable', 'yes')
     .addMetaTag('apple-mobile-web-app-capable', 'yes')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
