@@ -1,6 +1,6 @@
 # 🚀 Deploy Kalender Kerja Wilayah II (sekali saja, ±10 menit)
 
-> ✅ **Sudah di-deploy (9 Nov 2026):** <https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec>
+> ✅ **Sudah di-deploy (9 Nov 2026):** **<https://bit.ly/kalenderkerjawilayah2>** → <https://script.google.com/macros/s/AKfycbxZhTNgSluvGvlJcjUjCQTVISnCLOesN60xseYz4cNK2nMfTbU8K3Gw6W9mLtT2pS8F/exec>
 
 Hasil akhirnya: **satu link tetap** (`https://script.google.com/macros/s/…/exec`) yang bisa dibuka dan **diedit** oleh semua anggota tim dari HP maupun laptop, ditambah link pendek (mis. `bit.ly/kalenderwil2`).
 
