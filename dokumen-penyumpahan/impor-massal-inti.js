@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-09.1-kalender';
+  var VERSI = '2026-11-09.2-kalender';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -542,9 +542,13 @@
   /* dipanggil aplikasi: daftar kegiatan terbaru + sumbernya */
   function kegDaftar(t) {
     user_(t);
-    var ss = null; try { ss = kalSs_(); } catch (e) { }
-    if (ss) { var lock = LockService.getScriptLock(); lock.waitLock(20000); try { kalPindah_(ss); } finally { lock.releaseLock(); } }
-    return { kegiatan: ss ? kalDaftar_(ss) : (settings_().kegiatan || []), sumber: ss ? 'kalender' : 'pengaturan', url: ss ? ss.getUrl() : '' };
+    var ss = null, alasan = '', akun = '';
+    try { akun = Session.getEffectiveUser().getEmail(); } catch (e) { }
+    try { ss = kalSs_(); } catch (e) { alasan = String(e.message || e).slice(0, 200); }
+    if (!ss && !alasan) alasan = 'Spreadsheet "' + KAL_NAMA + '" tidak ditemukan di Google Drive akun ' + (akun || 'pemilik aplikasi ini') + '. Bagikan spreadsheet itu ke akun tersebut sebagai Editor.';
+    var pindah = '';
+    if (ss) { var lock = LockService.getScriptLock(); lock.waitLock(20000); try { var sblm = PROPS.getProperty('KEG_PINDAH'); kalPindah_(ss); if (!sblm) pindah = PROPS.getProperty('KEG_PINDAH') || ''; } finally { lock.releaseLock(); } }
+    return { kegiatan: ss ? kalDaftar_(ss) : (settings_().kegiatan || []), sumber: ss ? 'kalender' : 'pengaturan', url: ss ? ss.getUrl() : '', alasan: alasan, akun: akun, pindah: pindah, versi: VERSI };
   }
   function kegBersih_(ev, u, lama) {
     var tgl = /^\d{4}-\d{2}-\d{2}$/, warna = /^#[0-9a-f]{6}$/i;
