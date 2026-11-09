@@ -364,7 +364,7 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       <div class="live" id="live" title="Sinkron realtime"><i></i><span class="hide-m">Live</span></div>
       <button class="icon-btn" onclick="toggleTheme()" title="Tema"><svg><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
       <button class="icon-btn hide-m" onclick="openPalette()" title="Menu cepat"><svg><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
-      <div class="avatar" id="me"></div>
+      <div class="avatar" id="me" onclick="gantiNama()" title="Ganti nama"></div>
     </div>
 
     <div class="quick glass">
@@ -409,9 +409,18 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
  * Di Apps Script memakai google.script.run; jika dibuka sebagai file lokal
  * (tanpa Apps Script) otomatis memakai mode DEMO berbasis localStorage. */
 const IS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+/* nama pengguna (aplikasi terbuka untuk semua orang tanpa login): diketik sekali, diingat di perangkat ini */
+let PINTU_LAMA = false;
+function namaKu() { try { return localStorage.getItem('kkw2-nama') || ''; } catch (e) { return ''; } }
 function call(fn, ...args) {
-  if (IS_GAS) return new Promise((res, rej) =>
-    google.script.run.withSuccessHandler(res).withFailureHandler(e => rej(new Error(e.message || e)))[fn](...args));
+  if (IS_GAS) return new Promise((res, rej) => {
+    const r = google.script.run.withSuccessHandler(res);
+    if (PINTU_LAMA) return r.withFailureHandler(e => rej(new Error(e.message || e)))[fn](...args);
+    // server lama (belum punya apiPanggil) → otomatis pakai cara lama
+    r.withFailureHandler(e => { const m = String(e && e.message || e);
+      if (/apiPanggil|not a function|tidak ditemukan|not found/i.test(m) && !/Fungsi tidak dikenal/.test(m)) { PINTU_LAMA = true; call(fn, ...args).then(res, rej); }
+      else rej(new Error(m)); }).apiPanggil(namaKu(), fn, args);
+  });
   return new Promise((res, rej) => setTimeout(() => { try { res(Demo[fn](...args)); } catch (e) { rej(e); } }, 120));
 }
 
@@ -1187,6 +1196,20 @@ async function salinShare(teks) {
 }
 async function shareNative() { try { await navigator.share({ text: document.getElementById('shareTxt').value }); } catch (e) { if (e && e.name !== 'AbortError') salinShare(); } }
 function bukaTglDariLink(tgl) { if (/^\d{4}-\d{2}-\d{2}$/.test(tgl || '') && !isNaN(parse(tgl))) { S.sel = tgl; S.cursor = parse(tgl); if (S.view !== 'month' && S.view !== 'week' && S.view !== 'agenda') S.view = 'month'; render(); } }
+function gantiNama(awal) {
+  openModal(`<div class="mh"><h2>👋 ${awal ? 'Selamat datang' : 'Ganti nama'}</h2><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="mb">
+    <p style="margin:0 0 10px;color:var(--muted)">Tulis nama Anda. Nama ini dicatat di setiap kegiatan yang Anda buat/ubah dan di Log, dan diingat di perangkat ini.</p>
+    <div class="f"><label>Nama</label><input id="namaIn" maxlength="60" placeholder="mis. Shela Natasha" value="${esc(namaKu())}" onkeydown="if(event.key==='Enter')simpanNama()"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-primary" onclick="simpanNama()">Simpan</button></div></div>`);
+  setTimeout(() => { const i = document.getElementById('namaIn'); i && i.focus(); }, 50);
+}
+function simpanNama() {
+  const v = (document.getElementById('namaIn').value || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!v) return toast('Nama belum diisi');
+  try { localStorage.setItem('kkw2-nama', v); } catch (e) {}
+  S.user = v; const me = document.getElementById('me'); if (me) me.outerHTML = avatar(v).replace('class="avatar', 'id="me" onclick="gantiNama()" style="cursor:pointer" title="' + esc(v) + ' — ketuk untuk ganti nama" class="avatar');
+  closeModal(); toast('Halo, ' + v + ' 👋'); render();
+}
 function toast(msg, action, fn) {
   const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<span style="flex:1">${esc(msg)}</span>`;
   if (action) { const b = document.createElement('button'); b.textContent = action; b.onclick = () => { fn(); t.remove(); }; t.appendChild(b); }
@@ -1220,7 +1243,8 @@ document.addEventListener('keydown', e => {
   try {
     const d = await call('apiBootstrap');
     S.user = d.user; S.rootUrl = d.rootUrl; S.maxUploadMb = d.maxUploadMb; S.appUrl = d.appUrl || ''; applyData(d);
-    document.getElementById('me').outerHTML = avatar(d.user).replace('class="avatar', 'id="me" class="avatar');
+    document.getElementById('me').outerHTML = avatar(d.user).replace('class="avatar', 'id="me" onclick="gantiNama()" style="cursor:pointer" title="' + esc(d.user) + ' — ketuk untuk ganti nama" class="avatar');
+    if (IS_GAS && !namaKu() && (d.user === 'tamu' || !d.user)) setTimeout(() => gantiNama(true), 400);
     document.getElementById('driveLink').href = d.rootUrl; document.getElementById('sheetLink').href = d.sheetUrl;
     if (!IS_GAS) toast('🧪 Mode DEMO — data disimpan di browser ini saja. Deploy ke Apps Script untuk mode tim.');
   } catch (e) { toast('⚠️ Gagal memuat: ' + e.message); }
