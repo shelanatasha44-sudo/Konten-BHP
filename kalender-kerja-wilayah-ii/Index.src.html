@@ -107,6 +107,12 @@ kbd{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6p
 .chip{font-size:12px;padding:3px 7px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;border-left:3px solid;cursor:grab;flex:none}
 .chip.done{text-decoration:line-through;opacity:.6}
 .more{font-size:11px;color:var(--muted);padding-left:6px;font-weight:600}
+.sumpah-b{position:absolute;top:6px;right:8px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#f5c542;color:#3b2a00;font-size:11px;font-weight:800;display:grid;place-items:center}
+.cell .shr{right:auto;left:36px}
+.sp-card{border:1px solid var(--line);border-left:4px solid #f5c542;border-radius:12px;padding:10px 12px;background:var(--card-solid);margin-bottom:6px}
+.sp-card b{display:block}.sp-card small{color:var(--muted)}
+.sp-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sp-links a{font-size:12px;font-weight:600;padding:4px 9px;border-radius:9px;background:var(--accent-soft);color:var(--accent);text-decoration:none}
+.day-sec{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 6px}
 /* week */
 .week{flex:1;display:grid;grid-template-columns:repeat(7,minmax(140px,1fr));gap:8px;padding:12px;overflow:auto}
 .wcol{background:var(--card-solid);border:1px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:300px}
@@ -249,6 +255,7 @@ kbd{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6p
   .cell{padding:3px;border-radius:10px;align-items:center}
   .cell .num{font-size:12px;width:24px;height:24px}
   .cell .chip{display:none}.cell .more{display:none}.cell .heat{position:static}
+  .cell .sumpah-b{position:static;min-width:0;height:auto;padding:1px 5px;border-radius:8px;font-size:9px;line-height:1.3;margin:1px auto 0;display:inline-block}
   .cell .heat i{width:6px;height:6px}
   .week{grid-template-columns:1fr;}
   .wcol{min-height:auto}
@@ -527,7 +534,7 @@ function filesOf(id) { return S.files.filter(f => f.eventId === id); }
 function commentsOf(id) { return S.comments.filter(c => c.eventId === id); }
 
 function applyData(d) {
-  S.events = d.events; S.files = d.files; S.comments = d.comments; S.version = d.version;
+  S.events = d.events; S.files = d.files; S.comments = d.comments; S.sumpah = d.sumpah || []; S.version = d.version;
   try { localStorage.setItem('kkw2-cache', JSON.stringify(d)); } catch (e) {}
 }
 async function refresh(silent) {
@@ -585,7 +592,7 @@ function renderMonth(v) {
     const ev = eventsOn(k, list);
     const cls = [d.getMonth() !== m && 'out', k === todayKey() && 'today', (d.getDay() === 0) && 'we', k === S.sel && 'sel'].filter(Boolean).join(' ');
     h += `<div class="cell ${cls}" data-k="${k}" onclick="cellClick(event,'${k}')" ondragover="dragOver(event)" ondragleave="this.classList.remove('drop')" ondrop="dropDay(event,'${k}')">
-      <div class="num">${d.getDate()}</div>${ev.length ? `<button class="shr" title="Bagikan kegiatan tanggal ini" onclick="event.stopPropagation();shareDay('${k}')">📤</button>` : ''}
+      <div class="num">${d.getDate()}</div>${sumpahOn(k).length ? `<span class="sumpah-b" title="${sumpahOn(k).length} penyumpahan">⚖️ ${sumpahOn(k).length}</span>` : ''}${ev.length ? `<button class="shr" title="Bagikan kegiatan tanggal ini" onclick="event.stopPropagation();shareDay('${k}')">📤</button>` : ''}
       ${ev.length ? `<div class="heat">${ev.slice(0, 4).map(e => `<i style="background:${color(e)};opacity:1"></i>`).join('')}</div>` : ''}
       ${ev.slice(0, 3).map(e => chip(e)).join('')}
       ${ev.length > 3 ? `<div class="more">+${ev.length - 3} lainnya</div>` : ''}
@@ -593,8 +600,8 @@ function renderMonth(v) {
   }
   h += '</div>';
   // Di HP: daftar kegiatan hari terpilih di bawah grid
-  const sel = eventsOn(S.sel, list);
-  h += `<div class="mobile-day"><div class="sec-title">${sel.length ? `<button class="share-btn" onclick="shareDay(S.sel)">📤 Bagikan</button>` : ''}${fmtLong(S.sel)}</div>${sel.length ? sel.map(rowHtml).join('<div style="height:6px"></div>') : '<small style="color:var(--muted)">Belum ada kegiatan. Ketuk + untuk menambah.</small>'}</div>`;
+  const sel = eventsOn(S.sel, list), spSel = sumpahOn(S.sel);
+  h += `<div class="mobile-day"><div class="sec-title">${sel.length ? `<button class="share-btn" onclick="shareDay(S.sel)">📤 Bagikan</button>` : ''}${fmtLong(S.sel)}</div>${sel.length ? sel.map(rowHtml).join('<div style="height:6px"></div>') : '<small style="color:var(--muted)">Belum ada kegiatan. Ketuk + untuk menambah.</small>'}${spSel.length ? `<div class="day-sec">⚖️ Penyumpahan (${spSel.length})</div>${spSel.map(sumpahHtml).join('')}` : ''}</div>`;
   v.innerHTML = h;
 }
 function chip(e) {
@@ -757,7 +764,31 @@ function pickDay(k) { S.cursor = parse(k); S.sel = k; toggleSide(false); render(
 function toggleCat(n) { S.hidden.has(n) ? S.hidden.delete(n) : S.hidden.add(n); localStorage.setItem('kkw2-hidden', JSON.stringify([...S.hidden])); render(); }
 function cellClick(ev, k) {
   if (matchMedia('(max-width:900px)').matches) { S.sel = k; render(); return; }
-  openForm(null, k);
+  S.sel = k; bukaHari(k);
+}
+/* ---------- penyumpahan (dari Dokumen Penyumpahan) + panel tanggal ---------- */
+const BERKAS_DRIVE = 'https://drive.google.com/drive/folders/1p5gwqylEQ8zvrb_WVWV6A11DjfnH8zsI';
+function sumpahOn(k) { return (S.sumpah || []).filter(s => s.tgl === k); }
+function sumpahHtml(s) {
+  const link = (u, t) => /^https:\/\//.test(u || '') ? `<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>` : '';
+  return `<div class="sp-card"><b>${esc(s.nama || '(tanpa nama)')}</b>
+    <small>${esc([s.jenis, s.waktu, s.tempat].filter(Boolean).join(' · '))}</small>
+    ${s.objek ? `<small style="display:block">${s.jenis === 'Pengampuan' ? 'Terampu' : 'Anak'}: ${esc(s.objek)}</small>` : ''}
+    ${s.nomor ? `<small style="display:block">Penetapan ${esc(s.nomor)}${s.pengadilan ? ' · ' + esc(s.pengadilan) : ''}</small>` : ''}
+    <div class="sp-links">${link(s.folderUrl, '📁 Folder berkas')}${(s.dokumen || []).map(x => link(x.url, '📄 ' + esc(x.nama))).join('')}${link(s.zoom, '🎥 Zoom')}</div></div>`;
+}
+function bukaHari(k) {
+  const ev = eventsOn(k, visible()), sp = sumpahOn(k);
+  openModal(`<div class="mh"><h2>📅 ${esc(tglPanjang(k))}</h2><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="day-sec" style="margin-top:0">Kegiatan (${ev.length})</div>
+    ${ev.length ? ev.map(rowHtml).join('<div style="height:6px"></div>') : '<small style="color:var(--muted)">Belum ada kegiatan.</small>'}
+    <div class="day-sec">⚖️ Penyumpahan (${sp.length})</div>
+    ${sp.length ? sp.map(sumpahHtml).join('') : '<small style="color:var(--muted)">Tidak ada penyumpahan.</small>'}
+    <div class="share-acts" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="closeModal();openForm(null,'${k}')">＋ Kegiatan di tanggal ini</button>
+      ${ev.length ? `<button class="btn btn-soft" onclick="shareDay('${k}')">📤 Bagikan</button>` : ''}
+      <a class="btn btn-soft" style="text-decoration:none;justify-content:center" href="${BERKAS_DRIVE}" target="_blank" rel="noopener">📁 Semua berkas penyumpahan</a>
+    </div></div>`);
 }
 let dragId = null;
 function dragStart(ev, id) { dragId = id; ev.dataTransfer.effectAllowed = 'move'; }
@@ -1171,6 +1202,8 @@ function teksHari(k) {
     t += '\n   🏷️ ' + [e.kategori, e.status, e.prioritas && e.prioritas !== 'Sedang' ? 'Prioritas ' + e.prioritas : ''].filter(Boolean).join(' · ');
     if (e.peserta && e.peserta.length) t += '\n   👥 ' + (Array.isArray(e.peserta) ? e.peserta.join(', ') : e.peserta);
   });
+  const sp = sumpahOn(k);
+  if (sp.length) { t += '\n\n⚖️ *Penyumpahan (' + sp.length + ')*'; sp.forEach((x, i) => { t += '\n' + (i + 1) + '. ' + x.nama + (x.jenis ? ' — ' + x.jenis : '') + (x.waktu ? ' · ' + x.waktu : '') + (x.tempat ? ' · ' + x.tempat : ''); }); t += '\n'; }
   const u = linkTgl(k); if (u) t += '\n🔗 Buka kalender tanggal ini: ' + u;
   return t;
 }
