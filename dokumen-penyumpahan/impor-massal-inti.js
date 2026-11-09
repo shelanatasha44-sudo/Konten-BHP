@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-09.3-kalender';
+  var VERSI = '2026-11-09.4-kalender';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -539,6 +539,35 @@
     kalPindah_(ss);
     return kalDaftar_(ss);
   }
+  /* ---------- Jadwal penyumpahan → sheet "Penyumpahan" di database Kalender (hanya baca di Kalender) ----------
+   * Supaya saat tanggal diklik di Kalender Kerja Wilayah II terlihat siapa yang disumpah, jam/tempat, folder Drive berkas,
+   * dan tautan dokumennya. Ditulis ulang hanya bila datanya berubah (sidik MD5 di KAL_SUMPAH_H). */
+  var KAL_SUMPAH = ['tgl', 'id', 'nama', 'jenis', 'waktu', 'tempat', 'objek', 'nomor', 'pengadilan', 'folderUrl', 'dokumen', 'zoom'];
+  var DOK_LABEL = { surat: 'Surat Antar', lurah: 'Surat ke Lurah', undangan: 'Undangan Sumpah', penyumpahan: 'Dokumen Penyumpahan' };
+  function objekSumpah_(r) {
+    if (r.jenis === 'Pengampuan') return (r.terampu && r.terampu.nama) || '';
+    return (r.anak || []).filter(function (a) { return a && a.nama && a.diwalikan !== false; }).map(function (a) { return a.nama; }).join(', ');
+  }
+  function sumpahSinkron_(ss) {
+    if (typeof berkas_ !== 'function') return -1;
+    var L = berkas_(false) || [];
+    var rows = L.filter(function (r) { return r && !r._dihapus && /^\d{4}-\d{2}-\d{2}/.test(String(r.tglSumpah || '')); }).map(function (r) {
+      var d = r.dokumen || {}, dok = Object.keys(d).filter(function (k) { return d[k] && d[k].url; }).map(function (k) { return { nama: DOK_LABEL[k] || k, url: d[k].url }; });
+      return [String(r.tglSumpah).slice(0, 10), r.id || '', r.nama || '', r.jenis || '', r.waktu || '', r.tempat || '', objekSumpah_(r), r.nomorPenetapan || '', r.pengadilan || '',
+        r.folderUrl || (r.folderId ? 'https://drive.google.com/drive/folders/' + r.folderId : ''), JSON.stringify(dok), r.zoom ? String(r.zoom).slice(0, 300) : ''];
+    }).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+    var json = JSON.stringify(rows), h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, json, Utilities.Charset.UTF_8));
+    var sh = ss.getSheetByName('Penyumpahan');
+    if (sh && PROPS.getProperty('KAL_SUMPAH_H') === h) return 0;
+    if (!sh) sh = ss.insertSheet('Penyumpahan');
+    sh.clearContents();
+    sh.getRange(1, 1, 1, KAL_SUMPAH.length).setValues([KAL_SUMPAH]).setFontWeight('bold');
+    if (rows.length) sh.getRange(2, 1, rows.length, KAL_SUMPAH.length).setValues(rows.map(function (r) { return r.map(kalTeks_); }));
+    sh.setFrozenRows(1);
+    PROPS.setProperty('KAL_SUMPAH_H', h);
+    kalLog_(ss, null, 'SINKRON', '', '', rows.length + ' jadwal penyumpahan dari Dokumen Penyumpahan diperbarui');
+    return rows.length;
+  }
   /* admin menempel link spreadsheet Kalender (dipakai bila pencarian otomatis gagal, mis. pemilik berbeda akun) */
   function kegSambung(t, url) {
     super_(t);
@@ -559,7 +588,7 @@
     try { ss = kalSs_(); } catch (e) { alasan = String(e.message || e).slice(0, 200); }
     if (!ss && !alasan) alasan = 'spreadsheet "' + KAL_NAMA + '" tidak ditemukan di Google Drive akun pemilik Dokumen Penyumpahan' + (akun ? ' (' + akun + ')' : '') + '.';
     var pindah = '';
-    if (ss) { var lock = LockService.getScriptLock(); lock.waitLock(20000); try { var sblm = PROPS.getProperty('KEG_PINDAH'); kalPindah_(ss); if (!sblm) pindah = PROPS.getProperty('KEG_PINDAH') || ''; } finally { lock.releaseLock(); } }
+    if (ss) { var lock = LockService.getScriptLock(); lock.waitLock(20000); try { var sblm = PROPS.getProperty('KEG_PINDAH'); kalPindah_(ss); if (!sblm) pindah = PROPS.getProperty('KEG_PINDAH') || ''; try { sumpahSinkron_(ss); } catch (e) { console.warn('sinkron penyumpahan', e); } } finally { lock.releaseLock(); } }
     return { kegiatan: ss ? kalDaftar_(ss) : (settings_().kegiatan || []), sumber: ss ? 'kalender' : 'pengaturan', url: ss ? ss.getUrl() : '', alasan: alasan, akun: akun, pindah: pindah, versi: VERSI };
   }
   function kegBersih_(ev, u, lama) {
@@ -681,6 +710,7 @@
     catch (e) { if (!/izin|permission|authoriz|otoris|scope|MailApp/i.test(String(e.message || e))) throw e; return kirimLewatDrive_(k, isi); }
   }
   function pengingatKeg_(paksa) {
+    try { var ssK = kalSs_(); if (ssK) sumpahSinkron_(ssK); } catch (e) { }
     if (!paksa && +Utilities.formatDate(new Date(), 'Asia/Jakarta', 'H') < 7) return [];
     var b = besok_(), sudah = {};
     try { sudah = JSON.parse(PROPS.getProperty(KEG_TERKIRIM) || '{}'); } catch (e) { }
