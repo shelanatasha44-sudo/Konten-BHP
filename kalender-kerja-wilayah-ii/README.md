@@ -49,3 +49,6 @@ Buka `Index.html` langsung di browser. Aplikasi otomatis masuk **mode demo** (da
 - **Validasi di server**: tanggal (`YYYY-MM-DD`), jam (`HH:MM`), kategori, prioritas, status, email peserta, checklist, dan tautan diperiksa sebelum disimpan. Komentar, lampiran, dan dokumen hanya bisa ditambahkan ke kegiatan yang masih aktif.
 - **Ekspor aman**: CSV diberi pengaman terhadap rumus Excel (`=`, `+`, `-`, `@`), dan file `.ics` mengikuti standar RFC 5545 (escape teks & `DTSTAMP`).
 - Setiap aksi yang gagal (koneksi putus, kegiatan sudah dihapus rekan) menampilkan pesan, bukan gagal diam-diam.
+
+## 🛠️ Mengubah tampilan
+Edit **`Index.src.html`**, lalu jalankan `python3 build.py` untuk membuat `Index.html`. Skrip di `Index.html` dikompres & dibungkus base64 karena HtmlService Apps Script merusak JavaScript yang memuat `//` di dalam teks (gejalanya: aplikasi macet di layar memuat). Push ke branch `ccr-82a96c14-ey9957` → aktif sendiri ≤10 menit (atau buka `…/exec?segar=1`).
