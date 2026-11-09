@@ -343,6 +343,7 @@ svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
       <a class="btn btn-soft" id="driveLink" target="_blank">📁 Folder Google Drive</a>
       <a class="btn btn-soft" id="sheetLink" target="_blank">📊 Database &amp; Log (Sheets)</a>
+      <a class="btn btn-soft" href="https://bit.ly/dokumensumpah" target="_blank" rel="noopener" title="Kegiatan Wil. II di menu Jadwal Sumpah memakai database yang sama">⚖️ Dokumen Penyumpahan ↗</a>
     </div>
   </aside>
 
@@ -908,6 +909,8 @@ function openDetail(id, tab) {
       <h3>${esc(e.judul)}</h3><div>📅 ${fmtLong(e.mulai)}${e.selesai !== e.mulai ? ' — ' + fmtLong(e.selesai) : ''} · 🕒 ${timeStr(e)}</div>
       <div style="margin-top:4px">${countdown(e)}</div></div>
     <div class="kv">
+      ${e.jenis && e.jenis !== e.kategori ? `<span>Jenis</span><span>${esc(e.jenis)}</span>` : ''}
+      ${e.notif ? `<span>Pengingat</span><span>🔔 Email H-1 (dari Dokumen Penyumpahan)</span>` : ''}
       ${e.lokasi ? `<span>Lokasi</span><span>📍 <a href="https://maps.google.com/?q=${encodeURIComponent(e.lokasi)}" target="_blank">${esc(e.lokasi)}</a></span>` : ''}
       <span>Prioritas</span><span><span class="tag" style="background:${soft(PRI[e.prioritas] || '#888')};color:${PRI[e.prioritas]}">${esc(e.prioritas)}</span></span>
       <span>Dibuat oleh</span><span style="display:flex;gap:8px;align-items:center">${avatar(e.dibuatOleh, true)} ${esc(e.dibuatOleh)} · ${ago(e.dibuatPada)}</span>

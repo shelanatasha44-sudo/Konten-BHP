@@ -198,10 +198,30 @@ function apiBootstrap() {
   return data;
 }
 
-function apiVersion() { return Number(PROP.getProperty('VERSION') || 1); }
+/* versi = VERSION × 1e6 + jumlah baris Log: perubahan dari aplikasi Dokumen Penyumpahan (menu Jadwal Sumpah → Kegiatan Wil. II,
+   memakai database yang sama) selalu menambah baris Log, sehingga kalender di semua perangkat ikut memuat ulang. */
+function apiVersion() {
+  const v = Number(PROP.getProperty('VERSION') || 1);
+  try { return v * 1e6 + sheet_('logs').getLastRow(); } catch (e) { return v * 1e6; }
+}
+
+/* kolom tambahan yang diisi Dokumen Penyumpahan setelah kolom 'dihapus': jenis, warna, notif (pengingat email H-1), jamTeks */
+const EKSTRA_EV = ['jenis', 'warna', 'notif', 'jamTeks'];
+function ekstraEvents_() {
+  const sh = sheet_('events'), last = sh.getLastRow(), n = SHEETS.events.length;
+  if (last < 2 || sh.getLastColumn() <= n) return {};
+  const ids = sh.getRange(2, 1, last - 1, 1).getDisplayValues(), ex = sh.getRange(2, n + 1, last - 1, EKSTRA_EV.length).getDisplayValues(), m = {};
+  ids.forEach(function (r, i) { if (r[0]) { const o = {}; EKSTRA_EV.forEach(function (c, j) { o[c] = ex[i][j]; }); m[r[0]] = o; } });
+  return m;
+}
 
 function apiData() {
-  const events = readAll_('events').filter(function (e) { return e.dihapus !== 'TRUE' && e.id; }).map(parseEvent_);
+  const ex = ekstraEvents_();
+  const events = readAll_('events').filter(function (e) { return e.dihapus !== 'TRUE' && e.id; }).map(parseEvent_).map(function (e) {
+    const x = ex[e.id];
+    if (x) { if (x.jenis) e.jenis = x.jenis; if (String(x.notif).toUpperCase() === 'TRUE') e.notif = true; }
+    return e;
+  });
   const files = readAll_('files').filter(function (f) { return f.dihapus !== 'TRUE' && f.id; })
     .map(function (f) { delete f._row; return f; });
   const comments = readAll_('comments').filter(function (c) { return c.id; })
