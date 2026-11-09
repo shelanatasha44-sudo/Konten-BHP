@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-09.2-kalender';
+  var VERSI = '2026-11-09.3-kalender';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -539,13 +539,25 @@
     kalPindah_(ss);
     return kalDaftar_(ss);
   }
+  /* admin menempel link spreadsheet Kalender (dipakai bila pencarian otomatis gagal, mis. pemilik berbeda akun) */
+  function kegSambung(t, url) {
+    super_(t);
+    var m = String(url || '').match(/\/d\/([\w-]{20,})/) || String(url || '').match(/^([\w-]{20,})$/);
+    if (!m) throw new Error('Link spreadsheet tidak dikenali. Salin alamat lengkap dari tombol "📊 Database & Log (Sheets)" di Kalender Kerja.');
+    var ss;
+    try { ss = SpreadsheetApp.openById(m[1]); }
+    catch (e) { throw new Error('Spreadsheet tidak bisa dibuka oleh akun pemilik Dokumen Penyumpahan. Di spreadsheet itu klik Bagikan → Akses umum: "Siapa saja yang memiliki link" → Editor (atau bagikan ke akun pemilik Dokumen Penyumpahan sebagai Editor), lalu coba lagi.'); }
+    if (!ss.getSheetByName('Kegiatan')) throw new Error('Spreadsheet itu bukan database Kalender Kerja Wilayah II (tidak ada sheet "Kegiatan").');
+    PROPS.setProperty(KAL_PROP, m[1]); KAL_SS_ = null;
+    return kegDaftar(t);
+  }
   /* dipanggil aplikasi: daftar kegiatan terbaru + sumbernya */
   function kegDaftar(t) {
     user_(t);
     var ss = null, alasan = '', akun = '';
     try { akun = Session.getEffectiveUser().getEmail(); } catch (e) { }
     try { ss = kalSs_(); } catch (e) { alasan = String(e.message || e).slice(0, 200); }
-    if (!ss && !alasan) alasan = 'Spreadsheet "' + KAL_NAMA + '" tidak ditemukan di Google Drive akun ' + (akun || 'pemilik aplikasi ini') + '. Bagikan spreadsheet itu ke akun tersebut sebagai Editor.';
+    if (!ss && !alasan) alasan = 'spreadsheet "' + KAL_NAMA + '" tidak ditemukan di Google Drive akun pemilik Dokumen Penyumpahan' + (akun ? ' (' + akun + ')' : '') + '.';
     var pindah = '';
     if (ss) { var lock = LockService.getScriptLock(); lock.waitLock(20000); try { var sblm = PROPS.getProperty('KEG_PINDAH'); kalPindah_(ss); if (!sblm) pindah = PROPS.getProperty('KEG_PINDAH') || ''; } finally { lock.releaseLock(); } }
     return { kegiatan: ss ? kalDaftar_(ss) : (settings_().kegiatan || []), sumber: ss ? 'kalender' : 'pengaturan', url: ss ? ss.getUrl() : '', alasan: alasan, akun: akun, pindah: pindah, versi: VERSI };
@@ -702,6 +714,7 @@
     versi: VERSI,
     kegSimpan: kegSimpan,
     kegDaftar: kegDaftar,
+    kegSambung: kegSambung,
     kegHapus: kegHapus,
     kegUnggah: kegUnggah,
     kegNotifStatus: kegNotifStatus,
