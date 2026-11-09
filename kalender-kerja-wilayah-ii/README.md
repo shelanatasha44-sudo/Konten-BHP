@@ -14,7 +14,12 @@ Dibangun sebagai **Google Apps Script Web App**: data di Google Sheets, lampiran
 - **Fitur canggih lainnya**: tambah cepat dengan bahasa alami (`Rapat evaluasi besok 09:00-11:00 @Aula #Rapat !tinggi`), seret-lepas untuk pindah tanggal (bisa di-*undo*), deteksi jadwal bentrok, sinkron realtime antar pengguna, command palette (`Ctrl+K`), shortcut keyboard, mode gelap, badge *LIVE*, heatmap aktivitas 12 bulan, ekspor CSV/.ics, tombol tambah ke Google Calendar pribadi, diskusi per kegiatan, duplikasi kegiatan, dan cetak.
 - **Mobile-first & ringan**: bottom navigation, tombol FAB, modal berbentuk *bottom sheet*, geser (swipe) kiri/kanan untuk ganti bulan. Di HP: kalender bulan ringkas dengan daftar kegiatan hari terpilih di bawahnya, menu berisi semua tampilan (Minggu, Papan, Log, dll.), tombol Hari ini, dan tambah cepat di form kegiatan baru. Efek blur/animasi berat dan font web dimatikan di HP, sinkron dicek tiap 30 detik (langsung saat aplikasi dibuka kembali), dan pencarian tidak menggambar ulang di setiap huruf.
 
+## 📤 Bagikan kegiatan 1 tanggal
+Pilih tanggal → **📤 Bagikan** (HP: di atas daftar kegiatan hari itu · laptop: ikon 📤 saat kursor di kotak tanggal, atau `Ctrl+K` → *Bagikan*). Teks rapi siap kirim ke **WhatsApp**, salin, email, atau **link tanggal** `…/exec?tgl=YYYY-MM-DD` yang membuka kalender langsung di tanggal itu.
+
 ## 🚀 Cara pasang (±5 menit)
+> **Panduan langkah demi langkah lengkap: [DEPLOY.md](DEPLOY.md)** (termasuk link pendek & pembaruan tampilan otomatis dari GitHub).
+
 1. Buka <https://script.google.com> lalu klik **Proyek baru**.
 2. Salin isi `Code.gs` ke file `Code.gs`. Buat file HTML bernama **`Index`** dan salin isi `Index.html` ke sana.
 3. Klik ⚙️ **Setelan proyek**, centang *Tampilkan file manifes "appsscript.json"*, lalu salin isi `appsscript.json`.

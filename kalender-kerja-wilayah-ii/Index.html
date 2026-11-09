@@ -96,6 +96,11 @@ kbd{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6p
 .cell.out{opacity:.45}.cell.we .num{color:var(--danger)}
 .cell.drop{background:var(--accent-soft);border-color:var(--accent);border-style:dashed}
 .cell .num{font-weight:700;font-size:13px;width:26px;height:26px;display:grid;place-items:center;border-radius:9px}
+.cell{position:relative}.cell .shr{position:absolute;top:5px;right:22px;width:24px;height:24px;border-radius:8px;display:none;place-items:center;font-size:12px;background:var(--accent-soft);color:var(--accent)}
+.cell:hover .shr{display:grid}@media (hover:none){.cell .shr{display:none!important}}
+.share-btn{float:right;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--accent);background:var(--accent-soft);border-radius:10px;padding:5px 10px;margin-top:-5px}
+.share-txt{width:100%;min-height:200px;margin-top:10px;font:14px/1.5 inherit;font-family:inherit;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--text);resize:vertical}
+.share-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.share-acts .btn{flex:1 1 140px;justify-content:center}
 .cell.today .num{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
 .cell .heat{position:absolute;top:10px;right:10px;display:flex;gap:2px}
 .cell .heat i{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.5}
@@ -570,7 +575,7 @@ function renderMonth(v) {
     const ev = eventsOn(k, list);
     const cls = [d.getMonth() !== m && 'out', k === todayKey() && 'today', (d.getDay() === 0) && 'we', k === S.sel && 'sel'].filter(Boolean).join(' ');
     h += `<div class="cell ${cls}" data-k="${k}" onclick="cellClick(event,'${k}')" ondragover="dragOver(event)" ondragleave="this.classList.remove('drop')" ondrop="dropDay(event,'${k}')">
-      <div class="num">${d.getDate()}</div>
+      <div class="num">${d.getDate()}</div>${ev.length ? `<button class="shr" title="Bagikan kegiatan tanggal ini" onclick="event.stopPropagation();shareDay('${k}')">📤</button>` : ''}
       ${ev.length ? `<div class="heat">${ev.slice(0, 4).map(e => `<i style="background:${color(e)};opacity:1"></i>`).join('')}</div>` : ''}
       ${ev.slice(0, 3).map(e => chip(e)).join('')}
       ${ev.length > 3 ? `<div class="more">+${ev.length - 3} lainnya</div>` : ''}
@@ -579,7 +584,7 @@ function renderMonth(v) {
   h += '</div>';
   // Di HP: daftar kegiatan hari terpilih di bawah grid
   const sel = eventsOn(S.sel, list);
-  h += `<div class="mobile-day"><div class="sec-title">${fmtLong(S.sel)}</div>${sel.length ? sel.map(rowHtml).join('<div style="height:6px"></div>') : '<small style="color:var(--muted)">Belum ada kegiatan. Ketuk + untuk menambah.</small>'}</div>`;
+  h += `<div class="mobile-day"><div class="sec-title">${sel.length ? `<button class="share-btn" onclick="shareDay(S.sel)">📤 Bagikan</button>` : ''}${fmtLong(S.sel)}</div>${sel.length ? sel.map(rowHtml).join('<div style="height:6px"></div>') : '<small style="color:var(--muted)">Belum ada kegiatan. Ketuk + untuk menambah.</small>'}</div>`;
   v.innerHTML = h;
 }
 function chip(e) {
@@ -1122,7 +1127,7 @@ const CMDS = [
   ['✨', 'Kegiatan baru', () => openForm(), 'N'], ['📅', 'Tampilan Bulan', () => setView('month'), 'M'], ['🗓️', 'Tampilan Minggu', () => setView('week'), 'W'],
   ['📋', 'Tampilan Agenda', () => setView('agenda'), 'A'], ['✅', 'To Do List', () => setView('todo'), 'O'], ['🧩', 'Papan status (Kanban)', () => setView('board'), 'B'], ['📊', 'Statistik & dashboard', () => setView('stats'), 'S'],
   ['📜', 'Log aktivitas', () => setView('log'), 'L'], ['🎯', 'Ke hari ini', goToday, 'T'], ['🌓', 'Ganti tema terang/gelap', () => toggleTheme(), 'D'],
-  ['⬇️', 'Ekspor CSV', exportCSV, ''], ['📆', 'Ekspor .ics', exportICS, ''], ['📁', 'Buka folder Google Drive', () => window.open(S.rootUrl, '_blank'), ''],
+  ['📤', 'Bagikan kegiatan tanggal terpilih', () => shareDay(S.sel), ''], ['⬇️', 'Ekspor CSV', exportCSV, ''], ['📆', 'Ekspor .ics', exportICS, ''], ['📁', 'Buka folder Google Drive', () => window.open(S.rootUrl, '_blank'), ''],
 ];
 let palSel = 0, palItems = [];
 function openPalette() { document.getElementById('palette').classList.add('show'); const i = document.getElementById('pq'); i.value = ''; renderPalette(); setTimeout(() => i.focus(), 20); }
@@ -1139,6 +1144,46 @@ function palRun(i) { closePalette(); palItems[i] && palItems[i].run(); }
 function paletteKey(e) { if (e.key === 'ArrowDown') { palSel = Math.min(palItems.length - 1, palSel + 1); drawPal(); e.preventDefault(); } else if (e.key === 'ArrowUp') { palSel = Math.max(0, palSel - 1); drawPal(); e.preventDefault(); } else if (e.key === 'Enter') palRun(palSel); else if (e.key === 'Escape') closePalette(); }
 
 /* ---------- misc UI */
+/* ============================================================ bagikan kegiatan 1 tanggal */
+const HARI_PANJANG = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+function tglPanjang(k) { const d = parse(k); return HARI_PANJANG[d.getDay()] + ', ' + d.getDate() + ' ' + BLN[d.getMonth()] + ' ' + d.getFullYear(); }
+function linkTgl(k) { return S.appUrl ? S.appUrl + '?tgl=' + k : ''; }
+function teksHari(k) {
+  const L = eventsOn(k, S.events).sort((a, b) => ((a.seharian ? '' : a.jamMulai) || '').localeCompare((b.seharian ? '' : b.jamMulai) || '') || a.judul.localeCompare(b.judul));
+  const jam = e => e.seharian || !e.jamMulai ? 'Seharian' : e.jamMulai + (e.jamSelesai ? '–' + e.jamSelesai : '');
+  let t = '📅 *Kegiatan Kalender Kerja Wilayah II*\n' + tglPanjang(k) + '\n';
+  if (!L.length) t += '\nBelum ada kegiatan.\n';
+  L.forEach((e, i) => {
+    t += '\n' + (i + 1) + '. *' + e.judul + '*\n   🕘 ' + jam(e) + (e.mulai !== e.selesai ? ' (' + fmtShort(e.mulai) + ' – ' + fmtShort(e.selesai) + ')' : '');
+    if (e.lokasi) t += '\n   📍 ' + e.lokasi;
+    t += '\n   🏷️ ' + [e.kategori, e.status, e.prioritas && e.prioritas !== 'Sedang' ? 'Prioritas ' + e.prioritas : ''].filter(Boolean).join(' · ');
+    if (e.peserta && e.peserta.length) t += '\n   👥 ' + (Array.isArray(e.peserta) ? e.peserta.join(', ') : e.peserta);
+  });
+  const u = linkTgl(k); if (u) t += '\n🔗 Buka kalender tanggal ini: ' + u;
+  return t;
+}
+function shareDay(k) {
+  k = k || S.sel; const t = teksHari(k), n = eventsOn(k, S.events).length;
+  openModal(`<div class="mh"><h2>📤 Bagikan kegiatan</h2><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="mb">
+    <div style="font-weight:700;margin-bottom:2px">${esc(tglPanjang(k))}</div><small style="color:var(--muted)">${n} kegiatan · teks bisa diubah sebelum dibagikan</small>
+    <textarea id="shareTxt" class="share-txt">${esc(t)}</textarea>
+    <div class="share-acts">
+      <a class="btn btn-primary" id="shareWa" target="_blank" rel="noopener" onclick="this.href='https://wa.me/?text='+encodeURIComponent(document.getElementById('shareTxt').value)">💬 WhatsApp</a>
+      <button class="btn btn-soft" onclick="salinShare()">📋 Salin teks</button>
+      ${navigator.share ? '<button class="btn btn-soft" onclick="shareNative()">📲 Aplikasi lain</button>' : ''}
+      <a class="btn btn-soft" target="_blank" rel="noopener" onclick="this.href='mailto:?subject='+encodeURIComponent('Kegiatan ${esc(tglPanjang(k))}')+'&body='+encodeURIComponent(document.getElementById('shareTxt').value)">✉️ Email</a>
+      ${linkTgl(k) ? `<button class="btn btn-soft" onclick="salinShare('${linkTgl(k)}')">🔗 Salin link tanggal</button>` : ''}
+    </div></div>`);
+}
+async function salinShare(teks) {
+  const v = teks || document.getElementById('shareTxt').value;
+  try { await navigator.clipboard.writeText(v); toast(teks ? '🔗 Link tanggal disalin' : '📋 Teks disalin — tinggal tempel'); return; } catch (e) {}
+  const ta = document.getElementById('shareTxt'); const lama = ta.value; if (teks) ta.value = teks; ta.focus(); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} if (teks) ta.value = lama;
+  toast(ok ? (teks ? '🔗 Link tanggal disalin' : '📋 Teks disalin — tinggal tempel') : 'Pilih teks lalu salin manual (tahan → Salin)');
+}
+async function shareNative() { try { await navigator.share({ text: document.getElementById('shareTxt').value }); } catch (e) { if (e && e.name !== 'AbortError') salinShare(); } }
+function bukaTglDariLink(tgl) { if (/^\d{4}-\d{2}-\d{2}$/.test(tgl || '') && !isNaN(parse(tgl))) { S.sel = tgl; S.cursor = parse(tgl); if (S.view !== 'month' && S.view !== 'week' && S.view !== 'agenda') S.view = 'month'; render(); } }
 function toast(msg, action, fn) {
   const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<span style="flex:1">${esc(msg)}</span>`;
   if (action) { const b = document.createElement('button'); b.textContent = action; b.onclick = () => { fn(); t.remove(); }; t.appendChild(b); }
@@ -1171,13 +1216,15 @@ document.addEventListener('keydown', e => {
   try { const c = JSON.parse(localStorage.getItem('kkw2-cache')); if (c && IS_GAS) { applyData(c); render(); document.getElementById('loader').remove(); } } catch (e) {}
   try {
     const d = await call('apiBootstrap');
-    S.user = d.user; S.rootUrl = d.rootUrl; S.maxUploadMb = d.maxUploadMb; applyData(d);
+    S.user = d.user; S.rootUrl = d.rootUrl; S.maxUploadMb = d.maxUploadMb; S.appUrl = d.appUrl || ''; applyData(d);
     document.getElementById('me').outerHTML = avatar(d.user).replace('class="avatar', 'id="me" class="avatar');
     document.getElementById('driveLink').href = d.rootUrl; document.getElementById('sheetLink').href = d.sheetUrl;
     if (!IS_GAS) toast('🧪 Mode DEMO — data disimpan di browser ini saja. Deploy ke Apps Script untuk mode tim.');
   } catch (e) { toast('⚠️ Gagal memuat: ' + e.message); }
   const l = document.getElementById('loader'); l && l.remove();
   render();
+  // link ?tgl=YYYY-MM-DD → langsung ke tanggal itu
+  try { if (IS_GAS && google.script.url) google.script.url.getLocation(loc => bukaTglDariLink(loc && loc.parameter && loc.parameter.tgl)); else bukaTglDariLink(new URLSearchParams(location.search).get('tgl')); } catch (e) {}
   // sinkron realtime: cek versi tiap 15 dtk (lebih jarang saat tab tidak aktif)
   const live = document.getElementById('live');
   const cek = async () => {
