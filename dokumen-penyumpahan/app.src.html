@@ -850,27 +850,20 @@ async function tambahDataSipp(){if(!GAS||!DB||!DB.length)return;let D;try{D=awai
 /* ===== Berkas baru yang menunjuk BHP Medan, dikirim lewat GitHub (data Direktori Putusan MA + SIPP).
    Dibuat sekali saja oleh Admin Utama: dilewati bila id-nya pernah ada (termasuk yang sudah dihapus) atau nomor penetapan + jenis sudah ada.
    Alamat/kelurahan pemohon tidak tercantum di sumber — diisi petugas setelah salinan penetapan diterima. ===== */
-const BERKAS_GITHUB=[
-  {id:'gh-pms-147-2026',jenis:'Pengampuan',nama:'BERNANDO TAPPIN TUAH DAMANIK',jk:'Laki-laki',agama:'',status:'Ibu Kandung',
-    terampu:{nama:'NURSIAH PURBA',jk:'Perempuan',tglLahir:'',kondisi:'mengalami sakit gangguan jiwa/depresi'},
-    pengadilan:'Pengadilan Negeri Pematangsiantar',nomorPenetapan:'147/Pdt.P/2026/PN Pms',tglPenetapan:'2026-07-30',kotaPermohonan:'Pematangsiantar',
-    alasan:'memberikan persetujuan menjual/memindahkan hak atas tanah Sertipikat Hak Milik Nomor 322 atas nama Nursiah Purba',
-    hartaTetap:'Sebidang tanah seluas 1.229 m² yang terletak di Jalan Karang Sari, Kelurahan Tambun Nabolon, Kecamatan Siantar Martoba, Kota Pematangsiantar, Sertipikat Hak Milik Nomor 322 atas nama Nursiah Purba, diterbitkan Kepala Kantor Pertanahan Kota Pematangsiantar tanggal 20 September 1996',
-    asal:'Data Direktori Putusan MA + SIPP PN Pematangsiantar (BHP Medan ditunjuk sebagai Pengampu Pengawas)'},
-  {id:'gh-pms-153-2026',jenis:'Perwalian',nama:'DIAN FESA SILITONGA',agama:'',status:'Keponakan',
-    anak:[{nama:'PURNAMA CLARA MARGARETH PURBA',jk:'Perempuan',tglLahir:'2014-08-06',wali:'Ya'}],orangTuaHidup:false,
-    ketMeninggal:'Ayah kandung anak, Almarhum Henry Agus Jaya Purba, dan ibu kandung anak, Almarhumah Rina Gokasi Silitonga (kakak Pemohon), telah meninggal dunia',
-    pengadilan:'Pengadilan Negeri Pematangsiantar',nomorPenetapan:'153/Pdt.P/2026/PN Pms',tglPenetapan:'2026-08-10',kotaPermohonan:'Pematangsiantar',
-    alasan:'pengambilan uang BPJS Ketenagakerjaan Almarhumah Rina Gokasi Silitonga (ibu kandung anak) di BPJS Ketenagakerjaan Cabang Pematangsiantar',
-    hartaTunai:'Dana BPJS Ketenagakerjaan atas nama Almarhumah Rina Gokasi Silitonga pada BPJS Ketenagakerjaan Cabang Pematangsiantar, Kartu Peserta Nomor 1271436702830006 (sesuai amar; dalam petitum tertulis 1271036702830006 — nomor ini sesuai format NIK Almarhumah: Kota Medan, Kec. Medan Helvetia, lahir 27 Februari 1983; mohon dicocokkan dengan kartu asli)',
-    asal:'Data Direktori Putusan MA + SIPP PN Pematangsiantar (BHP Medan ditunjuk sebagai pengawas perwalian)'}];
-/* tautan PDF penetapan yang diunggah ke folder Drive berkas — diisikan sekali oleh Admin Utama, HANYA bila kolomnya masih kosong */
+/* Isinya TIDAK lagi ditulis di sini (repo publik): data berkas baru dimuat dari file JSON pribadi di Google Drive lewat server
+   (apiImpor 'berkasBaru', file ID di Script Property BERKAS_BARU_FILE). Berkas yang sudah pernah dibuat tidak dibuat ulang. */
+let BERKAS_GITHUB=[];
+/* tautan PDF penetapan yang diunggah ke folder Drive berkas — diisikan HANYA bila kolomnya masih kosong */
 const LINK_PEN_DRIVE={'147/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1HYHsW_Lg7Mx7JMHIWB13IW7Ib4-vPEUU/view',
   '153/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1iPCqJWzAp8CrPfhJxiCA4JN2K2TOeiqH/view'};
+/* tautan PDF penetapan berkas: kolom tersimpan, atau (bila kosong) tautan Drive yang diketahui untuk nomornya — sekaligus diisikan ke berkas */
+function linkPenUntuk(r){if(!r)return'';if(!kosong(r.linkPenetapan))return r.linkPenetapan;
+  const k=Object.keys(LINK_PEN_DRIVE).find(n=>nomorKunci(n)===nomorKunci(r.nomorPenetapan));if(!k)return'';
+  if(!r._dihapus){r.linkPenetapan=LINK_PEN_DRIVE[k];setTimeout(()=>{if(r===cur)save();else simpanRec(r)},0)}return LINK_PEN_DRIVE[k]}
 function linkPenDrive(){if(!isSuper()||!DB)return;const L=[];
   for(const[no,u]of Object.entries(LINK_PEN_DRIVE))DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===nomorKunci(no)&&kosong(r.linkPenetapan)).forEach(r=>{r.linkPenetapan=u;simpanRec(r);L.push(no+' '+(r.nama||''))});
   if(L.length){catat('BACA_PENETAPAN','','','Tautan PDF penetapan Drive diisi: '+L.join('; ')).catch(()=>{});renderList();if(cur)renderMain()}}
-async function berkasDariGithub(){if(!GAS||!isSuper()||!DB)return;const kn=r=>r.jenis+'|'+nomorKunci(r.nomorPenetapan);
+async function berkasDariGithub(){if(!GAS||!isSuper()||!DB)return;try{BERKAS_GITHUB=await api('apiImpor','berkasBaru')||[]}catch(e){BERKAS_GITHUB=[]}if(!BERKAS_GITHUB.length)return;const kn=r=>r.jenis+'|'+nomorKunci(r.nomorPenetapan);
   const baru=BERKAS_GITHUB.filter(b=>!DB.some(r=>r.id===b.id||(!r._dihapus&&kn(r)===kn(b)))).map(b=>{const r=Object.assign(blank(),JSON.parse(JSON.stringify(b)));delete r.asal;return{r,asal:b.asal}});
   if(!baru.length)return;try{const x=await api('apiSimpanBanyak',baru.map(({r})=>Object.assign(JSON.parse(JSON.stringify(r)),{asal:'GitHub'})));const ok=new Set(x.ids||[]);
     const masuk=baru.filter(({r})=>ok.has(r.id));masuk.forEach(({r,asal})=>{addRec(r,asal);r._versi=1;DASAR.set(r,JSON.stringify(r))});
@@ -1294,7 +1287,7 @@ function renderMain(){
   <button hidden onclick="setRingkas(!RINGKAS)" title="Mode ringkas: hanya kolom wajib yang tampil; kolom opsional yang masih kosong disembunyikan">${RINGKAS?'🧾 Ringkas ✓':'🧾 Tampilan lengkap'}</button><details class="aksi-lain"><summary>⋯ Lainnya</summary><div class="aksi-menu"><button onclick="dlgCekLagi()" title="AI membaca ulang penetapan + SIPP, hanya mengisi kolom kosong">🔄 Cek lagi penetapan</button><button onclick="cekSippBerkas()" title="Cari nama asli (yang disamarkan) &amp; cocokkan dengan SIPP pengadilan">🔎 Cek SIPP</button><button onclick="screenshot('#main',cur.nama)" title="Simpan tampilan ini sebagai gambar PNG">📸 Screenshot</button><button onclick="dupRec()">⧉ Duplikat berkas</button>${isSuper()?(cur._dihapus?'<button onclick="restoreRec()">♻️ Pulihkan</button>':'<button onclick="delRec()" style="color:var(--warn)">🗑 Hapus berkas</button>'):''}</div></details></div>
   ${bannerKelayakan(cur)}${cekBar(CL)}<div class="steps">${Object.entries(TABS).map(([k,v])=>{const q=CL.filter(x=>x.tab===k),e=q.some(x=>x.lvl==='e');return`<button class="${tab===k?'on':''}" onclick="tab='${k}';renderMain()">${v}${q.length?`<span class="dot ${e?'':'w'}">${q.length}</span>`:''}</button>`}).join('')}</div>${panduanTab(TABS,CL,d)}<div class="grid">`;
   const pjOpt=v=>{const c=pjCari(v).nama;return SET.pejabat.map(p=>`<option ${p.nama===c?'selected':''} value="${esc(p.nama)}">${esc(p.nama||'(isi di Pengaturan)')} — ${esc(p.jabatan||'')}</option>`).join('')};
-  if(tab==='umum')h+=`<div class="full"><label class="btn" style="display:inline-block;margin:0;color:var(--ink)">📑 Isi otomatis dari PDF Penetapan<input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this,true)"></label>${cur.nama||cur.nomorPenetapan||idDrive(cur.linkPenetapan)?` <button class="pri" onclick="dlgCekLagi()" title="AI membaca ulang penetapan + SIPP dan hanya mengisi kolom yang masih kosong">🔄 Cek lagi penetapan &amp; SIPP</button>`:''}${idDrive(cur.linkPenetapan)?` <a class="btn" style="display:inline-block;margin:0" href="${esc(cur.linkPenetapan)}" target="_blank" rel="noopener">📄 Buka PDF penetapan</a>`:''}</div>`+F('pengadilan','Pengadilan')+FX('provinsi','Provinsi','select',['',...PROV.map(x=>x[0]),'Lainnya'],cur.provinsi||'',' data-f="provinsi" title="Kosongkan agar ditebak otomatis dari pengadilan/alamat"').replace('<option selected></option>','<option value="" selected>Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>').replace('<option ></option>','<option value="">Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>')+F('nomorPenetapan','Nomor Penetapan')+F('linkPenetapan','Tautan PDF penetapan (Google Drive)')+F('sippDomain',`Alamat SIPP (kosong = otomatis: ${esc(sippDom(cur)||'-')})`)+F('tglPenetapan','Tanggal Penetapan','date')+F('tanggalSurat','Tanggal Surat','date')+
+  if(tab==='umum')h+=`<div class="full"><label class="btn" style="display:inline-block;margin:0;color:var(--ink)">📑 Isi otomatis dari PDF Penetapan<input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this,true)"></label>${cur.nama||cur.nomorPenetapan||idDrive(cur.linkPenetapan)?` <button class="pri" onclick="dlgCekLagi()" title="AI membaca ulang penetapan + SIPP dan hanya mengisi kolom yang masih kosong">🔄 Cek lagi penetapan &amp; SIPP</button>`:''}${(lp=>idDrive(lp)?` <a class="btn" style="display:inline-block;margin:0" href="${esc(lp)}" target="_blank" rel="noopener">📄 Buka PDF penetapan</a>`:'')(linkPenUntuk(cur))}</div>`+F('pengadilan','Pengadilan')+FX('provinsi','Provinsi','select',['',...PROV.map(x=>x[0]),'Lainnya'],cur.provinsi||'',' data-f="provinsi" title="Kosongkan agar ditebak otomatis dari pengadilan/alamat"').replace('<option selected></option>','<option value="" selected>Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>').replace('<option ></option>','<option value="">Otomatis: '+esc(provinsi({...cur,provinsi:''}))+'</option>')+F('nomorPenetapan','Nomor Penetapan')+F('linkPenetapan','Tautan PDF penetapan (Google Drive)')+F('sippDomain',`Alamat SIPP (kosong = otomatis: ${esc(sippDom(cur)||'-')})`)+F('tglPenetapan','Tanggal Penetapan','date')+F('tanggalSurat','Tanggal Surat','date')+
     F('nomorSurat',`Nomor Surat ke ${d.J} (otomatis dari SPS)`)+F('nomorLurah','Nomor Surat ke Lurah (otomatis dari SPS)')+F('nomorBAP','Nomor BAP (diisi petugas di hari H; kosong = awalan saja)')+F('nomorBA','Nomor BA Sumpah (diisi petugas di hari H)')+F('nomorBAHarta','Nomor BA Inventarisasi (diisi petugas di hari H)');
   if(tab==='pihak')h+=F('nama',`Nama ${d.J}`)+F('nik','NIK')+F('jk','Jenis Kelamin','select',['Laki-laki','Perempuan'])+F('tempatLahir','Tempat Lahir')+F('tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.tglLahir,cur.tglSumpah)}"></div>`+F('agama','Agama','select',Object.keys(SET.lafaz))+F('pekerjaan','Pekerjaan')+
@@ -2168,6 +2161,14 @@ const loadJs=src=>JS_MUAT[src]||(JS_MUAT[src]=new Promise((ok,no)=>{const e=docu
 const PDFJS='https:\/\/cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const TESS='https:\/\/cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 let penFill=false;
+/* PDF penetapan yang diunggah lewat aplikasi disimpan ke folder Drive berkas (tempat dokumen berkas dibuat) bila berkas belum punya
+   tautan PDF penetapan — tautannya diisikan ke kolom "Tautan PDF penetapan". Tautan yang sudah ada tidak pernah diganti. */
+async function simpanPdfKeDrive(r,file){if(!GAS||!r||!file||r._dihapus||!kosong(r.linkPenetapan)||!/pdf/i.test(file.type||file.name||''))return;
+  if(file.size>30*1024*1024)return toast('PDF penetapan >30 MB — unggah manual ke folder Drive berkas');
+  try{await flush();const b64=await new Promise(ok=>{const x=new FileReader();x.onload=()=>ok(x.result.split(',')[1]);x.readAsDataURL(file)});
+    const x=await api('apiImpor','simpanPdfPen',{id:r.id,nama:file.name,b64});if(!x||!x.url||!kosong(r.linkPenetapan))return;
+    r.linkPenetapan=x.url;if(x.folderId&&!r.folderId)r.folderId=x.folderId;if(r===cur)save();else simpanRec(r);if(cur===r)renderMain();toast('📄 PDF penetapan disimpan ke folder Drive berkas')}
+  catch(e){console.warn('Simpan PDF penetapan:',e);if(!/tidak dikenal|belum bisa diambil/i.test(e.message||e))toast('PDF penetapan belum tersimpan ke Drive: '+(e.message||e))}}
 async function bacaPdfDrive(b){if(!cur)return;b.disabled=true;b.textContent='Mengambil PDF…';try{const x=await api('apiAmbilPdf',idDrive(cur.linkPenetapan));penFill=true;handlePenetapan(fileDariB64(x))}
   catch(e){alert('PDF tidak bisa diambil: '+(e.message||e)+'\n\nPastikan file dibagikan ke akun pemilik aplikasi atau "siapa saja yang memiliki link".')}finally{b.disabled=false;b.textContent='📑 Baca ulang dari PDF Drive'}}
 function uploadPenetapan(inp,fill){penFill=!!fill;const f=inp.files[0];inp.value='';if(f)handlePenetapan(f)}
@@ -2239,6 +2240,7 @@ async function handlePenetapan(file){
     data._cek=verifikasiTeks(data,teks);data._detik=Math.round((Date.now()-t0)/1000);
     if(pb&&data){const D=data;pb.then(bt=>{if(!bt)return toast('Isi BAP AI belum berhasil — dipakai susunan otomatis; bisa disusun ulang dengan tombol AI di tab BAP');
       const r=D._rec;if(!r){D.isiBap=bt;return}if(r._dihapus||!kosong(r.isiBap))return;r.isiBap=bt;simpanRec(r);if(cur===r)renderMain();toast('Isi BAP dari AI selesai disusun')})}
+    data._file=file;
     if(WZ.on){if(!WZ.pilih||!data.jenis)data.jenis=data.jenis||WZ.jenis;if(WZ.pilih)data.jenis=WZ.jenis;WZ.data=data;wizard(2);return}
     reviewPenetapan(data,file.name);
   }catch(e){if(WZ.on){const d=$('#wzDrop');if(d)d.innerHTML=`<div class="ic">⚠️</div><b>Gagal membaca: ${esc(e.message)}</b><small>Klik untuk mencoba file lain, atau isi manual.</small><input type="file" accept=".pdf,image/*" hidden onchange="uploadPenetapan(this)">`;return}$('#penBody').innerHTML=`<h3>Gagal membaca penetapan</h3><p>${esc(e.message)}</p><p class="hint">Coba file PDF asli (bukan foto miring/buram), atau isi kunci AI di Pengaturan.</p><p style="text-align:right"><button onclick="penDlg.close()">Tutup</button></p>`}
@@ -2499,6 +2501,7 @@ async function cekLagi(src,file){const r=cur;if(!r||CL2.jalan)return;const mode=
         else cat.push('SIPP: '+(x&&x.pesan||'tidak bisa dicek'))}catch(e){cat.push('SIPP: '+(e.message||e))}}
     const berubah=potret()!==awal;r._cekSumber=sumber;r._cekNihil=berubah?0:(r._cekNihil||0)+1;
     if(cur===r)save();else simpanRec(r);renderList();if(cur===r)renderMain();
+    if(src==='upload')simpanPdfKeDrive(r,file);
     if(berubah)catat('BACA_PENETAPAN',r.id,r.nama,'Cek lagi ('+mode+'): diisi '+isi.join(', ')).catch(()=>{});
     const K=masihKosong(r),dtk=Math.round((Date.now()-t0)/1000);
     if(!berubah&&r._cekNihil>=2)return dlgSemuaMasuk(r,src,file,K);
@@ -2586,14 +2589,14 @@ function applyPenetapan(root,next){
   {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));catat('TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
   let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;let beda=[];if(!r)r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||''));PEN._rec=r;
   /* berkas lama: hanya kolom kosong yang diisi, yang berbeda ditanyakan */
-  if(!baru){beda=gabungKeBerkas(PEN,r);cur=r;if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();save();catat('BACA_PENETAPAN',r.id,r.nama,'Kolom kosong diisi dari penetapan '+(PEN.nomorPenetapan||'')+(beda.length?` · ${beda.length} kolom berbeda tidak diubah`:'')).catch(()=>{});if(beda.length)dlgBeda(r,beda);toast('Kolom kosong diisi dari penetapan — isian lama tidak diubah');return}
+  if(!baru){beda=gabungKeBerkas(PEN,r);cur=r;if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();save();catat('BACA_PENETAPAN',r.id,r.nama,'Kolom kosong diisi dari penetapan '+(PEN.nomorPenetapan||'')+(beda.length?` · ${beda.length} kolom berbeda tidak diubah`:'')).catch(()=>{});if(beda.length)dlgBeda(r,beda);toast('Kolom kosong diisi dari penetapan — isian lama tidak diubah');simpanPdfKeDrive(r,PEN._file);return}
   ['jenis','pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tempatLahir','tglLahir','agama','pekerjaan','alamat','kelurahan','status','pasangan','aktaNikah','tglMeninggalPasangan','ketMeninggal','alasan','terkaitMiliter'].forEach(k=>{if(PEN[k])r[k]=typeof PEN[k]==='string'?PEN[k]:String(PEN[k])});
   if(samar(r.nama))r.nama='';
   if(typeof PEN.orangTuaHidup==='boolean')r.orangTuaHidup=PEN.orangTuaHidup;terapkanTambahan(PEN,r);if(typeof PEN.isiBap==='string'&&PEN.isiBap.trim())r.isiBap=PEN.isiBap;
   if(PEN.kelurahan)r._kelManual=true;
   if(PEN.jenis==='Perwalian'){const a=(PEN.anak||[]).filter(x=>x&&(x.nama||x.tglLahir)).map(x=>({nama:samar(x.nama)?'':String(x.nama).toUpperCase(),jk:jkDari(x.jk),tglLahir:x.tglLahir||'',wali:x.diwalikan===false||x.wali==='Tidak'?'Tidak':'Ya'}));if(a.length)r.anak=a}
   else if(PEN.terampu){const t=PEN.terampu;r.terampu={nama:samar(t.nama)?'':t.nama||'',jk:jkDari(t.jk),tglLahir:t.tglLahir||'',kondisi:t.kondisi||''}}
-  cur=r;tab='jadwal';if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();Promise.resolve(flush()).then(()=>sippIsiKosong(r)).catch(()=>{});catat('BACA_PENETAPAN',r.id,r.nama,'Isian diambil dari penetapan '+(PEN.nomorPenetapan||'')+(PEN._ai?' (AI)':'')).catch(()=>{});toast('Data penetapan diterapkan — lanjut isi jadwal sumpah')}
+  cur=r;tab='jadwal';if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();const pf=PEN._file;Promise.resolve(flush()).then(()=>simpanPdfKeDrive(r,pf)).then(()=>sippIsiKosong(r)).catch(()=>{});catat('BACA_PENETAPAN',r.id,r.nama,'Isian diambil dari penetapan '+(PEN.nomorPenetapan||'')+(PEN._ai?' (AI)':'')).catch(()=>{});toast('Data penetapan diterapkan — lanjut isi jadwal sumpah')}
 
 
 /* ---------------- wizard Berkas Baru (3 bagian) ---------------- */

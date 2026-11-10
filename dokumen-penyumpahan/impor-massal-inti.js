@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-09.4-kalender';
+  var VERSI = '2026-11-10.5-pdfpen';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -740,8 +740,38 @@
     return cara;
   }
 
+
+  /* ---------- PDF penetapan yang diunggah lewat aplikasi → folder Drive berkas ----------
+   * o = {id (berkas), nama, b64}. Folder: folderId berkas, atau folder berkas standar (folderBerkas_ di Code.gs).
+   * Data berkas tidak diubah di server — aplikasi yang mengisi kolom linkPenetapan (hanya bila kosong). */
+  function simpanPdfPen(t, o) {
+    var u = user_(t);
+    o = o || {};
+    var row = berkasRow_(String(o.id || ''));
+    if (!row) throw new Error('Simpan berkas dulu.');
+    var d = JSON.parse(row.data), folder = null;
+    if (d.folderId) try { folder = DriveApp.getFolderById(d.folderId); if (folder.isTrashed()) folder = null; } catch (e) { folder = null; }
+    if (!folder) folder = folderBerkas_(d);
+    var bytes = Utilities.base64Decode(String(o.b64 || ''));
+    if (!bytes.length) throw new Error('File kosong.');
+    if (bytes.length > 30 * 1024 * 1024) throw new Error('PDF terlalu besar (maks. 30 MB).');
+    var nama = ('Penetapan - ' + (d.nomorPenetapan || o.nama || 'tanpa nomor')).replace(/[\\\/:*?"<>|]/g, '_') + '.pdf';
+    var f = folder.createFile(Utilities.newBlob(bytes, 'application/pdf', nama));
+    log_(u, 'BACA_PENETAPAN', d.id || o.id, d.nama || '', 'PDF penetapan disimpan ke folder Drive berkas: ' + nama);
+    return { id: f.getId(), url: 'https://drive.google.com/file/d/' + f.getId() + '/view', folderId: folder.getId() };
+  }
+  /* daftar berkas baru (data pribadi) dari file JSON di Drive, bukan dari GitHub publik. Format: [{id, jenis, nama, ...}] */
+  function berkasBaru(t) {
+    super_(t);
+    var id = PROPS.getProperty('BERKAS_BARU_FILE');
+    if (!id) return [];
+    try { var j = JSON.parse(DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8')); return Array.isArray(j) ? j : (j.berkas || []); } catch (e) { return []; }
+  }
+
   return {
     versi: VERSI,
+    simpanPdfPen: simpanPdfPen,
+    berkasBaru: berkasBaru,
     kegSimpan: kegSimpan,
     kegDaftar: kegDaftar,
     kegSambung: kegSambung,
