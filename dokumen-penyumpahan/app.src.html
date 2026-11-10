@@ -864,6 +864,12 @@ const BERKAS_GITHUB=[
     alasan:'pengambilan uang BPJS Ketenagakerjaan Almarhumah Rina Gokasi Silitonga (ibu kandung anak) di BPJS Ketenagakerjaan Cabang Pematangsiantar',
     hartaTunai:'Dana BPJS Ketenagakerjaan atas nama Almarhumah Rina Gokasi Silitonga pada BPJS Ketenagakerjaan Cabang Pematangsiantar, Kartu Peserta Nomor 1271436702830006 (sesuai amar; dalam petitum tertulis 1271036702830006 — nomor ini sesuai format NIK Almarhumah: Kota Medan, Kec. Medan Helvetia, lahir 27 Februari 1983; mohon dicocokkan dengan kartu asli)',
     asal:'Data Direktori Putusan MA + SIPP PN Pematangsiantar (BHP Medan ditunjuk sebagai pengawas perwalian)'}];
+/* tautan PDF penetapan yang diunggah ke folder Drive berkas — diisikan sekali oleh Admin Utama, HANYA bila kolomnya masih kosong */
+const LINK_PEN_DRIVE={'147/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1HYHsW_Lg7Mx7JMHIWB13IW7Ib4-vPEUU/view',
+  '153/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1iPCqJWzAp8CrPfhJxiCA4JN2K2TOeiqH/view'};
+function linkPenDrive(){if(!isSuper()||!DB)return;const L=[];
+  for(const[no,u]of Object.entries(LINK_PEN_DRIVE))DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===nomorKunci(no)&&kosong(r.linkPenetapan)).forEach(r=>{r.linkPenetapan=u;simpanRec(r);L.push(no+' '+(r.nama||''))});
+  if(L.length){catat('BACA_PENETAPAN','','','Tautan PDF penetapan Drive diisi: '+L.join('; ')).catch(()=>{});renderList();if(cur)renderMain()}}
 async function berkasDariGithub(){if(!GAS||!isSuper()||!DB)return;const kn=r=>r.jenis+'|'+nomorKunci(r.nomorPenetapan);
   const baru=BERKAS_GITHUB.filter(b=>!DB.some(r=>r.id===b.id||(!r._dihapus&&kn(r)===kn(b)))).map(b=>{const r=Object.assign(blank(),JSON.parse(JSON.stringify(b)));delete r.asal;return{r,asal:b.asal}});
   if(!baru.length)return;try{const x=await api('apiSimpanBanyak',baru.map(({r})=>Object.assign(JSON.parse(JSON.stringify(r)),{asal:'GitHub'})));const ok=new Set(x.ids||[]);
@@ -879,7 +885,7 @@ async function boot(){
     setTimeout(()=>{if(ADA_AI&&GAS)api('apiImpor','modelAI').then(m=>{MODEL_AI=m}).catch(()=>{BACA_AI_ADA=false})},3000);
   }catch(e){if(!TOKEN)return;showLogin(e.message);return}
   $('#login').hidden=true;document.body.classList.remove('locked');renderHeader();cur=null;renderList();renderMain();
-  setTimeout(()=>berkasDariGithub().catch(e=>console.warn('Berkas GitHub:',e)),2500);
+  setTimeout(()=>berkasDariGithub().catch(e=>console.warn('Berkas GitHub:',e)).finally(()=>{try{linkPenDrive()}catch(e){console.warn(e)}}),2500);
   setTimeout(()=>{try{tambahDataGithub()}catch(e){console.warn('Tambah data:',e)}tambahDataSipp().catch(e=>console.warn('Tambah SIPP:',e))},1500);
   if(isSuper())setTimeout(()=>imporAntrean().catch(e=>console.warn('Antrean impor:',e)),3000);
   if(ME.wajibGanti)gantiPassword(true)}
