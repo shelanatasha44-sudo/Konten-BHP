@@ -855,10 +855,16 @@ async function tambahDataSipp(){if(!GAS||!DB||!DB.length)return;let D;try{D=awai
 let BERKAS_GITHUB=[];
 /* tautan PDF penetapan yang diunggah ke folder Drive berkas — diisikan HANYA bila kolomnya masih kosong */
 const LINK_PEN_DRIVE={'147/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1HYHsW_Lg7Mx7JMHIWB13IW7Ib4-vPEUU/view',
-  '153/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1iPCqJWzAp8CrPfhJxiCA4JN2K2TOeiqH/view'};
+  '153/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1iPCqJWzAp8CrPfhJxiCA4JN2K2TOeiqH/view',
+  '158/Pdt.P/2026/PN Pms':'https://drive.google.com/file/d/1wNcFTQalymMwGzS-dDSBPTjuCvTQD_C6/view'};
 /* tautan PDF penetapan berkas: kolom tersimpan, atau (bila kosong) tautan Drive yang diketahui untuk nomornya — sekaligus diisikan ke berkas */
+/* tautan masih kosong → server mencari PDF di folder Drive berkas (sekali per berkas per sesi) */
+const CARI_PDF=new Set();
+function cariPdfDrive(r){if(!GAS||!r||r._dihapus||!r.nomorPenetapan||CARI_PDF.has(r.id))return;CARI_PDF.add(r.id);
+  api('apiImpor','cariPdfPen',r.id).then(x=>{if(!x||!x.url||!kosong(r.linkPenetapan))return;r.linkPenetapan=x.url;if(x.folderId&&!r.folderId)r.folderId=x.folderId;
+    if(r===cur)save();else simpanRec(r);if(cur===r&&tab==='umum')renderMain();toast('📄 PDF penetapan ditemukan di folder Drive berkas: '+x.nama)}).catch(e=>console.warn('Cari PDF:',e))}
 function linkPenUntuk(r){if(!r)return'';if(!kosong(r.linkPenetapan))return r.linkPenetapan;
-  const k=Object.keys(LINK_PEN_DRIVE).find(n=>nomorKunci(n)===nomorKunci(r.nomorPenetapan));if(!k)return'';
+  const k=Object.keys(LINK_PEN_DRIVE).find(n=>nomorKunci(n)===nomorKunci(r.nomorPenetapan));if(!k){cariPdfDrive(r);return''}
   if(!r._dihapus){r.linkPenetapan=LINK_PEN_DRIVE[k];setTimeout(()=>{if(r===cur)save();else simpanRec(r)},0)}return LINK_PEN_DRIVE[k]}
 function linkPenDrive(){if(!isSuper()||!DB)return;const L=[];
   for(const[no,u]of Object.entries(LINK_PEN_DRIVE))DB.filter(r=>!r._dihapus&&nomorKunci(r.nomorPenetapan)===nomorKunci(no)&&kosong(r.linkPenetapan)).forEach(r=>{r.linkPenetapan=u;simpanRec(r);L.push(no+' '+(r.nama||''))});

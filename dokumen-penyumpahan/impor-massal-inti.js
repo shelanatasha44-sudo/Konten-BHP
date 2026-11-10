@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-10.5-pdfpen';
+  var VERSI = '2026-11-10.6-caripdf';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -768,8 +768,33 @@
     try { var j = JSON.parse(DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8')); return Array.isArray(j) ? j : (j.berkas || []); } catch (e) { return []; }
   }
 
+
+  /* cari PDF penetapan di folder Drive berkas (folderId, atau folder "<NAMA> - <nomor>") — tidak membuat folder baru */
+  function cariPdfPen(t, id) {
+    user_(t);
+    var row = berkasRow_(String(id || ''));
+    if (!row) return null;
+    var d = JSON.parse(row.data), folder = null;
+    if (d.folderId) try { folder = DriveApp.getFolderById(d.folderId); if (folder.isTrashed()) folder = null; } catch (e) { folder = null; }
+    if (!folder && d.nomorPenetapan) {
+      var nm = (String(d.nama || 'TANPA NAMA') + ' - ' + d.nomorPenetapan).replace(/[\/\\:*?"<>|]/g, '_'), it = DriveApp.getFoldersByName(nm);
+      while (it.hasNext()) { var f0 = it.next(); if (!f0.isTrashed()) { folder = f0; break; } }
+    }
+    if (!folder) return null;
+    var no = String(d.nomorPenetapan || '').split('/')[0].replace(/\D/g, ''), cocok = null, lain = null, fs = folder.getFilesByType('application/pdf');
+    while (fs.hasNext()) {
+      var f = fs.next(); if (f.isTrashed()) continue;
+      var n = f.getName().toLowerCase();
+      if (/penetapan|putusan/.test(n) || (no && n.indexOf(no) >= 0)) { cocok = f; break; }
+      if (!lain) lain = f;
+    }
+    var h = cocok || lain;
+    return h ? { id: h.getId(), nama: h.getName(), url: 'https://drive.google.com/file/d/' + h.getId() + '/view', folderId: folder.getId() } : null;
+  }
+
   return {
     versi: VERSI,
+    cariPdfPen: cariPdfPen,
     simpanPdfPen: simpanPdfPen,
     berkasBaru: berkasBaru,
     kegSimpan: kegSimpan,
