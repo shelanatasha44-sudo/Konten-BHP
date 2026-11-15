@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nama">Jurnal SIMPEG</string>
+    <string name="nama_layanan">Jurnal SIMPEG Otomatis</string>
+    <string name="deskripsi_layanan">Mengisi Jurnal Harian di aplikasi SIMPEG KUMHAM dengan mengetuk layar seperti tangan Anda, hanya ketika Anda menekan Mulai di aplikasi Jurnal SIMPEG. Layanan ini membaca isi layar aplikasi SIMPEG untuk menemukan tombol dan kolom. Kata sandi tidak dibaca dan tidak disimpan.</string>
+</resources>
