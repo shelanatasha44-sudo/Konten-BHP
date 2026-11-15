@@ -1,5 +1,5 @@
 {
-  "versi": "2026-11-06.1",
+  "versi": "2026-11-15.1",
   "catatan": "Data kegiatan Jurnal SIMPEG. Edit file ini di GitHub; plugin mengambilnya otomatis tiap 6 jam / saat Chrome dibuka. bank: kegiatan harian ({u}=uraian, {o}=output, {s}=satuan, {vol}=[min,max]). Placeholder {kota} dan {pn} diganti otomatis. libur: yyyy-mm-dd. kunjungan: tema kegiatan dinas luar.",
   "libur": [
     "2026-12-24",
@@ -280,7 +280,7 @@
       ]
     },
     {
-      "u": "Melakukan koordinasi ke Pengadilan Negeri {kota} untuk mengambil salinan penetapan perwalian/pengampuan yang telah berkekuatan hukum tetap",
+      "u": "Melakukan koordinasi ke {pn} untuk mengambil salinan penetapan perwalian/pengampuan yang telah berkekuatan hukum tetap",
       "o": "Salinan penetapan dari pengadilan",
       "s": "Berkas",
       "vol": [
@@ -298,7 +298,7 @@
       ]
     },
     {
-      "u": "Mengantar dan mengambil berkas permohonan ke Pengadilan Negeri {kota} dalam rangka penyelesaian perwalian/pengampuan",
+      "u": "Mengantar dan mengambil berkas permohonan ke {pn} dalam rangka penyelesaian perwalian/pengampuan",
       "o": "Berkas terkirim/terterima dari pengadilan",
       "s": "Berkas",
       "vol": [

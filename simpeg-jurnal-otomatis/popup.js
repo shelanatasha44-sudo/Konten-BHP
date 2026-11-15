@@ -25,8 +25,12 @@ async function tampil() {
   var sel = (st.selesai || {})[t];
   var stat = document.getElementById('status');
   var kerja = J.hariKerja(t, cfg);
+  var total = kerja ? J.susunJurnal(t, cfg).length : 0;
+  var ket = !sel ? '⏳ belum diisi'
+    : sel.jumlah >= total ? '✅ terisi (' + sel.waktu + ')'
+    : '◐ baru ' + sel.jumlah + ' dari ' + total + ' kegiatan (' + sel.waktu + ') — akan dilanjutkan';
   stat.textContent = HARI[d.getDay()] + ', ' + d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' — ' +
-    (!kerja ? 'bukan hari kerja' : sel ? '✅ terisi (' + sel.waktu + ')' : '⏳ belum diisi') +
+    (!kerja ? 'bukan hari kerja' : ket) +
     (st.tertunda ? ' · menunggu login SIMPEG untuk ' + st.tertunda.tanggal : '');
   var ol = document.getElementById('daftar'); ol.textContent = '';
   if (kerja) J.susunJurnal(t, cfg).forEach(function (k) {
@@ -59,6 +63,7 @@ document.getElementById('perbarui').onclick = function () {
   document.getElementById('status').textContent = '⏳ Mengambil data terbaru dari GitHub…';
   chrome.runtime.sendMessage({ aksi: 'perbarui' }, function (r) { muat(); if (r) document.getElementById('status').textContent = r.ok ? '✅ Data terbaru v' + r.versi + ' (' + r.jumlah + ' kegiatan)' : '⚠️ Gagal: ' + r.pesan; });
 };
+document.getElementById('buka').onclick = function () { chrome.runtime.sendMessage({ aksi: 'bukaSimpeg' }); window.close(); };
 document.getElementById('opsi').onclick = function () { chrome.runtime.openOptionsPage(); };
 chrome.storage.onChanged.addListener(function () { tampil(); });
 muat();

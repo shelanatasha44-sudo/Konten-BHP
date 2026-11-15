@@ -4,7 +4,7 @@ var $ = function (id) { return document.getElementById(id); };
 chrome.storage.sync.get('cfg', function (s) {
   var c = Object.assign({}, J.DEFAULTS, s.cfg || {});
   ['url', 'tombolTambah', 'tombolSimpan', 'jedaMs', 'jam', 'jumlahMin', 'jumlahMax', 'nilaiSkp'].forEach(function (k) { $(k).value = c[k]; });
-  ['aktif', 'simpanOtomatis', 'isiKemarin', 'apelPagi', 'ishoma', 'jagaSesi'].forEach(function (k) { $(k).checked = !!c[k]; });
+  ['aktif', 'simpanOtomatis', 'isiKemarin', 'apelPagi', 'ishoma', 'jagaSesi', 'tutupTab'].forEach(function (k) { $(k).checked = !!c[k]; });
   $('libur').value = (c.libur || []).join('\n');
   $('kunjungan').value = (c.kunjungan || []).map(function (k) { return [k.mulai, k.selesai, k.kota].join(','); }).join('\n');
   $('kegiatanTambahan').value = (c.kegiatanTambahan || []).map(function (k) { return [k.u, k.o, k.s, k.vol.join('-')].join(' | '); }).join('\n');
@@ -25,7 +25,7 @@ $('simpan').onclick = async function () {
     url: url || J.DEFAULTS.url, tombolTambah: $('tombolTambah').value.trim(), tombolSimpan: $('tombolSimpan').value.trim(),
     jedaMs: +$('jedaMs').value || 2500, jam: $('jam').value || '08:15',
     jumlahMin: Math.min(4, Math.max(1, +$('jumlahMin').value || 3)), jumlahMax: Math.min(4, Math.max(1, +$('jumlahMax').value || 4)),
-    aktif: $('aktif').checked, apelPagi: $('apelPagi').checked, ishoma: $('ishoma').checked, jagaSesi: $('jagaSesi').checked, simpanOtomatis: $('simpanOtomatis').checked, isiKemarin: $('isiKemarin').checked,
+    aktif: $('aktif').checked, apelPagi: $('apelPagi').checked, ishoma: $('ishoma').checked, jagaSesi: $('jagaSesi').checked, tutupTab: $('tutupTab').checked, simpanOtomatis: $('simpanOtomatis').checked, isiKemarin: $('isiKemarin').checked,
     nilaiSkp: $('nilaiSkp').value.trim(),
     libur: baris('libur').filter(function (x) { return /^\d{4}-\d{2}-\d{2}$/.test(x); }),
     kunjungan: baris('kunjungan').map(function (x) { var p = x.split(',').map(function (y) { return y.trim(); }); return { mulai: p[0], selesai: p[1] || p[0], kota: p[2] || 'Batam' }; }),
@@ -34,5 +34,6 @@ $('simpan').onclick = async function () {
       return { u: p[0], o: p[1] || '', s: p[2] || 'Kegiatan', vol: [+v[0] || 1, +(v[1] || v[0]) || 1] };
     })
   };
+  if (cfg.jumlahMin > cfg.jumlahMax) { var tukar = cfg.jumlahMin; cfg.jumlahMin = cfg.jumlahMax; cfg.jumlahMax = tukar; }
   chrome.storage.sync.set({ cfg: cfg }, function () { $('pesan').textContent = '✓ Tersimpan ' + new Date().toLocaleTimeString('id-ID'); });
 };

@@ -52,9 +52,12 @@ async function simpegIsiSatuKegiatan(entri, cfg) {
     return { ok: false, perluTanggal: true, pesan: 'Tanggal halaman ' + kotakTgl.value + ' belum berubah ke ' + tglTampil + '.' };
   }
 
-  // 2) cegah dobel: kegiatan yang sama sudah ada di tabel
-  var sel = Array.prototype.slice.call(document.querySelectorAll('table td'));
-  if (sel.some(function (td) { return norm(teks(td)) === norm(entri.uraian); })) {
+  // 2) cegah dobel: kegiatan yang sama sudah ada di tabel. Dibandingkan per 60 huruf awal,
+  //    karena SIMPEG bisa memotong teks panjang atau mengubah spasi/huruf besar.
+  var kunci = function (s) { return norm(s).replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60); };
+  var mau = kunci(entri.uraian);
+  var sel = Array.prototype.slice.call(document.querySelectorAll('table td')).filter(function (td) { return !td.closest('.modal, [role=dialog]'); });
+  if (sel.some(function (td) { var k = kunci(teks(td)); return k && (k === mau || (k.length >= 25 && mau.indexOf(k) === 0) || (mau.length >= 25 && k.indexOf(mau) === 0)); })) {
     return { ok: true, lewati: true, pesan: 'Sudah ada, dilewati.' };
   }
 
@@ -108,8 +111,8 @@ async function simpegIsiSatuKegiatan(entri, cfg) {
   // 5) SKP: entri.skp (mis. "Lain-Lain") / pengaturan / butir SKP pertama
   var skpSel = selects.filter(function (s) { return jamSel.indexOf(s) < 0; })[0];
   if (skpSel) {
-    var mau = norm(entri.skp || cfg.nilaiSkp || '');
-    var ok = mau && pilihOpsi(skpSel, function (o) { return o.value && norm(teks(o)).indexOf(mau) >= 0; });
+    var skpMau = norm(entri.skp || cfg.nilaiSkp || '');
+    var ok = skpMau && pilihOpsi(skpSel, function (o) { return o.value && norm(teks(o)).indexOf(skpMau) >= 0; });
     if (!ok) pilihOpsi(skpSel, function (o) { return o.value !== '' && !/^(lain-lain|tugas tambahan|kreatifitas|kreativitas|-+|pilih)/i.test(teks(o)); });
     await tidur(400);
   }
@@ -192,4 +195,20 @@ function simpegKlikMenuJurnal() {
   var href = a.getAttribute && a.getAttribute('href');
   a.click();
   return { ok: true, href: href || '' };
+}
+
+/** Daftar teks kolom tabel jurnal (di luar modal) untuk verifikasi akhir.
+ *  Hasil: { ok, login?, tanggal, sel: [teks sel...] } */
+function simpegBacaTabel() {
+  var tampak = function (el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); };
+  var teks = function (el) { return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim(); };
+  var pw = document.querySelector('input[type=password]');
+  if (pw && tampak(pw)) return { ok: false, login: true, pesan: 'Halaman login SIMPEG' };
+  var kotak = Array.prototype.slice.call(document.querySelectorAll('input')).filter(function (el) {
+    return !el.closest('.modal, [role=dialog]') && /^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test((el.value || '').trim());
+  })[0];
+  var sel = Array.prototype.slice.call(document.querySelectorAll('table td'))
+    .filter(function (td) { return !td.closest('.modal, [role=dialog]'); })
+    .map(teks).filter(function (t) { return t.length > 2; });
+  return { ok: true, tanggal: kotak ? kotak.value.trim() : '', sel: sel };
 }
