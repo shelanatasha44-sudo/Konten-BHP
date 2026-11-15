@@ -1,0 +1,5 @@
+out/
+gen/
+.cache/
+assets/kegiatan.js
+*.idsig

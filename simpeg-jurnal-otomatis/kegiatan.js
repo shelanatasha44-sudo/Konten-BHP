@@ -115,6 +115,19 @@
     var tgl = +s.split('-')[2];
     return m.dari <= m.sampai ? (tgl >= m.dari && tgl <= m.sampai) : (tgl >= m.dari || tgl <= m.sampai);
   }
+  /** Tanggal yang ikut diisi saat tanggal t diklik: bila t jatuh di masa tutup, semua hari kerja
+   *  masa tutup bulan itu sampai t (mis. klik 18 → 16, 17, 18 bila 14–15 akhir pekan); selain itu [t]. */
+  function tanggalSusulan(t, cfg) {
+    if (!dalamMasaTutup(t, cfg)) return [t];
+    var m = (cfg && 'masaTutup' in cfg) ? cfg.masaTutup : DEFAULTS.masaTutup;
+    var hasil = [], d = t;
+    for (var i = 0; i < 31 && dalamMasaTutup(d, cfg); i++) {
+      if (hariKerja(d, cfg)) hasil.unshift(d);
+      if (+d.split('-')[2] === m.dari) break;
+      d = addDays(d, -1);
+    }
+    return hasil.length ? hasil : [t];
+  }
   function formatTanggal(s, fmt) {
     var p = s.split('-');
     return (fmt || 'dd-mm-yyyy').replace('yyyy', p[0]).replace('mm', p[1]).replace('dd', p[2]);
@@ -241,7 +254,7 @@
     DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
     gabungRemote: gabungRemote, validBank: validBank,
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
-    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup, tanggalSusulan: tanggalSusulan,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);

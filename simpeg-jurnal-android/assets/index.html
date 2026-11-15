@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jurnal SIMPEG</title>
+<style>
+:root{--bg:#f3f4f8;--surface:#fff;--fg:#17203a;--muted:#5b6478;--line:#e3e6ef;--navy:#1f2d5a;--merah:#c0182e;--merah-soft:#fdecee;--ok:#15803d;--ok-soft:#e8f6ee;--warn:#b45309;--warn-soft:#fdf3e4;--chip:#eef1f8}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1322;--surface:#161d30;--fg:#eaedf6;--muted:#9aa3bd;--line:#27304a;--navy:#3a4d87;--merah:#ff6072;--merah-soft:#2a1620;--ok:#4ade80;--ok-soft:#10261a;--warn:#fbbf24;--warn-soft:#2a2112;--chip:#1d2540;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Roboto,sans-serif;padding:0 16px 40px}
+.wrap{max-width:560px;margin:0 auto}
+header{position:sticky;top:0;background:var(--bg);padding:14px 0 10px;z-index:5}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.15rem}
+.brand .dot{width:26px;height:26px;border-radius:7px;background:var(--merah);display:grid;place-items:center;color:#fff;font-size:.9rem}
+.sub{color:var(--muted);font-size:.82rem;margin:2px 0 10px}
+.tabs{display:flex;gap:6px;background:var(--chip);border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:.88rem;padding:8px 4px;border-radius:9px}
+.tabs button.on{background:var(--navy);color:#fff}
+.tabs input[type=date]{flex:1.2;min-width:0;border:0;border-radius:9px;background:var(--surface);color:var(--fg);font:inherit;font-size:.82rem;padding:6px}
+.tgl{display:flex;align-items:baseline;gap:8px;margin-top:10px}.tgl span{color:var(--muted);font-size:.86rem}
+.pill{margin-left:auto;font-size:.74rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--merah-soft);color:var(--merah)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:10px 0;font-size:.88rem}
+.box.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.box.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.box.err{background:var(--merah-soft);border-color:transparent;color:var(--merah)}
+.box b{color:inherit}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.no{width:22px;height:22px;flex:none;border-radius:7px;background:var(--navy);color:#fff;font-size:.78rem;font-weight:800;display:grid;place-items:center}
+.skp{font-size:.72rem;font-weight:700;color:var(--merah);text-transform:uppercase;letter-spacing:.03em}
+.jam{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:.88rem}
+.keg{font-size:.95rem;font-weight:600}.meta{font-size:.8rem;color:var(--muted);margin-top:4px}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:800;margin-top:8px;background:var(--navy);color:#fff}
+.btn.merah{background:var(--merah)}.btn.garis{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:700}
+.row{display:flex;gap:8px}.row .btn{flex:1}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-top:12px}
+summary{font-weight:700;cursor:pointer}
+label{display:block;font-size:.82rem;font-weight:700;margin:10px 0 3px}
+input[type=text],input[type=time],input[type=number],textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;background:transparent;color:inherit;font:inherit}
+textarea{min-height:80px;font-size:.8rem;font-family:ui-monospace,monospace}
+.cek{display:flex;gap:8px;align-items:center;font-weight:400;font-size:.9rem}
+pre{white-space:pre-wrap;word-break:break-word;font-size:.7rem;max-height:320px;overflow:auto;background:var(--chip);padding:8px;border-radius:8px}
+.libur{text-align:center;color:var(--muted);padding:26px 10px}
+.foot{font-size:.8rem;color:var(--muted);margin-top:14px;line-height:1.65}
+</style></head>
+<body><div class="wrap">
+<header>
+  <div class="brand"><span class="dot">✓</span> Jurnal SIMPEG Otomatis</div>
+  <div class="sub">Seksi Harta Peninggalan Wilayah II · BHP Medan</div>
+  <div class="tabs"><button data-d="-1">H-1</button><button data-d="0" class="on">Hari ini</button><button data-d="1">H+1</button><input type="date" id="pilihTgl" aria-label="Pilih tanggal"></div>
+  <div class="tgl"><b id="hari"></b><span id="tanggal"></span><span class="pill" id="pill"></span></div>
+</header>
+
+<div id="layanan"></div>
+<div id="info"></div>
+<div id="isi"></div>
+
+<button class="btn merah" id="mulai">▶ Isi otomatis di aplikasi SIMPEG</button>
+<div class="row"><button class="btn garis" id="uji">Uji 1 form (tanpa simpan)</button><button class="btn garis" id="tandai">Tandai sudah</button></div>
+<button class="btn garis" id="henti" style="display:none">■ Hentikan</button>
+
+<details id="atur"><summary>⚙ Pengaturan</summary>
+  <label class="cek"><input type="checkbox" id="pengingat"> Ingatkan tiap hari kerja (notifikasi, ketuk untuk mulai)</label>
+  <label>Jam pengingat</label><input type="time" id="jam">
+  <label>Masa tutup SIMPEG tiap bulan (tanggal dari–sampai, kosong = tidak ada)</label>
+  <div class="row"><input type="number" id="tutupDari" min="1" max="31"><input type="number" id="tutupSampai" min="1" max="31"></div>
+  <label>Nama paket aplikasi SIMPEG</label><input type="text" id="paket">
+  <label>Teks pilihan SKP untuk kegiatan kerja (kosong = pilihan nomor 1)</label><input type="text" id="teksSkp" placeholder="Membantu kepala seksi dalam penyiapan bahan…">
+  <label>Hari libur / cuti tambahan (satu per baris, yyyy-mm-dd)</label><textarea id="liburSaya"></textarea>
+  <button class="btn" id="simpanAtur">Simpan pengaturan</button>
+</details>
+
+<details id="diag"><summary>🩺 Diagnosa & log</summary>
+  <label class="cek"><input type="checkbox" id="rekam"> Rekam isi layar SIMPEG ke log (nyalakan bila pengisian macet, lalu buka SIMPEG dan jalani langkahnya sekali secara manual)</label>
+  <div class="row"><button class="btn garis" id="lihatLog">Lihat log</button><button class="btn garis" id="bagiLog">Bagikan log</button><button class="btn garis" id="hapusLog">Hapus</button></div>
+  <pre id="log" style="display:none"></pre>
+</details>
+
+<div class="foot">
+  <b>Cara kerja:</b> tekan <b>Isi otomatis</b>. Aplikasi SIMPEG terbuka dan layar diketuk sendiri:
+  Kinerja → Jurnal Harian → tombol + → pilih SKP, tanggal, kegiatan, jam, jumlah → SIMPAN, untuk tiap kegiatan.
+  Jangan sentuh layar sampai muncul notifikasi selesai. HP harus menyala, tidak terkunci, dan sudah login di aplikasi SIMPEG.
+  Daftar kegiatan sama persis dengan plugin Chrome, jadi kegiatan yang sudah diisi lewat laptop tidak diisi dua kali.
+</div>
+</div>
+<script src="kegiatan.js"></script>
+<script>
+var J = self.JurnalBHP, A = window.Android || null;
+var HARI = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu'];
+var BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var cfg = J.DEFAULTS, offset = 0, tglPilih = '';
+function $(id){return document.getElementById(id);}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+function simpanan(k,b){try{return JSON.parse(localStorage.getItem(k))||b;}catch(e){return b;}}
+function taruh(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function tglSekarang(){return tglPilih || J.addDays(J.iso(new Date()), offset);}
+
+function susunCfg(){
+  var atur = simpanan('atur', {});
+  var c = Object.assign({}, J.DEFAULTS);
+  if ('tutupDari' in atur) c.masaTutup = (atur.tutupDari && atur.tutupSampai) ? {dari:atur.tutupDari, sampai:atur.tutupSampai} : null;
+  c.libur = (c.libur||[]).concat(atur.liburSaya||[]);
+  var remote = simpanan('dataRemote', null);
+  cfg = J.gabungRemote(c, remote);
+}
+function kirimAtur(){
+  var atur = simpanan('atur', {});
+  if (!A) return;
+  A.simpanPengaturan(JSON.stringify({
+    paket: atur.paket || 'simpeg.kemenkumham.mobile', jam: atur.jam || '08:15', pengingat: atur.pengingat !== false,
+    tutupDari: cfg.masaTutup ? cfg.masaTutup.dari : 0, tutupSampai: cfg.masaTutup ? cfg.masaTutup.sampai : 0,
+    libur: (cfg.libur||[]).join(','), teksSkp: atur.teksSkp || ''
+  }));
+}
+function perbaruiData(){
+  fetch(J.DATA_URL + '?t=' + Date.now(), {cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(d){ if (J.validBank(d.bank)) { taruh('dataRemote', d); susunCfg(); kirimAtur(); tampil(); } })
+    .catch(function(){});
+}
+
+function tampil(){
+  var t = tglSekarang(), d = new Date(t+'T00:00');
+  $('hari').textContent = HARI[d.getDay()]+',';
+  $('tanggal').textContent = d.getDate()+' '+BULAN[d.getMonth()]+' '+d.getFullYear();
+  var selisih = Math.round((new Date(t+'T00:00') - new Date(J.iso(new Date())+'T00:00')) / 864e5);
+  $('pill').textContent = selisih===0?'H':selisih<0?'H'+selisih:'H+'+selisih;
+  $('pilihTgl').value = t;
+  var st = A ? JSON.parse(A.status()) : {};
+  var aktif = A ? A.layananAktif() : false, jalan = A ? A.sedangJalan() : false;
+  var lay = $('layanan'); lay.textContent = '';
+  if (!aktif) {
+    var b = el('div','box err'); b.innerHTML = '<b>Layanan aksesibilitas belum aktif.</b> Tanpa layanan ini aplikasi tidak bisa mengetuk layar SIMPEG. ';
+    var tb = el('button','btn merah','Aktifkan: Setelan → Aksesibilitas → Jurnal SIMPEG Otomatis'); tb.onclick=function(){A&&A.bukaSetelan();};
+    b.appendChild(tb); lay.appendChild(b);
+  }
+  var info = $('info'); info.textContent = '';
+  var hIni = J.iso(new Date());
+  if (J.dalamMasaTutup(hIni, cfg)) info.appendChild(el('div','box warn','🔒 SIMPEG sedang ditutup untuk penarikan tukin (tgl '+cfg.masaTutup.dari+'–'+cfg.masaTutup.sampai+'). Penyimpanan kemungkinan ditolak sampai masa tutup selesai.'));
+  if (jalan) info.appendChild(el('div','box','⏳ Sedang mengisi di aplikasi SIMPEG… jangan sentuh layar.'));
+  var lengkap = st['lengkap:'+t], sebagian = st['selesai:'+t];
+  if (lengkap) info.appendChild(el('div','box ok','✅ Jurnal tanggal ini sudah lengkap'+(sebagian==='manual'?' (ditandai manual)':'')+'.'));
+  else if (sebagian) info.appendChild(el('div','box','◐ Sebagian sudah tersimpan (kegiatan ke-'+sebagian.replace(/,$/,'')+'). Tekan Isi otomatis untuk melanjutkan; yang sudah ada dilewati.'));
+  $('tandai').textContent = lengkap ? 'Tandai belum' : 'Tandai sudah';
+  $('henti').style.display = jalan ? 'block' : 'none';
+
+  var susul = belumLengkap(t, st);
+  if (susul.length > 1) info.appendChild(el('div','box warn','📅 Tanggal ini di masa tutup. Isi otomatis juga mengisi tanggal '+susul.slice(0,-1).map(function(x){return +x.slice(8);}).join(', ')+' yang belum lengkap, berurutan sampai tanggal '+(+t.slice(8))+'.'));
+  var isi = $('isi'); isi.textContent = '';
+  if (!J.hariKerja(t, cfg)) { isi.appendChild(el('div','libur',(d.getDay()===0||d.getDay()===6)?'🌴 Akhir pekan — tidak perlu isi jurnal.':'🌴 Hari libur — tidak perlu isi jurnal.')); return; }
+  J.susunJurnal(t, cfg).forEach(function(k,i){
+    var c = el('div','card'), top = el('div','top');
+    top.appendChild(el('span','no',String(i+1)));
+    top.appendChild(el('span','skp',k.skp==='Lain-Lain'?'SKP: Lain-lain':'SKP: no. 1'));
+    top.appendChild(el('span','jam',k.jamMulai+'–'+k.jamSelesai));
+    c.appendChild(top); c.appendChild(el('div','keg',k.uraian));
+    c.appendChild(el('div','meta','Jumlah '+k.volume+' '+k.satuan));
+    isi.appendChild(c);
+  });
+}
+
+/** Hari kerja masa tutup sampai t yang belum lengkap (t sendiri selalu ikut). */
+function belumLengkap(t, st){
+  return J.tanggalSusulan(t, cfg).filter(function(d){ return d === t || !st['lengkap:'+d]; });
+}
+function mulai(simpan, tanggal){
+  var t = tanggal || tglSekarang();
+  if (!J.hariKerja(t, cfg)) { A&&A.pesan('Bukan hari kerja.'); return; }
+  var st = A ? JSON.parse(A.status()) : {};
+  var urut = simpan ? belumLengkap(t, st) : [t];
+  if (urut.length > 1 && !confirm('Akan mengisi berurutan tanggal '+urut.map(function(x){return +x.slice(8);}).join(', ')+' ('+urut.length+' hari kerja). Lanjut?')) return;
+  if (simpan && urut.length === 1 && J.dalamMasaTutup(J.iso(new Date()), cfg) && !confirm('Hari ini masa tutup SIMPEG. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
+  var semua = [];
+  urut.forEach(function(d){ semua = semua.concat(J.susunJurnal(d, cfg)); });
+  var r = A ? A.mulai(urut.join(','), JSON.stringify(semua), simpan) : 'Buka di aplikasi Android.';
+  if (r) alert(r);
+  setTimeout(tampil, 600);
+}
+window.cekMulaiOtomatis = function(){ var t = A ? A.mulaiOtomatis() : ''; if (t) { offset = 0; tglPilih = ''; tampil(); mulai(true, t); } };
+window.segarkan = function(){ tampil(); };
+
+document.querySelectorAll('.tabs button').forEach(function(b){
+  b.onclick=function(){document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});b.classList.add('on');offset=+b.dataset.d;tglPilih='';tampil();};
+});
+$('pilihTgl').onchange = function(){ if(!this.value) return; tglPilih = this.value; document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');}); tampil(); };
+$('mulai').onclick = function(){ mulai(true); };
+$('uji').onclick = function(){ mulai(false); };
+$('henti').onclick = function(){ A&&A.hentikan(); setTimeout(tampil,300); };
+$('tandai').onclick = function(){ var t=tglSekarang(), st=JSON.parse(A.status()); A.tandai(t, !st['lengkap:'+t]); tampil(); };
+
+function isiAtur(){
+  var a = simpanan('atur', {});
+  $('pengingat').checked = a.pengingat !== false; $('jam').value = a.jam || '08:15';
+  $('tutupDari').value = cfg.masaTutup ? cfg.masaTutup.dari : ''; $('tutupSampai').value = cfg.masaTutup ? cfg.masaTutup.sampai : '';
+  $('paket').value = a.paket || 'simpeg.kemenkumham.mobile'; $('teksSkp').value = a.teksSkp || '';
+  $('liburSaya').value = (a.liburSaya||[]).join('\n');
+  $('rekam').checked = A ? !!JSON.parse(A.status()).rekam : false;
+}
+$('simpanAtur').onclick = function(){
+  taruh('atur', { pengingat: $('pengingat').checked, jam: $('jam').value || '08:15',
+    tutupDari: +$('tutupDari').value || 0, tutupSampai: +$('tutupSampai').value || 0,
+    paket: $('paket').value.trim() || 'simpeg.kemenkumham.mobile', teksSkp: $('teksSkp').value.trim(),
+    liburSaya: $('liburSaya').value.split('\n').map(function(x){return x.trim();}).filter(function(x){return /^\d{4}-\d{2}-\d{2}$/.test(x);}) });
+  susunCfg(); kirimAtur(); tampil(); A&&A.pesan('Pengaturan tersimpan.');
+};
+$('rekam').onchange = function(){ A&&A.rekam(this.checked); };
+$('lihatLog').onclick = function(){ var p=$('log'); p.style.display='block'; p.textContent = (A?A.log():'') || '(log kosong)'; p.scrollTop = p.scrollHeight; };
+$('bagiLog').onclick = function(){ A&&A.bagikanLog(); };
+$('hapusLog').onclick = function(){ A&&A.hapusLog(); $('log').textContent=''; };
+
+susunCfg(); isiAtur(); kirimAtur(); tampil(); perbaruiData();
+setInterval(function(){ if (A && A.sedangJalan()) tampil(); }, 3000);
+setTimeout(window.cekMulaiOtomatis, 400);
+</script>
+</body></html>
