@@ -17,6 +17,9 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
 - Sabtu/Minggu & tanggal libur/cuti di Pengaturan dilewati.
 - **Masa tutup SIMPEG tgl 14–18 tiap bulan** (penarikan tukin): plugin tidak mencoba mengisi, lencana ikon
   menjadi `tup`, dan pengisian berjalan lagi setelah masa tutup. Tanggalnya bisa diubah atau dikosongkan di Pengaturan.
+- **Susulan masa tutup sekali klik.** Pilih tanggal di masa tutup (mis. 18) lalu tekan **Isi sekarang**:
+  semua hari kerja masa tutup bulan itu yang belum lengkap diisi berurutan sampai tanggal tersebut
+  (November 2026: 16, 17, 18, karena 14–15 akhir pekan).
 - **Tetap login**: selama Chrome menyala, SIMPEG "disentuh" tiap 15 menit supaya sesi web tidak habis karena menganggur.
 - Sesi tetap habis (mis. laptop mati semalam) → notifikasi "SIMPEG perlu login". Login sekali
   (NIP → password → captcha); pengisian yang tertunda **lanjut sendiri**. Captcha tidak diisi otomatis.

@@ -380,7 +380,22 @@ chrome.runtime.onMessage.addListener(function (m, _s, balas) {
     if (m.aksi === 'isi') {
       if (sedangJalan) return balas({ ok: false, pesan: 'Sedang mengisi, tunggu sebentar.' });
       sedangJalan = true; perbaruiLencana();
-      try { balas(await isiTanggal(m.tanggal, { paksa: m.paksa, uji: m.uji })); }
+      try {
+        if (m.uji) { balas(await isiTanggal(m.tanggal, { paksa: m.paksa, uji: true })); return; }
+        // Tanggal di masa tutup: hari kerja masa tutup sebelumnya yang belum lengkap ikut diisi berurutan.
+        var cfgS = await ambilCfg(), stS = await ambilStatus();
+        var urut = J.tanggalSusulan(m.tanggal, cfgS).filter(function (t) {
+          return t === m.tanggal || !(stS.selesai[t] && stS.selesai[t].jumlah >= J.susunJurnal(t, cfgS).length);
+        });
+        if (urut.length > 1) await catat('Isi berurutan (susulan masa tutup): ' + urut.join(', '), 'info');
+        var hasilAkhir = { ok: true, pesan: '' }, pesan = [];
+        for (var u = 0; u < urut.length; u++) {
+          hasilAkhir = await isiTanggal(urut[u], { paksa: m.paksa });
+          pesan.push(hasilAkhir.pesan);
+          if (!hasilAkhir.ok) break;
+        }
+        balas({ ok: hasilAkhir.ok, pesan: pesan.join(' · ') });
+      }
       catch (e) { balas({ ok: false, pesan: e.message }); }
       finally { sedangJalan = false; perbaruiLencana(); }
     } else if (m.aksi === 'bukaSimpeg') {

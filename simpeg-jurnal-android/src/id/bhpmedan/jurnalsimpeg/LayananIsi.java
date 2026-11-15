@@ -75,7 +75,7 @@ public class LayananIsi extends AccessibilityService {
         if (jalan) return "Pengisian sedang berjalan.";
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
-        idx = 0; berhasil = 0; lewati = 0; formAktif = false; jalan = true;
+        idx = 0; berhasil = 0; lewati = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
         mulaiLangkah(0);
         sejakDikenal = System.currentTimeMillis();
         Catatan.tulis(this, "MULAI " + tanggal + " (" + daftar.length() + " kegiatan, " + (simpan ? "simpan" : "UJI tanpa simpan") + ")");
@@ -90,7 +90,21 @@ public class LayananIsi extends AccessibilityService {
         Catatan.tulis(this, "BERHENTI: " + alasan);
     }
 
+    /** Tandai lengkap setiap tanggal yang semua kegiatannya sudah tersimpan atau sudah ada. */
+    private void tandaiLengkap() {
+        if (!simpan || daftar == null || beres == null) return;
+        java.util.Map<String, Boolean> per = new java.util.LinkedHashMap<String, Boolean>();
+        for (int i = 0; i < daftar.length(); i++) {
+            String t = daftar.optJSONObject(i).optString("tanggal", tanggal);
+            per.put(t, (per.containsKey(t) ? per.get(t) : true) && beres[i]);
+        }
+        android.content.SharedPreferences.Editor ed = Catatan.pref(this).edit();
+        for (java.util.Map.Entry<String, Boolean> m : per.entrySet()) if (m.getValue()) ed.putBoolean("lengkap:" + m.getKey(), true);
+        ed.apply();
+    }
+
     private void gagal(String alasan) {
+        tandaiLengkap();   // tanggal yang sudah tuntas sebelum gagal tetap tercatat lengkap
         Catatan.tulis(this, "GAGAL (" + (idx + 1) + "/" + daftar.length() + ", langkah " + (formAktif ? LANGKAH[langkah] : "navigasi") + "): " + alasan + "\nIsi layar saat gagal:\n" + pohon());
         hentikan(alasan);
         Catatan.beritahu(this, 2, "Jurnal SIMPEG berhenti", alasan + " Buka aplikasi Jurnal SIMPEG → Bagikan log bila perlu diperbaiki.", null);
@@ -98,9 +112,7 @@ public class LayananIsi extends AccessibilityService {
 
     private void selesai(String pesan) {
         hentikan(pesan);
-        if (simpan && berhasil + lewati >= daftar.length()) {
-            Catatan.pref(this).edit().putBoolean("lengkap:" + tanggal, true).apply();
-        }
+        tandaiLengkap();
         Catatan.beritahu(this, 2, "Jurnal SIMPEG", pesan, null);
     }
 
@@ -112,6 +124,9 @@ public class LayananIsi extends AccessibilityService {
     private void tandaiAksi() { aksiTerakhir = System.currentTimeMillis(); }
 
     private JSONObject entri() throws Exception { return daftar.getJSONObject(idx); }
+    /** Tanggal kegiatan yang sedang diisi (daftar bisa berisi beberapa tanggal, mis. susulan masa tutup). */
+    private String tgl() { try { return entri().optString("tanggal", tanggal); } catch (Exception e) { return tanggal; } }
+    private boolean[] beres;
 
     // ---------- mesin langkah ----------
     private void langkahkan() throws Exception {
@@ -133,9 +148,9 @@ public class LayananIsi extends AccessibilityService {
         if (cocok(layar, "tanggal mulai") && cocok(layar, "tanggal selesai")) {          // daftar Jurnal Harian
             sejakDikenal = now;
             JSONObject e = entri();
-            if (cocok(layar, Pattern.quote(tanggalPanjang(tanggal))) && memuat(layar, e.getString("uraian"))) {
-                Catatan.tulis(this, "Sudah ada, dilewati: " + e.getString("uraian"));
-                lewati++; idx++;
+            if (cocok(layar, Pattern.quote(tanggalPanjang(tgl()))) && memuat(layar, e.getString("uraian"))) {
+                Catatan.tulis(this, "Sudah ada, dilewati: " + tgl() + " " + e.getString("uraian"));
+                beres[idx] = true; lewati++; idx++;
                 if (idx >= daftar.length()) selesai(ringkasan());
                 return;
             }
@@ -197,16 +212,16 @@ public class LayananIsi extends AccessibilityService {
                     if (isian != null) {
                         String hint = teks(isian).toLowerCase(Locale.ROOT);
                         String fmt = (hint.contains("dd/mm") || hint.contains("hh/bb")) ? "dd/MM/yyyy" : "MM/dd/yyyy";
-                        isiTeks(isian, new SimpleDateFormat(fmt, Locale.US).format(isoKeDate(tanggal)));
+                        isiTeks(isian, new SimpleDateFormat(fmt, Locale.US).format(isoKeDate(tgl())));
                         tandaiAksi(); sub = 3; return;
                     }
-                    if (hariIni().equals(tanggal) && sub < 2) {                  // bawaan pemilih = hari ini → langsung OK
+                    if (hariIni().equals(tgl()) && sub < 2) {                  // bawaan pemilih = hari ini → langsung OK
                         AccessibilityNodeInfo ok = cari(n, "^\\s*(ok|oke|pilih|simpan|set)\\s*$");
                         if (ok != null) { ketuk(ok); sub = 4; return; }
                     }
                     AccessibilityNodeInfo ubah = cari(n, "switch to input|beralih ke input|ke input|mode input|edit|ubah");
                     if (ubah != null && sub < 2) { ketuk(ubah); sub = 2; return; }
-                    AccessibilityNodeInfo hari = cari(n, "^\\s*" + Integer.parseInt(tanggal.substring(8)) + "\\s*$");
+                    AccessibilityNodeInfo hari = cari(n, "^\\s*" + Integer.parseInt(tgl().substring(8)) + "\\s*$");
                     if (hari != null) { ketuk(hari); sub = 3; return; }
                     return;
                 }
@@ -257,9 +272,9 @@ public class LayananIsi extends AccessibilityService {
             }
             case "TUNGGU": {
                 if (!cocok(layar, "tambah jurnal harian|pilih skp")) {
-                    berhasil++;
-                    Catatan.tulis(this, "✓ Tersimpan " + e.getString("jamMulai") + "–" + e.getString("jamSelesai") + " " + e.getString("uraian"));
-                    String kunci = "selesai:" + tanggal;
+                    berhasil++; beres[idx] = true;
+                    Catatan.tulis(this, "✓ Tersimpan " + tgl() + " " + e.getString("jamMulai") + "–" + e.getString("jamSelesai") + " " + e.getString("uraian"));
+                    String kunci = "selesai:" + tgl();
                     Catatan.pref(this).edit().putString(kunci, Catatan.pref(this).getString(kunci, "") + (idx + 1) + ",").apply();
                     formAktif = false; idx++; mulaiLangkah(0); sejakDikenal = now;
                     if (idx >= daftar.length()) selesai(ringkasan());
@@ -303,7 +318,7 @@ public class LayananIsi extends AccessibilityService {
     }
 
     private String ringkasan() {
-        return tanggal + ": " + berhasil + " kegiatan tersimpan" + (lewati > 0 ? ", " + lewati + " sudah ada" : "") + ".";
+        return tanggal.replace(",", ", ") + ": " + berhasil + " kegiatan tersimpan" + (lewati > 0 ? ", " + lewati + " sudah ada" : "") + ".";
     }
 
     // ---------- pencarian simpul ----------

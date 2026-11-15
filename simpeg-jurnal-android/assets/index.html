@@ -15,6 +15,7 @@ header{position:sticky;top:0;background:var(--bg);padding:14px 0 10px;z-index:5}
 .tabs{display:flex;gap:6px;background:var(--chip);border-radius:12px;padding:4px}
 .tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:.88rem;padding:8px 4px;border-radius:9px}
 .tabs button.on{background:var(--navy);color:#fff}
+.tabs input[type=date]{flex:1.2;min-width:0;border:0;border-radius:9px;background:var(--surface);color:var(--fg);font:inherit;font-size:.82rem;padding:6px}
 .tgl{display:flex;align-items:baseline;gap:8px;margin-top:10px}.tgl span{color:var(--muted);font-size:.86rem}
 .pill{margin-left:auto;font-size:.74rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--merah-soft);color:var(--merah)}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:10px 0;font-size:.88rem}
@@ -45,7 +46,7 @@ pre{white-space:pre-wrap;word-break:break-word;font-size:.7rem;max-height:320px;
 <header>
   <div class="brand"><span class="dot">✓</span> Jurnal SIMPEG Otomatis</div>
   <div class="sub">Seksi Harta Peninggalan Wilayah II · BHP Medan</div>
-  <div class="tabs"><button data-d="-1">H-1</button><button data-d="0" class="on">Hari ini</button><button data-d="1">H+1</button></div>
+  <div class="tabs"><button data-d="-1">H-1</button><button data-d="0" class="on">Hari ini</button><button data-d="1">H+1</button><input type="date" id="pilihTgl" aria-label="Pilih tanggal"></div>
   <div class="tgl"><b id="hari"></b><span id="tanggal"></span><span class="pill" id="pill"></span></div>
 </header>
 
@@ -86,12 +87,12 @@ pre{white-space:pre-wrap;word-break:break-word;font-size:.7rem;max-height:320px;
 var J = self.JurnalBHP, A = window.Android || null;
 var HARI = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu'];
 var BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-var cfg = J.DEFAULTS, offset = 0;
+var cfg = J.DEFAULTS, offset = 0, tglPilih = '';
 function $(id){return document.getElementById(id);}
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
 function simpanan(k,b){try{return JSON.parse(localStorage.getItem(k))||b;}catch(e){return b;}}
 function taruh(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function tglSekarang(){return J.addDays(J.iso(new Date()), offset);}
+function tglSekarang(){return tglPilih || J.addDays(J.iso(new Date()), offset);}
 
 function susunCfg(){
   var atur = simpanan('atur', {});
@@ -120,7 +121,9 @@ function tampil(){
   var t = tglSekarang(), d = new Date(t+'T00:00');
   $('hari').textContent = HARI[d.getDay()]+',';
   $('tanggal').textContent = d.getDate()+' '+BULAN[d.getMonth()]+' '+d.getFullYear();
-  $('pill').textContent = offset===0?'H':offset<0?'H'+offset:'H+'+offset;
+  var selisih = Math.round((new Date(t+'T00:00') - new Date(J.iso(new Date())+'T00:00')) / 864e5);
+  $('pill').textContent = selisih===0?'H':selisih<0?'H'+selisih:'H+'+selisih;
+  $('pilihTgl').value = t;
   var st = A ? JSON.parse(A.status()) : {};
   var aktif = A ? A.layananAktif() : false, jalan = A ? A.sedangJalan() : false;
   var lay = $('layanan'); lay.textContent = '';
@@ -139,6 +142,8 @@ function tampil(){
   $('tandai').textContent = lengkap ? 'Tandai belum' : 'Tandai sudah';
   $('henti').style.display = jalan ? 'block' : 'none';
 
+  var susul = belumLengkap(t, st);
+  if (susul.length > 1) info.appendChild(el('div','box warn','📅 Tanggal ini di masa tutup. Isi otomatis juga mengisi tanggal '+susul.slice(0,-1).map(function(x){return +x.slice(8);}).join(', ')+' yang belum lengkap, berurutan sampai tanggal '+(+t.slice(8))+'.'));
   var isi = $('isi'); isi.textContent = '';
   if (!J.hariKerja(t, cfg)) { isi.appendChild(el('div','libur',(d.getDay()===0||d.getDay()===6)?'🌴 Akhir pekan — tidak perlu isi jurnal.':'🌴 Hari libur — tidak perlu isi jurnal.')); return; }
   J.susunJurnal(t, cfg).forEach(function(k,i){
@@ -152,20 +157,30 @@ function tampil(){
   });
 }
 
+/** Hari kerja masa tutup sampai t yang belum lengkap (t sendiri selalu ikut). */
+function belumLengkap(t, st){
+  return J.tanggalSusulan(t, cfg).filter(function(d){ return d === t || !st['lengkap:'+d]; });
+}
 function mulai(simpan, tanggal){
   var t = tanggal || tglSekarang();
   if (!J.hariKerja(t, cfg)) { A&&A.pesan('Bukan hari kerja.'); return; }
-  if (simpan && J.dalamMasaTutup(J.iso(new Date()), cfg) && !confirm('Hari ini masa tutup SIMPEG. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
-  var r = A ? A.mulai(t, JSON.stringify(J.susunJurnal(t, cfg)), simpan) : 'Buka di aplikasi Android.';
+  var st = A ? JSON.parse(A.status()) : {};
+  var urut = simpan ? belumLengkap(t, st) : [t];
+  if (urut.length > 1 && !confirm('Akan mengisi berurutan tanggal '+urut.map(function(x){return +x.slice(8);}).join(', ')+' ('+urut.length+' hari kerja). Lanjut?')) return;
+  if (simpan && urut.length === 1 && J.dalamMasaTutup(J.iso(new Date()), cfg) && !confirm('Hari ini masa tutup SIMPEG. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
+  var semua = [];
+  urut.forEach(function(d){ semua = semua.concat(J.susunJurnal(d, cfg)); });
+  var r = A ? A.mulai(urut.join(','), JSON.stringify(semua), simpan) : 'Buka di aplikasi Android.';
   if (r) alert(r);
   setTimeout(tampil, 600);
 }
-window.cekMulaiOtomatis = function(){ var t = A ? A.mulaiOtomatis() : ''; if (t) { offset = 0; tampil(); mulai(true, t); } };
+window.cekMulaiOtomatis = function(){ var t = A ? A.mulaiOtomatis() : ''; if (t) { offset = 0; tglPilih = ''; tampil(); mulai(true, t); } };
 window.segarkan = function(){ tampil(); };
 
 document.querySelectorAll('.tabs button').forEach(function(b){
-  b.onclick=function(){document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});b.classList.add('on');offset=+b.dataset.d;tampil();};
+  b.onclick=function(){document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});b.classList.add('on');offset=+b.dataset.d;tglPilih='';tampil();};
 });
+$('pilihTgl').onchange = function(){ if(!this.value) return; tglPilih = this.value; document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');}); tampil(); };
 $('mulai').onclick = function(){ mulai(true); };
 $('uji').onclick = function(){ mulai(false); };
 $('henti').onclick = function(){ A&&A.hentikan(); setTimeout(tampil,300); };

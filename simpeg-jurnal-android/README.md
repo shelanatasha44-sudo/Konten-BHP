@@ -29,7 +29,10 @@ aplikasi SIMPEG resmi, jadi login, captcha, dan aturan SIMPEG tetap berlaku sepe
 - Setiap pagi hari kerja pukul **08.15** (bisa diubah) muncul notifikasi. Ketuk notifikasi itu, lalu
   pengisian dimulai. HP yang terkunci tidak bisa diisi otomatis, karena Android tidak mengizinkan aplikasi
   membuka kunci layar.
-- Sabtu, Minggu, hari libur, dan **masa tutup SIMPEG tanggal 14–18** (penarikan tukin) dilewati.
+- Sabtu, Minggu, hari libur, dan **masa tutup SIMPEG tanggal 14–18** (penarikan tukin) dilewati oleh pengingat.
+- **Susulan masa tutup sekali klik.** Pilih tanggal di masa tutup lewat kotak tanggal (mis. 18), lalu tekan
+  **Isi otomatis**. Semua hari kerja masa tutup bulan itu yang belum lengkap diisi berurutan sampai tanggal
+  tersebut (November 2026: 16, 17, 18, karena 14–15 akhir pekan). Tanggal yang sudah lengkap dilewati.
 - Pengisian berhenti sendiri bila SIMPEG meminta login, bila tombol atau kolom tidak ditemukan, atau bila
   SIMPEG menolak simpanan. Penyebabnya dikirim lewat notifikasi dan dicatat di log.
 - Isi kolom kata sandi tidak pernah dibaca atau direkam.

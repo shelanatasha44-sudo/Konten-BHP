@@ -28,12 +28,14 @@ async function tampil() {
   var stat = document.getElementById('status');
   var kerja = J.hariKerja(t, cfg);
   var total = kerja ? J.susunJurnal(t, cfg).length : 0;
+  var susul = kerja ? J.tanggalSusulan(t, cfg) : [];
   var ket = !sel ? '⏳ belum diisi'
     : sel.jumlah >= total ? '✅ terisi (' + sel.waktu + ')'
     : '◐ baru ' + sel.jumlah + ' dari ' + total + ' kegiatan (' + sel.waktu + ') — akan dilanjutkan';
   stat.textContent = HARI[d.getDay()] + ', ' + d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' — ' +
     (!kerja ? 'bukan hari kerja' : ket) +
-    (st.tertunda ? ' · menunggu login SIMPEG untuk ' + st.tertunda.tanggal : '');
+    (st.tertunda ? ' · menunggu login SIMPEG untuk ' + st.tertunda.tanggal : '') +
+    (susul.length > 1 ? ' · Isi sekarang juga mengisi tgl ' + susul.slice(0, -1).map(function (x) { return +x.slice(8); }).join(', ') + ' yang belum lengkap' : '');
   var ol = document.getElementById('daftar'); ol.textContent = '';
   if (kerja) J.susunJurnal(t, cfg).forEach(function (k) {
     var li = el('li'); li.appendChild(el('div', 'jam', k.jamMulai + '–' + k.jamSelesai + ' · ' + k.volume + ' ' + k.satuan));
@@ -55,6 +57,8 @@ document.getElementById('isi').onclick = function () {
   var h = J.iso(new Date());
   if (J.dalamMasaTutup(h, cfg) && !confirm('Hari ini masa tutup SIMPEG (penarikan tukin). Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
   if (Math.abs((new Date(tgl.value) - new Date(h)) / 864e5) > 1 && !confirm('SIMPEG biasanya hanya menerima H-1, H, H+1. Tetap coba?')) return;
+  var susul = J.tanggalSusulan(tgl.value, cfg);
+  if (susul.length > 1 && !confirm('Tanggal ini di masa tutup. Hari kerja yang belum lengkap akan diisi berurutan: ' + susul.map(function (t) { return +t.slice(8); }).join(', ') + '. Lanjut?')) return;
   kirim({ aksi: 'isi', tanggal: tgl.value });
 };
 document.getElementById('uji').onclick = function () { kirim({ aksi: 'isi', tanggal: tgl.value, uji: true, paksa: true }); };
