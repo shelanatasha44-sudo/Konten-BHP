@@ -43,6 +43,23 @@ async function catat(pesan, jenis) {
 function beritahu(judul, pesan) {
   try { chrome.notifications.create({ type: 'basic', iconUrl: 'icon128.png', title: judul, message: pesan, priority: 1 }); } catch (e) { /* tanpa ikon */ }
 }
+/* Lencana di ikon plugin: ✓ hijau = hari ini terisi, ! merah = perlu login, … = sedang mengisi. */
+async function perbaruiLencana() {
+  try {
+    var cfg = await ambilCfg();
+    var st = await ambilStatus();
+    var s = await chrome.storage.local.get('sesi');
+    var h = hariIni(), teks = '', warna = '#6b7280', judul = 'Jurnal SIMPEG Otomatis';
+    if (sedangJalan) { teks = '…'; warna = '#1d4ed8'; judul += ' — sedang mengisi'; }
+    else if (J.dalamMasaTutup(h, cfg)) { teks = 'tup'; warna = '#b45309'; judul += ' — SIMPEG ditutup (penarikan tukin)'; }
+    else if (st.tertunda || (s.sesi && s.sesi.habis)) { teks = '!'; warna = '#b91c1c'; judul += ' — perlu login SIMPEG'; }
+    else if (J.hariKerja(h, cfg) && st.selesai[h] && st.selesai[h].jumlah >= J.susunJurnal(h, cfg).length) { teks = '✓'; warna = '#15803d'; judul += ' — hari ini sudah terisi'; }
+    else if (!cfg.aktif) { teks = 'off'; judul += ' — otomatis dimatikan'; }
+    await chrome.action.setBadgeText({ text: teks });
+    await chrome.action.setBadgeBackgroundColor({ color: warna });
+    await chrome.action.setTitle({ title: judul });
+  } catch (e) { /* abaikan */ }
+}
 function tidur(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 function hariIni() { return J.iso(new Date()); }
 function lewatJam(cfg) {
@@ -62,7 +79,8 @@ function tungguMuat(tabId) {
 async function suntik(tabId, fn, args) {
   try {
     var r = await chrome.scripting.executeScript({ target: { tabId: tabId }, world: 'MAIN', func: fn, args: args || [] });
-    return (r && r[0] && r[0].result) || { ok: false, pesan: 'Tidak ada balasan dari halaman.' };
+    // Tanpa balasan biasanya berarti halaman memuat ulang di tengah jalan (mis. setelah Simpan).
+    return (r && r[0] && r[0].result) || { ok: false, putus: true, pesan: 'Tidak ada balasan dari halaman (halaman memuat ulang).' };
   } catch (e) { return { ok: false, pesan: 'Gagal menjalankan skrip di halaman: ' + e.message }; }
 }
 
@@ -76,6 +94,65 @@ async function bukaTab(url) {
   await tungguMuat(tab.id);
   await chrome.storage.session.set({ tabJurnal: tab.id }).catch(function () {});
   return tab.id;
+}
+async function tutupTabPlugin() {
+  var s = await chrome.storage.session.get('tabJurnal').catch(function () { return {}; });
+  if (!s.tabJurnal) return;
+  try { var t = await chrome.tabs.get(s.tabJurnal); if (!t.active) await chrome.tabs.remove(s.tabJurnal); } catch (e) { /* sudah ditutup */ }
+  await chrome.storage.session.remove('tabJurnal').catch(function () {});
+}
+
+/* Buka Jurnal Harian lalu pilih tanggal (halaman bisa memuat ulang setelah tanggal diganti). */
+async function keJurnalTanggal(tabId, cfg, tglTampil) {
+  var hasil = await keJurnal(tabId, cfg);
+  if (hasil.ok) hasil = await suntik(tabId, simpegPilihTanggal, [tglTampil]);
+  if (hasil.ok && hasil.berubah) {
+    await tidur(1500);
+    var t = await chrome.tabs.get(tabId);
+    if (t.status === 'loading') await tungguMuat(tabId);
+    await tidur(1200);
+  }
+  return hasil;
+}
+
+/* Tambah satu kegiatan; bila gagal karena halaman belum siap, ulangi sekali dari awal. */
+async function isiSatu(tabId, cfg, tglTampil, entri) {
+  var hasil, putusSaatIsi = false;
+  for (var coba = 0; coba < 3; coba++) {
+    hasil = await keJurnalTanggal(tabId, cfg, tglTampil);
+    if (hasil.ok) {
+      hasil = await suntik(tabId, simpegIsiSatuKegiatan, [entri, cfg]);
+      if (hasil.perluTanggal) {
+        await suntik(tabId, simpegPilihTanggal, [tglTampil]); await tidur(3000);
+        hasil = await suntik(tabId, simpegIsiSatuKegiatan, [entri, cfg]);
+      }
+      if (hasil.putus) {   // halaman dimuat ulang oleh SIMPEG setelah Simpan: tunggu, lalu cek tabel
+        putusSaatIsi = true;
+        var t = await chrome.tabs.get(tabId);
+        if (t.status === 'loading') await tungguMuat(tabId);
+        await tidur(1200);
+        continue;
+      }
+    }
+    if (hasil.ok && hasil.lewati && putusSaatIsi) return { ok: true, pesan: 'Tersimpan (halaman dimuat ulang oleh SIMPEG).' };
+    if (hasil.ok || hasil.login || /menolak/.test(hasil.pesan || '')) return hasil;
+    await tidur(3000);
+  }
+  return hasil;
+}
+
+/* Verifikasi akhir: muat ulang tabel tanggal itu dan cari kegiatan yang belum tampak. */
+function kunciTeks(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60); }
+async function cekTabel(tabId, cfg, tglTampil, daftar) {
+  var hasil = await keJurnalTanggal(tabId, cfg, tglTampil);
+  if (!hasil.ok) return null;
+  var t = await suntik(tabId, simpegBacaTabel);
+  if (!t.ok || (t.tanggal && t.tanggal !== tglTampil)) return null;
+  var kunci = (t.sel || []).map(kunciTeks);
+  return daftar.filter(function (e) {
+    var m = kunciTeks(e.uraian);
+    return !kunci.some(function (k) { return k && (k === m || (k.length >= 25 && m.indexOf(k) === 0) || (m.length >= 25 && k.indexOf(m) === 0)); });
+  });
 }
 
 async function muatUrl(tabId, url) {
@@ -130,31 +207,9 @@ async function isiTanggal(tanggal, opsi) {
   var tglTampil = J.formatTanggal(tanggal, 'dd-mm-yyyy');
   var tabId = await bukaTab(cfg.url);
   for (var i = mulaiDari; i < daftar.length; i++) {
-    // ke halaman Jurnal Harian (langsung, atau lewat menu Kinerja → Jurnal Harian)
-    var hasil = await keJurnal(tabId, cfg);
-    // pilih tanggal jurnal di kotak tanggal (datepicker) — halaman bisa memuat ulang
-    if (hasil.ok) hasil = await suntik(tabId, simpegPilihTanggal, [tglTampil]);
-    if (hasil.ok && hasil.berubah) {
-      await tidur(1500);
-      var t = await chrome.tabs.get(tabId);
-      if (t.status === 'loading') await tungguMuat(tabId);
-      await tidur(1200);
-    }
-    if (hasil.ok) {
-      hasil = await suntik(tabId, simpegIsiSatuKegiatan, [daftar[i], cfg]);
-      if (hasil.perluTanggal) {   // coba sekali lagi
-        await suntik(tabId, simpegPilihTanggal, [tglTampil]); await tidur(3000);
-        hasil = await suntik(tabId, simpegIsiSatuKegiatan, [daftar[i], cfg]);
-      }
-    }
+    var hasil = await isiSatu(tabId, cfg, tglTampil, daftar[i]);
 
-    if (hasil.login) {
-      await chrome.storage.local.set({ tertunda: { tanggal: tanggal, sejak: Date.now() } });
-      await catat('SIMPEG minta login. Pengisian ' + tanggal + ' dilanjutkan otomatis setelah Anda login.', 'peringatan');
-      beritahu('Jurnal SIMPEG', 'Silakan login SIMPEG — jurnal ' + tanggal + ' akan diisi otomatis setelah login.');
-      chrome.tabs.update(tabId, { active: true });
-      return { ok: false, login: true, pesan: hasil.pesan };
-    }
+    if (hasil.login) return await mintaLogin(tanggal, tabId, hasil);
     if (!hasil.ok) {
       await catat(tanggal + ' kegiatan ' + (i + 1) + ': ' + hasil.pesan, 'galat');
       beritahu('Jurnal SIMPEG gagal', hasil.pesan);
@@ -165,6 +220,10 @@ async function isiTanggal(tanggal, opsi) {
       chrome.tabs.update(tabId, { active: true });
       return hasil; // uji coba cukup satu kegiatan
     }
+    if (opsi.uji) {  // mode uji: kegiatan yang sudah ada dilewati tanpa mencatat status
+      await catat('UJI ' + tanggal + ': "' + daftar[i].uraian.slice(0, 40) + '…" sudah ada, lanjut ke kegiatan berikutnya.', 'info');
+      continue;
+    }
     st = await ambilStatus();
     st.selesai[tanggal] = { jumlah: i + 1, waktu: new Date().toLocaleString('id-ID') };
     await chrome.storage.local.set({ selesai: st.selesai });
@@ -172,9 +231,40 @@ async function isiTanggal(tanggal, opsi) {
     // jeda; kegiatan berikutnya membuka ulang halaman Jurnal Harian (form bersih)
     if (i < daftar.length - 1) await tidur(cfg.jedaMs || 2500);
   }
+  if (opsi.uji) return { ok: true, pesan: 'Semua kegiatan ' + tanggal + ' sudah ada di SIMPEG — tidak ada yang perlu diuji.' };
+
+  // Verifikasi: yang belum tampak di tabel diisi ulang sekali, lalu dicek lagi.
+  var hilang = await cekTabel(tabId, cfg, tglTampil, daftar);
+  if (hilang && hilang.length) {
+    await catat(tanggal + ': ' + hilang.length + ' kegiatan belum tampak di tabel SIMPEG, diisi ulang.', 'peringatan');
+    for (var h = 0; h < hilang.length; h++) {
+      var r2 = await isiSatu(tabId, cfg, tglTampil, hilang[h]);
+      if (r2.login) return await mintaLogin(tanggal, tabId, r2);
+      await tidur(cfg.jedaMs || 2500);
+    }
+    hilang = await cekTabel(tabId, cfg, tglTampil, daftar);
+  }
   await chrome.storage.local.set({ tertunda: null });
-  beritahu('Jurnal SIMPEG terisi', tanggal + ': ' + daftar.length + ' kegiatan tersimpan.');
-  return { ok: true, pesan: tanggal + ': ' + daftar.length + ' kegiatan tersimpan.' };
+  if (hilang && hilang.length) {
+    var daftarHilang = hilang.map(function (e) { return e.jamMulai + ' ' + e.uraian.slice(0, 50); }).join('; ');
+    await catat(tanggal + ': masih belum tampak di SIMPEG → ' + daftarHilang + '. Periksa manual.', 'galat');
+    beritahu('Jurnal SIMPEG perlu dicek', tanggal + ': ' + hilang.length + ' kegiatan belum tampak di tabel. Buka popup untuk rinciannya.');
+    return { ok: false, pesan: hilang.length + ' kegiatan belum tampak di tabel SIMPEG.' };
+  }
+  var cek = hilang ? ' (terverifikasi di tabel)' : '';
+  await catat(tanggal + ': ' + daftar.length + ' kegiatan lengkap' + cek + '.', 'ok');
+  beritahu('Jurnal SIMPEG terisi', tanggal + ': ' + daftar.length + ' kegiatan tersimpan' + cek + '.');
+  if (cfg.tutupTab) await tutupTabPlugin();
+  return { ok: true, pesan: tanggal + ': ' + daftar.length + ' kegiatan tersimpan' + cek + '.' };
+}
+
+async function mintaLogin(tanggal, tabId, hasil) {
+  await chrome.storage.local.set({ tertunda: { tanggal: tanggal, sejak: Date.now() } });
+  await catat('SIMPEG minta login. Pengisian ' + tanggal + ' dilanjutkan otomatis setelah Anda login.', 'peringatan');
+  beritahu('Jurnal SIMPEG', 'Silakan login SIMPEG — jurnal ' + tanggal + ' akan diisi otomatis setelah login. Klik notifikasi ini untuk membuka SIMPEG.');
+  chrome.tabs.update(tabId, { active: true });
+  perbaruiLencana();
+  return { ok: false, login: true, pesan: hasil.pesan };
 }
 
 /** Pengisian rutin: H (setelah jam setel) + susulan H-1. */
@@ -183,6 +273,14 @@ async function rutin(alasan) {
   var cfg = await ambilCfg();
   if (!cfg.aktif || !cfg.url) return;
   var h = hariIni();
+  if (J.dalamMasaTutup(h, cfg)) {   // SIMPEG ditutup untuk penarikan tukin: jangan mencoba, cukup catat sekali sehari
+    var s = await chrome.storage.local.get('catatTutup');
+    if (s.catatTutup !== h) {
+      await chrome.storage.local.set({ catatTutup: h });
+      await catat('SIMPEG sedang ditutup (penarikan tukin tgl ' + cfg.masaTutup.dari + '–' + cfg.masaTutup.sampai + '). Pengisian otomatis berhenti dan berjalan lagi setelah masa tutup.', 'info');
+    }
+    return;
+  }
   var target = [];
   if (cfg.isiKemarin) { var kmrn = J.addDays(h, -1); if (J.hariKerja(kmrn, cfg)) target.push(kmrn); }
   if (J.hariKerja(h, cfg) && lewatJam(cfg)) target.push(h);
@@ -191,7 +289,7 @@ async function rutin(alasan) {
   if (!target.length) return;
   await perbaruiData('sebelum mengisi');
   cfg = await ambilCfg();
-  sedangJalan = true;
+  sedangJalan = true; perbaruiLencana();
   try {
     await catat('Mulai (' + alasan + '): ' + target.join(', '), 'info');
     for (var i = 0; i < target.length; i++) {
@@ -199,7 +297,7 @@ async function rutin(alasan) {
       if (!r.ok) break;
     }
   } catch (e) { await catat('Galat: ' + e.message, 'galat'); }
-  finally { sedangJalan = false; }
+  finally { sedangJalan = false; perbaruiLencana(); }
 }
 
 function jadwalkan() {
@@ -217,14 +315,28 @@ function jadwalkan() {
 chrome.runtime.onInstalled.addListener(function (d) {
   jadwalkan();
   perbaruiData('pasang/muat ulang');
+  perbaruiLencana();
   if (d.reason === 'install') chrome.runtime.openOptionsPage();
 });
-chrome.runtime.onStartup.addListener(function () { jadwalkan(); perbaruiData('Chrome dibuka'); setTimeout(function () { rutin('Chrome dibuka'); }, 60000); });
+// Service worker bisa "tidur" sebelum setTimeout 60 detik selesai, jadi penundaan memakai alarm.
+chrome.runtime.onStartup.addListener(function () {
+  jadwalkan(); perbaruiData('Chrome dibuka'); perbaruiLencana();
+  chrome.alarms.create('mulaiChrome', { delayInMinutes: 1 });
+});
 chrome.alarms.onAlarm.addListener(function (a) {
   if (a.name === 'jagaSesi') return jagaSesi();
   if (a.name === 'perbaruiData') return perbaruiData('berkala');
-  rutin(a.name === 'tepat' ? 'jadwal harian' : 'cek berkala');
+  rutin(a.name === 'tepat' ? 'jadwal harian' : a.name === 'mulaiChrome' ? 'Chrome dibuka' : 'cek berkala');
 });
+// Klik notifikasi → buka/fokus tab SIMPEG (mis. untuk login).
+chrome.notifications.onClicked.addListener(async function (id) {
+  var cfg = await ambilCfg();
+  var s = await chrome.storage.session.get('tabJurnal').catch(function () { return {}; });
+  try { if (s.tabJurnal) { var t = await chrome.tabs.update(s.tabJurnal, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return; } } catch (e) { /* tab sudah ditutup */ }
+  chrome.tabs.create({ url: cfg.url, active: true });
+  chrome.notifications.clear(id);
+});
+chrome.storage.onChanged.addListener(function (c, area) { if (area === 'local' && (c.selesai || c.tertunda || c.sesi)) perbaruiLencana(); });
 
 /* Jaga sesi: tiap 15 menit "menyentuh" SIMPEG memakai cookie login yang ada, agar sesi web
  * tidak kedaluwarsa karena menganggur. Tidak melewati captcha: bila sesi sudah habis,
@@ -232,10 +344,14 @@ chrome.alarms.onAlarm.addListener(function (a) {
 async function jagaSesi() {
   var cfg = await ambilCfg();
   if (!cfg.aktif || !cfg.jagaSesi || sedangJalan || !cfg.url) return;
+  perbaruiLencana();   // lencana ikut berganti saat masuk/keluar masa tutup
   try {
     var r = await fetch(cfg.url, { credentials: 'include', cache: 'no-store', redirect: 'follow' });
     var html = await r.text();
-    var habis = /signin\.php/i.test(r.url) || /type=["']?password/i.test(html);
+    // Halaman yang sudah login memuat menu "Keluar"/logout (dan bisa memuat modal Ubah Password
+    // berisi kotak password), jadi kotak password saja tidak cukup sebagai tanda sesi habis.
+    var halamanLogin = /signin\.php/i.test(r.url) || (/type=["']?password/i.test(html) && !/keluar|logout/i.test(html));
+    var habis = r.ok && halamanLogin;
     var st = await chrome.storage.local.get('sesi');
     var sebelumnya = st.sesi && st.sesi.habis;
     await chrome.storage.local.set({ sesi: { habis: habis, cek: new Date().toLocaleString('id-ID') } });
@@ -263,10 +379,14 @@ chrome.runtime.onMessage.addListener(function (m, _s, balas) {
   (async function () {
     if (m.aksi === 'isi') {
       if (sedangJalan) return balas({ ok: false, pesan: 'Sedang mengisi, tunggu sebentar.' });
-      sedangJalan = true;
+      sedangJalan = true; perbaruiLencana();
       try { balas(await isiTanggal(m.tanggal, { paksa: m.paksa, uji: m.uji })); }
       catch (e) { balas({ ok: false, pesan: e.message }); }
-      finally { sedangJalan = false; }
+      finally { sedangJalan = false; perbaruiLencana(); }
+    } else if (m.aksi === 'bukaSimpeg') {
+      var c = await ambilCfg();
+      chrome.tabs.create({ url: c.url, active: true });
+      balas({ ok: true });
     } else if (m.aksi === 'perbarui') {
       balas(await perbaruiData('diminta'));
     } else if (m.aksi === 'tandai') {

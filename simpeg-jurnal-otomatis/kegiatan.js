@@ -40,9 +40,9 @@
     { u: 'Menyusun laporan pelaksanaan tugas pengawasan terhadap Wali/Pengampu sebagai bahan laporan kinerja seksi', o: 'Laporan pengawasan Wali/Pengampu', s: 'Laporan', vol: [1, 1] },
     { u: 'Menyiapkan bahan, daftar berkas, dan rencana jadwal kunjungan penyumpahan Wali/Pengampu ke Provinsi Kepulauan Riau', o: 'Rencana dan bahan kunjungan Kepri', s: 'Dokumen', vol: [1, 1] },
     // --- Koordinasi ke Pengadilan ---
-    { u: 'Melakukan koordinasi ke Pengadilan Negeri {kota} untuk mengambil salinan penetapan perwalian/pengampuan yang telah berkekuatan hukum tetap', o: 'Salinan penetapan dari pengadilan', s: 'Berkas', vol: [2, 6] },
+    { u: 'Melakukan koordinasi ke {pn} untuk mengambil salinan penetapan perwalian/pengampuan yang telah berkekuatan hukum tetap', o: 'Salinan penetapan dari pengadilan', s: 'Berkas', vol: [2, 6] },
     { u: 'Berkoordinasi dengan Kepaniteraan {pn} terkait kelengkapan dan pemutakhiran data perkara perwalian/pengampuan', o: 'Hasil koordinasi dengan kepaniteraan', s: 'Kegiatan', vol: [1, 1] },
-    { u: 'Mengantar dan mengambil berkas permohonan ke Pengadilan Negeri {kota} dalam rangka penyelesaian perwalian/pengampuan', o: 'Berkas terkirim/terterima dari pengadilan', s: 'Berkas', vol: [1, 4] },
+    { u: 'Mengantar dan mengambil berkas permohonan ke {pn} dalam rangka penyelesaian perwalian/pengampuan', o: 'Berkas terkirim/terterima dari pengadilan', s: 'Berkas', vol: [1, 4] },
     // --- Rapat & Zoom ---
     { u: 'Mengikuti rapat koordinasi Seksi Harta Peninggalan Wilayah II membahas progres penyelesaian berkas perwalian/pengampuan', o: 'Catatan hasil rapat koordinasi', s: 'Kegiatan', vol: [1, 1] },
     { u: 'Mengikuti rapat koordinasi secara daring (Zoom) dengan Kantor Wilayah/Direktorat Jenderal AHU terkait pelaksanaan tugas kurator keperdataan', o: 'Catatan hasil rapat daring', s: 'Kegiatan', vol: [1, 1] },
@@ -82,8 +82,9 @@
     jumlahMax: 4,
     aktif: true,
     apelPagi: true,          // tambah 'Zoom Apel Pagi' 07.30–08.00 (SKP Lain-Lain)
-    ishoma: true,
-    jagaSesi: true,          // sentuh SIMPEG tiap 15 menit agar tetap login            // tambah 'ISHOMA' (SKP Lain-Lain)
+    ishoma: true,            // tambah 'ISHOMA' (SKP Lain-Lain)
+    jagaSesi: true,          // sentuh SIMPEG tiap 15 menit agar tetap login
+    tutupTab: true,          // tutup tab SIMPEG milik plugin setelah jurnal berhasil terisi
     simpanOtomatis: true,    // false = hanya mengisi form (uji coba), tidak menekan Simpan
     isiKemarin: true,        // susulkan H-1 bila kemarin hari kerja & belum terisi
     tombolTambah: '',        // kosong = tombol "Tambah"
@@ -94,6 +95,7 @@
       '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
     ],
     kunjungan: [{ mulai: '2026-11-23', selesai: '2026-11-27', kota: 'Batam' }],
+    masaTutup: { dari: 14, sampai: 18 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–18)
     kegiatanTambahan: []     // [{u,o,s,vol:[a,b]}] dari Pengaturan
   };
 
@@ -105,6 +107,13 @@
     var g = parseIso(s).getDay();
     if (g === 0 || g === 6) return false;
     return !((cfg && cfg.libur) || []).includes(s);
+  }
+  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–18 tiap bulan)? */
+  function dalamMasaTutup(s, cfg) {
+    var m = cfg && 'masaTutup' in cfg ? cfg.masaTutup : DEFAULTS.masaTutup;   // null = tidak ada masa tutup
+    if (!m || !m.dari || !m.sampai) return false;
+    var tgl = +s.split('-')[2];
+    return m.dari <= m.sampai ? (tgl >= m.dari && tgl <= m.sampai) : (tgl >= m.dari || tgl <= m.sampai);
   }
   function formatTanggal(s, fmt) {
     var p = s.split('-');
@@ -232,7 +241,7 @@
     DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
     gabungRemote: gabungRemote, validBank: validBank,
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
-    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);
