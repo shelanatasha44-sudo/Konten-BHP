@@ -150,6 +150,7 @@ kbd{font-family:var(--font);background:var(--chip);border:1px solid var(--line);
       '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
     ],
     kunjungan: [{ mulai: '2026-11-23', selesai: '2026-11-27', kota: 'Batam' }],
+    masaTutup: { dari: 14, sampai: 18 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–18)
     kegiatanTambahan: []     // [{u,o,s,vol:[a,b]}] dari Pengaturan
   };
 
@@ -161,6 +162,13 @@ kbd{font-family:var(--font);background:var(--chip);border:1px solid var(--line);
     var g = parseIso(s).getDay();
     if (g === 0 || g === 6) return false;
     return !((cfg && cfg.libur) || []).includes(s);
+  }
+  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–18 tiap bulan)? */
+  function dalamMasaTutup(s, cfg) {
+    var m = cfg && 'masaTutup' in cfg ? cfg.masaTutup : DEFAULTS.masaTutup;   // null = tidak ada masa tutup
+    if (!m || !m.dari || !m.sampai) return false;
+    var tgl = +s.split('-')[2];
+    return m.dari <= m.sampai ? (tgl >= m.dari && tgl <= m.sampai) : (tgl >= m.dari || tgl <= m.sampai);
   }
   function formatTanggal(s, fmt) {
     var p = s.split('-');
@@ -288,7 +296,7 @@ kbd{font-family:var(--font);background:var(--chip);border:1px solid var(--line);
     DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
     gabungRemote: gabungRemote, validBank: validBank,
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
-    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);
@@ -332,6 +340,10 @@ function tampil(offset){
   if(!J.hariKerja(tgl, J.DEFAULTS)){
     var lib = el('div','libur'); lib.innerHTML = (d.getDay()===0||d.getDay()===6)?'🌴 Akhir pekan — tidak perlu isi jurnal.':'🌴 Hari libur — tidak perlu isi jurnal.';
     isi.appendChild(lib); return;
+  }
+  if(J.dalamMasaTutup(hariIni, J.DEFAULTS)){
+    var nt = el('div','note'); nt.innerHTML = '🔒 <b>SIMPEG sedang ditutup</b> untuk penarikan tukin (tgl '+J.DEFAULTS.masaTutup.dari+'–'+J.DEFAULTS.masaTutup.sampai+'). Daftar di bawah tetap bisa disimpan sebagai catatan dan diisikan setelah SIMPEG dibuka kembali.';
+    isi.appendChild(nt);
   }
   var daftar = J.susunJurnal(tgl, J.DEFAULTS);
   daftar.forEach(function(k,i){

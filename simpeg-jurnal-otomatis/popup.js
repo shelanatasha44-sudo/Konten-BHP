@@ -15,7 +15,9 @@ async function muat() {
     : '⚪ Status sesi belum dicek — buka SIMPEG sekali';
   document.getElementById('info').innerHTML =
     (cfg.aktif ? '⏰ Otomatis Senin–Jumat pukul ' + cfg.jam : '⏸ Otomatis dimatikan') +
-    (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)') + '<br>' + sesi + '<br>' + dataInfo;
+    (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)') +
+    (J.dalamMasaTutup(J.iso(new Date()), cfg) ? '<br>🔒 SIMPEG sedang ditutup (penarikan tukin tgl ' + cfg.masaTutup.dari + '–' + cfg.masaTutup.sampai + '); pengisian otomatis menunggu masa tutup selesai' : '') +
+    '<br>' + sesi + '<br>' + dataInfo;
   if (!tgl.value) tgl.value = J.iso(new Date());
   tampil();
 }
@@ -51,6 +53,7 @@ document.querySelectorAll('[data-d]').forEach(function (b) {
 tgl.onchange = tampil;
 document.getElementById('isi').onclick = function () {
   var h = J.iso(new Date());
+  if (J.dalamMasaTutup(h, cfg) && !confirm('Hari ini masa tutup SIMPEG (penarikan tukin). Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
   if (Math.abs((new Date(tgl.value) - new Date(h)) / 864e5) > 1 && !confirm('SIMPEG biasanya hanya menerima H-1, H, H+1. Tetap coba?')) return;
   kirim({ aksi: 'isi', tanggal: tgl.value });
 };

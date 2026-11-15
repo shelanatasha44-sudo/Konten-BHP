@@ -15,6 +15,8 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
 - Laptop baru dibuka siang? Dicek tiap 30 menit dan saat Chrome dibuka, jadi tetap terisi hari itu.
 - **H-1 disusulkan otomatis** bila kemarin hari kerja dan belum terisi (sesuai aturan SIMPEG: H-1, H, H+1).
 - Sabtu/Minggu & tanggal libur/cuti di Pengaturan dilewati.
+- **Masa tutup SIMPEG tgl 14–18 tiap bulan** (penarikan tukin): plugin tidak mencoba mengisi, lencana ikon
+  menjadi `tup`, dan pengisian berjalan lagi setelah masa tutup. Tanggalnya bisa diubah atau dikosongkan di Pengaturan.
 - **Tetap login**: selama Chrome menyala, SIMPEG "disentuh" tiap 15 menit supaya sesi web tidak habis karena menganggur.
 - Sesi tetap habis (mis. laptop mati semalam) → notifikasi "SIMPEG perlu login". Login sekali
   (NIP → password → captcha); pengisian yang tertunda **lanjut sendiri**. Captcha tidak diisi otomatis.
@@ -36,6 +38,8 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
   SIMPEG perlu login, dan tanda … berarti plugin sedang mengisi.
 - **Tab ditutup sendiri.** Tab SIMPEG milik plugin ditutup setelah jurnal lengkap dan terverifikasi
   (bisa dimatikan di Pengaturan). Tab yang sedang Anda lihat tidak ikut ditutup.
+- **Masa tutup bulanan (tgl 14–18).** Selama SIMPEG ditutup untuk penarikan tukin, plugin berhenti mengisi
+  agar tidak memunculkan galat. Pesan SIMPEG yang memuat kata "ditutup" juga dikenali sebagai penolakan.
 - **Klik notifikasi membuka SIMPEG**, sehingga login ulang lebih cepat.
 - **Popup** menampilkan kemajuan sebagian (mis. "baru 3 dari 6 kegiatan") dan punya tombol **↗ Buka SIMPEG**.
 - **Mode uji tidak lagi mengubah status.** Kegiatan yang sudah ada dilewati tanpa dicatat sebagai terisi.

@@ -160,7 +160,7 @@ async function simpegIsiSatuKegiatan(entri, cfg) {
   var konfirm = document.querySelector('.swal2-confirm, .swal-button--confirm, .bootbox-accept');
   if (konfirm && tampak(konfirm)) { konfirm.click(); await tidur(1200); }
   var pesan = window.__jurnalPesan || teks(document.querySelector('.swal2-html-container, .swal2-title, .alert-danger'));
-  if (/gagal|error|tidak (dapat|bisa|boleh)|wajib|harus|melebihi|sudah lewat|batas/i.test(pesan)) {
+  if (/gagal|error|tidak (dapat|bisa|boleh)|wajib|harus|melebihi|sudah lewat|batas|ditutup|tutup/i.test(pesan)) {
     return { ok: false, pesan: 'SIMPEG menolak: ' + pesan };
   }
   return { ok: true, pesan: 'Tersimpan' + (pesan ? ' (' + pesan + ')' : '') };

@@ -51,6 +51,7 @@ async function perbaruiLencana() {
     var s = await chrome.storage.local.get('sesi');
     var h = hariIni(), teks = '', warna = '#6b7280', judul = 'Jurnal SIMPEG Otomatis';
     if (sedangJalan) { teks = '…'; warna = '#1d4ed8'; judul += ' — sedang mengisi'; }
+    else if (J.dalamMasaTutup(h, cfg)) { teks = 'tup'; warna = '#b45309'; judul += ' — SIMPEG ditutup (penarikan tukin)'; }
     else if (st.tertunda || (s.sesi && s.sesi.habis)) { teks = '!'; warna = '#b91c1c'; judul += ' — perlu login SIMPEG'; }
     else if (J.hariKerja(h, cfg) && st.selesai[h] && st.selesai[h].jumlah >= J.susunJurnal(h, cfg).length) { teks = '✓'; warna = '#15803d'; judul += ' — hari ini sudah terisi'; }
     else if (!cfg.aktif) { teks = 'off'; judul += ' — otomatis dimatikan'; }
@@ -272,6 +273,14 @@ async function rutin(alasan) {
   var cfg = await ambilCfg();
   if (!cfg.aktif || !cfg.url) return;
   var h = hariIni();
+  if (J.dalamMasaTutup(h, cfg)) {   // SIMPEG ditutup untuk penarikan tukin: jangan mencoba, cukup catat sekali sehari
+    var s = await chrome.storage.local.get('catatTutup');
+    if (s.catatTutup !== h) {
+      await chrome.storage.local.set({ catatTutup: h });
+      await catat('SIMPEG sedang ditutup (penarikan tukin tgl ' + cfg.masaTutup.dari + '–' + cfg.masaTutup.sampai + '). Pengisian otomatis berhenti dan berjalan lagi setelah masa tutup.', 'info');
+    }
+    return;
+  }
   var target = [];
   if (cfg.isiKemarin) { var kmrn = J.addDays(h, -1); if (J.hariKerja(kmrn, cfg)) target.push(kmrn); }
   if (J.hariKerja(h, cfg) && lewatJam(cfg)) target.push(h);
@@ -335,6 +344,7 @@ chrome.storage.onChanged.addListener(function (c, area) { if (area === 'local' &
 async function jagaSesi() {
   var cfg = await ambilCfg();
   if (!cfg.aktif || !cfg.jagaSesi || sedangJalan || !cfg.url) return;
+  perbaruiLencana();   // lencana ikut berganti saat masuk/keluar masa tutup
   try {
     var r = await fetch(cfg.url, { credentials: 'include', cache: 'no-store', redirect: 'follow' });
     var html = await r.text();

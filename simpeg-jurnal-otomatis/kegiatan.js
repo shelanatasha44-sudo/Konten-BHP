@@ -95,6 +95,7 @@
       '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
     ],
     kunjungan: [{ mulai: '2026-11-23', selesai: '2026-11-27', kota: 'Batam' }],
+    masaTutup: { dari: 14, sampai: 18 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–18)
     kegiatanTambahan: []     // [{u,o,s,vol:[a,b]}] dari Pengaturan
   };
 
@@ -106,6 +107,13 @@
     var g = parseIso(s).getDay();
     if (g === 0 || g === 6) return false;
     return !((cfg && cfg.libur) || []).includes(s);
+  }
+  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–18 tiap bulan)? */
+  function dalamMasaTutup(s, cfg) {
+    var m = cfg && 'masaTutup' in cfg ? cfg.masaTutup : DEFAULTS.masaTutup;   // null = tidak ada masa tutup
+    if (!m || !m.dari || !m.sampai) return false;
+    var tgl = +s.split('-')[2];
+    return m.dari <= m.sampai ? (tgl >= m.dari && tgl <= m.sampai) : (tgl >= m.dari || tgl <= m.sampai);
   }
   function formatTanggal(s, fmt) {
     var p = s.split('-');
@@ -233,7 +241,7 @@
     DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
     gabungRemote: gabungRemote, validBank: validBank,
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
-    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);
