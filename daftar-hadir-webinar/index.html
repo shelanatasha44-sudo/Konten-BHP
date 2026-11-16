@@ -93,7 +93,7 @@ button[disabled]{opacity:.65}
     <p class="ignote">Ingin tahu info webinar BHP Medan berikutnya?</p><a class="ig" href="https://www.instagram.com/bhpmedan_kemenkum" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Ikuti @bhpmedan_kemenkum</a>
     <div class="foot">Data hanya dipakai untuk webinar, e-sertifikat, dan pelaporan kegiatan.</div>
    </div>
-   <div class="ok" id="ok"><div class="seal">✓</div><h2>Terima kasih</h2><div class="nm" id="okName"></div><p>Kehadiran Bapak/Ibu sudah tercatat. E-sertifikat dikirim ke email setelah webinar selesai.</p><p>Ikuti Instagram kami agar tidak ketinggalan info webinar BHP Medan berikutnya.</p><a class="ig" href="https://www.instagram.com/bhpmedan_kemenkum" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Ikuti @bhpmedan_kemenkum</a></div>
+   <div class="ok" id="ok"><div class="seal">✓</div><h2>Terima kasih</h2><div class="nm" id="okName"></div><p>Kehadiran Bapak/Ibu sudah tercatat. E-sertifikat dikirim ke email setelah webinar selesai.</p><p>Ikuti Instagram kami agar tidak ketinggalan info webinar BHP Medan berikutnya. Halaman Instagram terbuka otomatis dalam <b id="cd">3</b> detik.</p><a class="ig" href="https://www.instagram.com/bhpmedan_kemenkum" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Ikuti @bhpmedan_kemenkum</a></div>
   </form>
  </section>
 </main>
@@ -126,6 +126,8 @@ button[disabled]{opacity:.65}
     document.getElementById('okName').textContent=nama;
     document.getElementById('ok').style.display='block';
     window.scrollTo({top:0,behavior:'smooth'});
+    var n=3,c=document.getElementById('cd');
+    var t=setInterval(function(){n--;if(c)c.textContent=n;if(n<=0){clearInterval(t);location.href='https://www.instagram.com/bhpmedan_kemenkum';}},1000);
    })
    .catch(function(){btn.disabled=false;btn.textContent='Kirim Daftar Hadir';show('Koneksi terputus. Mohon coba kirim sekali lagi.')});
  });
