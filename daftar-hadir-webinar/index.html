@@ -100,6 +100,7 @@ button[disabled]{opacity:.65}
 <script>
 (function(){
  var FORM_ID="263190836682061";
+ var SHEET_URL="";/* isi dengan URL Web App Apps Script (…/exec) */
  var f=document.getElementById('f'),btn=document.getElementById('btn'),err=document.getElementById('err');
  function v(id){return document.getElementById(id).value.trim()}
  function show(m){err.textContent=m;err.style.display='block'}
@@ -115,7 +116,10 @@ button[disabled]{opacity:.65}
   d.append('q2_q2_fullname0[first]',nama);d.append('q2_q2_fullname0[last]','');
   d.append('q3_q3_email1',email);d.append('q4_q4_textbox2',ins);d.append('q5_q5_textbox3',wa);d.append('q6_q6_textarea4',saran);
   btn.disabled=true;btn.textContent='Mengirim...';
-  fetch('https://submit.jotform.com/submit/'+FORM_ID,{method:'POST',body:d,mode:'no-cors'})
+  var jobs=[fetch('https://submit.jotform.com/submit/'+FORM_ID,{method:'POST',body:d,mode:'no-cors'})];
+  if(SHEET_URL){var u=new URLSearchParams({nama:nama,email:email,wa:wa,instansi:ins,saran:saran});
+   jobs.push(fetch(SHEET_URL,{method:'POST',body:u,mode:'no-cors'}));}
+  Promise.any(jobs)
    .then(function(){
     try{localStorage.setItem('hadirWebinarBHP',nama)}catch(x){}
     document.getElementById('formArea').style.display='none';
