@@ -16,50 +16,47 @@
 <style>
 :root{--navy:#0B1A3A;--navy2:#13284F;--gold:#C9A45C;--gold2:#E3C98A;--cream:#F5EEDC;--ink:#1B2433}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%}
+html,body{margin:0;height:100%}
 body{font-family:Inter,system-ui,sans-serif;color:var(--cream);background:var(--navy);
- background-image:radial-gradient(120% 80% at 50% 0%,#1d3a6e 0%,var(--navy2) 38%,var(--navy) 75%);background-attachment:fixed;
- padding:max(18px,env(safe-area-inset-top)) 16px 40px}
-.wm{position:fixed;inset:0;pointer-events:none;opacity:.06;display:flex;align-items:flex-end;justify-content:center}
+ background-image:radial-gradient(120% 90% at 20% 0%,#1d3a6e 0%,var(--navy2) 40%,var(--navy) 80%);
+ display:flex;align-items:center;justify-content:center;padding:14px}
+.wm{position:fixed;inset:auto 0 0 0;pointer-events:none;opacity:.09;display:flex;justify-content:center}
 .wm svg{width:min(900px,140vw);height:auto}
-.wrap{position:relative;max-width:560px;margin:0 auto}
-.frame{position:relative;border:1px solid rgba(201,164,92,.55);border-radius:18px;padding:28px 22px 26px;
- background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));box-shadow:0 30px 80px rgba(0,0,0,.35)}
-.frame:before{content:"";position:absolute;inset:7px;border:1px solid rgba(201,164,92,.25);border-radius:13px;pointer-events:none}
-.kop{text-align:center}
-.kop img{width:78px;height:auto;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
-.kop .l1{margin-top:10px;font-size:10.5px;letter-spacing:.22em;color:var(--gold2);font-weight:600}
-.kop .l2{font-size:10.5px;letter-spacing:.22em;color:var(--gold2);font-weight:600}
-.kop .l3{font-size:12.5px;letter-spacing:.2em;color:var(--cream);font-weight:700;margin-top:2px}
-.rule{display:flex;align-items:center;gap:10px;margin:16px auto 14px;max-width:320px;color:var(--gold)}
-.rule:before,.rule:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
-.rule i{font-style:normal;font-size:11px}
-.tag{text-align:center;font-size:11px;letter-spacing:.32em;color:var(--gold);font-weight:600}
-h1{font-family:"Cormorant Garamond",serif;font-weight:700;text-align:center;font-size:42px;line-height:1.02;margin:8px 0 4px;color:#fff}
-h1 em{color:var(--gold2);font-style:italic}
-.tema{text-align:center;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:20px;line-height:1.25;color:var(--cream);margin:10px 6px 4px}
-.sub{text-align:center;font-size:12.5px;color:rgba(245,238,220,.78);margin:0 8px}
-.meta{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
-.chip{border:1px solid rgba(201,164,92,.45);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--cream);background:rgba(11,26,58,.5)}
-.card{margin-top:20px;background:var(--cream);color:var(--ink);border-radius:14px;padding:20px 18px 18px;box-shadow:inset 0 0 0 1px rgba(201,164,92,.6)}
-.card h2{margin:0 0 4px;font-family:"Cormorant Garamond",serif;font-size:24px;color:var(--navy)}
-.card p.note{margin:0 0 14px;font-size:12.5px;line-height:1.5;color:#4a5263}
-label{display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin:12px 0 6px}
+.box{position:relative;width:100%;max-width:940px;display:grid;grid-template-columns:1fr;border:1px solid rgba(201,164,92,.55);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.side{position:relative;padding:16px 16px 14px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,0))}
+.side:before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,164,92,.22);border-radius:13px;pointer-events:none}
+.side:after{content:"";position:absolute;right:-30px;bottom:-30px;width:230px;height:260px;background:url(logo.png) no-repeat center/contain;opacity:.09;pointer-events:none}
+.side>*{position:relative;z-index:1}
+.kop{display:flex;align-items:center;gap:12px}
+.kop img{width:46px;height:auto;flex:none}
+.kop div{font-size:9px;letter-spacing:.16em;line-height:1.5;color:var(--gold2);font-weight:600}
+.kop b{display:block;color:var(--cream);font-size:10.5px;letter-spacing:.14em}
+h1{font-family:"Cormorant Garamond",serif;font-weight:700;font-size:34px;line-height:1;margin:12px 0 4px;color:#fff}
+h1 em{color:var(--gold2)}
+.tag{font-size:10px;letter-spacing:.3em;color:var(--gold);font-weight:600;margin-top:12px}
+.tema{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:17px;line-height:1.25;margin:4px 0 8px}
+.meta{font-size:11.5px;color:rgba(245,238,220,.8)}
+.meta span{color:var(--gold2)}
+.form{background:var(--cream);color:var(--ink);padding:16px}
+.note{margin:0 0 6px;font-size:12px;line-height:1.45;color:#4a5263}
+.grid{display:grid;grid-template-columns:1fr;gap:0 12px}
+label{display:block;font-size:11.5px;font-weight:600;color:var(--navy);margin:9px 0 4px}
 label small{font-weight:400;color:#6b7280}
-input,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:#fff;border:1px solid #d7cfbb;border-radius:10px;padding:12px 13px;outline:none;transition:border-color .15s,box-shadow .15s}
-textarea{min-height:84px;resize:vertical}
+input,textarea{width:100%;font:inherit;font-size:14.5px;color:var(--ink);background:#fff;border:1px solid #d7cfbb;border-radius:9px;padding:10px 11px;outline:none}
+textarea{height:44px;min-height:44px;resize:vertical}
 input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,92,.25)}
-.err{display:none;margin-top:12px;font-size:12.5px;color:#9b1c1c;background:#fde8e8;border-radius:8px;padding:9px 11px}
-button{margin-top:18px;width:100%;border:0;border-radius:12px;padding:15px 16px;font:inherit;font-weight:700;font-size:15.5px;letter-spacing:.02em;
- color:var(--navy);background:linear-gradient(180deg,var(--gold2),var(--gold));box-shadow:0 10px 24px rgba(201,164,92,.35);cursor:pointer}
-button[disabled]{opacity:.65;cursor:wait}
-.ok{display:none;text-align:center;padding:10px 4px 4px}
-.ok .seal{width:64px;height:64px;border-radius:50%;margin:4px auto 10px;display:grid;place-items:center;background:var(--navy);color:var(--gold2);font-size:30px;box-shadow:0 0 0 3px var(--gold)}
-.ok h2{font-size:28px}
-.ok p{font-size:13.5px;line-height:1.55;color:#3b4252;margin:6px 0}
-.ok .nm{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:700;color:var(--navy);margin:8px 0}
-.foot{text-align:center;font-size:11px;color:rgba(245,238,220,.6);margin-top:18px;line-height:1.6}
-@media (min-width:520px){h1{font-size:50px}.frame{padding:34px 34px 30px}}
+.full{grid-column:1/-1}
+.err{display:none;margin-top:10px;font-size:12px;color:#9b1c1c;background:#fde8e8;border-radius:8px;padding:8px 10px}
+button{margin-top:12px;width:100%;border:0;border-radius:10px;padding:13px;font:inherit;font-weight:700;font-size:15px;color:var(--navy);background:linear-gradient(180deg,var(--gold2),var(--gold));cursor:pointer}
+button[disabled]{opacity:.65}
+.ok{display:none;text-align:center;padding:24px 6px}
+.ok .seal{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;background:var(--navy);color:var(--gold2);font-size:26px;box-shadow:0 0 0 3px var(--gold)}
+.ok h2{font-family:"Cormorant Garamond",serif;font-size:28px;margin:0;color:var(--navy)}
+.ok p{font-size:13px;line-height:1.5;color:#3b4252;margin:6px 0}
+.ok .nm{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:700;color:var(--navy)}
+.foot{font-size:10px;color:#7a7f8a;margin-top:10px;text-align:center}
+@media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
+@media(min-width:820px){.side:after{width:380px;height:430px;right:-60px;bottom:-60px}.box{grid-template-columns:5fr 7fr}.side{padding:30px 28px;display:flex;flex-direction:column;justify-content:center}.kop img{width:60px}h1{font-size:52px;margin-top:26px}.tema{font-size:21px}.form{padding:26px 28px}}
 </style>
 </head>
 <body>
@@ -69,53 +66,31 @@ button[disabled]{opacity:.65;cursor:wait}
 <path d="M150 170h600M140 150h620M450 30L130 140h640z"/><circle cx="450" cy="100" r="18"/>
 </svg>
 </div>
-<main class="wrap">
- <section class="frame">
-  <div class="kop">
-   <img src="logo.png" alt="Logo Pengayoman">
-   <div class="l1">KEMENTERIAN HUKUM REPUBLIK INDONESIA</div>
-   <div class="l2">KANTOR WILAYAH SUMATERA UTARA</div>
-   <div class="l3">BALAI HARTA PENINGGALAN MEDAN</div>
-  </div>
-  <div class="rule"><i>§</i></div>
+<main class="box">
+ <section class="side">
+  <div class="kop"><img src="logo.png" alt="Logo Pengayoman"><div>KEMENTERIAN HUKUM REPUBLIK INDONESIA<br>KANTOR WILAYAH SUMATERA UTARA<b>BALAI HARTA PENINGGALAN MEDAN</b></div></div>
   <div class="tag">WEBINAR PENGAMPUAN</div>
   <h1>Daftar <em>Hadir</em></h1>
   <p class="tema">“Menjaga yang Tak Lagi Mampu, Melindungi Hak yang Tetap Ada”</p>
-  <p class="sub">Sub tema: Pengampuan sebagai Pencegah Sengketa Harta Keluarga</p>
-  <div class="meta">
-   <span class="chip">Selasa, 24 November 2026</span>
-   <span class="chip">09.30 s.d. 12.00 WIB</span>
-   <span class="chip">Zoom Meeting</span>
-  </div>
-
-  <div class="card">
-   <form id="f" novalidate>
-    <div id="formArea">
-     <h2>Isi daftar hadir</h2>
-     <p class="note">Daftar hadir ini menjadi dasar penerbitan e-sertifikat. Tulis nama dan gelar persis seperti yang ingin dicetak, dan gunakan email yang sama dengan saat mendaftar.</p>
-     <label for="nama">Nama lengkap dan gelar</label>
-     <input id="nama" name="nama" autocomplete="name" placeholder="Contoh: Dr. Siti Aminah, S.H., M.Kn." required>
-     <label for="email">Email yang dipakai saat mendaftar</label>
-     <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="nama@contoh.com" required>
-     <label for="instansi">Instansi atau profesi</label>
-     <input id="instansi" name="instansi" autocomplete="organization" placeholder="Contoh: Notaris Kota Medan" required>
-     <label for="wa">Nomor WhatsApp</label>
-     <input id="wa" name="wa" type="tel" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" required>
-     <label for="saran">Kesan dan saran <small>(boleh dikosongkan)</small></label>
-     <textarea id="saran" name="saran" placeholder="Tulis kesan atau saran Bapak/Ibu untuk webinar ini"></textarea>
-     <div class="err" id="err"></div>
-     <button id="btn" type="submit">Kirim Daftar Hadir</button>
+  <div class="meta"><span>Selasa, 24 November 2026</span> · 09.30 s.d. 12.00 WIB · Zoom Meeting</div>
+ </section>
+ <section class="form">
+  <form id="f" novalidate>
+   <div id="formArea">
+    <p class="note">Daftar hadir ini menjadi dasar e-sertifikat. Tulis nama dan gelar persis seperti yang ingin dicetak.</p>
+    <div class="grid">
+     <div class="full"><label for="nama">Nama lengkap dan gelar</label><input id="nama" autocomplete="name" placeholder="Contoh: Dr. Siti Aminah, S.H., M.Kn."></div>
+     <div><label for="email">Email saat mendaftar</label><input id="email" type="email" inputmode="email" autocomplete="email" placeholder="nama@contoh.com"></div>
+     <div><label for="wa">Nomor WhatsApp</label><input id="wa" type="tel" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx"></div>
+     <div class="full"><label for="instansi">Instansi atau profesi</label><input id="instansi" autocomplete="organization" placeholder="Contoh: Notaris Kota Medan"></div>
+     <div class="full"><label for="saran">Kesan dan saran <small>(boleh dikosongkan)</small></label><textarea id="saran" placeholder="Tulis singkat"></textarea></div>
     </div>
-    <div class="ok" id="ok">
-     <div class="seal">✓</div>
-     <h2>Terima kasih</h2>
-     <div class="nm" id="okName"></div>
-     <p>Kehadiran Bapak/Ibu sudah tercatat.</p>
-     <p>E-sertifikat akan dikirim ke email yang Bapak/Ibu isi setelah webinar selesai.</p>
-    </div>
-   </form>
-  </div>
-  <div class="foot">Balai Harta Peninggalan Medan · Jalan Listrik No. 10 Medan<br>Data hanya dipakai untuk keperluan webinar, e-sertifikat, dan pelaporan kegiatan.</div>
+    <div class="err" id="err"></div>
+    <button id="btn" type="submit">Kirim Daftar Hadir</button>
+    <div class="foot">Data hanya dipakai untuk webinar, e-sertifikat, dan pelaporan kegiatan.</div>
+   </div>
+   <div class="ok" id="ok"><div class="seal">✓</div><h2>Terima kasih</h2><div class="nm" id="okName"></div><p>Kehadiran Bapak/Ibu sudah tercatat. E-sertifikat dikirim ke email setelah webinar selesai.</p></div>
+  </form>
  </section>
 </main>
 <script>
