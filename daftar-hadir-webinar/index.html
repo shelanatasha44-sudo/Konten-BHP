@@ -37,6 +37,10 @@ h1 em{color:var(--gold2)}
 .tema{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:17px;line-height:1.25;margin:4px 0 8px}
 .meta{font-size:11.5px;color:rgba(245,238,220,.8)}
 .meta span{color:var(--gold2)}
+.qr{display:none;margin-top:18px;align-items:center;gap:14px}
+.qr img{width:104px;height:104px;background:#fff;padding:6px;border-radius:8px;box-shadow:0 0 0 1px var(--gold)}
+.qr div{font-size:11px;letter-spacing:.14em;color:var(--gold2);font-weight:600;line-height:1.6}
+.qr b{display:block;font-size:13px;letter-spacing:.02em;color:var(--cream)}
 .form{background:var(--cream);color:var(--ink);padding:16px}
 .note{margin:0 0 6px;font-size:12px;line-height:1.45;color:#4a5263}
 .grid{display:grid;grid-template-columns:1fr;gap:0 12px}
@@ -59,7 +63,7 @@ button[disabled]{opacity:.65}
 .ignote{font-size:11.5px;color:#4a5263;text-align:center;margin-top:12px}
 .foot{font-size:10px;color:#7a7f8a;margin-top:10px;text-align:center}
 @media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
-@media(min-width:820px){.side:after{width:380px;height:430px;right:-60px;bottom:-60px}.box{grid-template-columns:5fr 7fr}.side{padding:30px 28px;display:flex;flex-direction:column;justify-content:center}.kop img{width:60px}h1{font-size:52px;margin-top:26px}.tema{font-size:21px}.form{padding:26px 28px}}
+@media(min-width:820px){.qr{display:flex}.side:after{width:380px;height:430px;right:-60px;bottom:-60px}.box{grid-template-columns:5fr 7fr}.side{padding:30px 28px;display:flex;flex-direction:column;justify-content:center}.kop img{width:60px}h1{font-size:52px;margin-top:26px}.tema{font-size:21px}.form{padding:26px 28px}}
 </style>
 </head>
 <body>
@@ -76,6 +80,7 @@ button[disabled]{opacity:.65}
   <h1>Daftar <em>Hadir</em></h1>
   <p class="tema">“Menjaga yang Tak Lagi Mampu, Melindungi Hak yang Tetap Ada”</p>
   <div class="meta"><span>Selasa, 24 November 2026</span> · 09.30 s.d. 12.00 WIB · Zoom Meeting</div>
+  <div class="qr"><img alt="QR daftar hadir" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQAAAABRBrPYAAADX0lEQVR42u2av67zRBDFf5MNOBLFhgqJxvcNqGhofOl5EcRDrFPzErT01LB5A3gDR6LHlr7Cgc0einU+8Sf3XtPi3S7ZUWKPZs6cOTMmVpxpx6rzfzCTmZnZASY7ApzNzKzH/nq5HYfscQm4evDj0WgH6E4/WY9MYBm4fbQhh6w0I7sEzdxoBNqBVlKE0CMsWwaXmrH67RUzP0J7fj7bc+gBI2/cIWvibfYaaTW0en/QBuON7CRpbjT6EVoNXezUQ0BSNkmqCfgI8G8G0FzbSzt+dn46A2f1Mpl2N5XLmoD/MrOSbDPTES7duTuFCMGEjPeX1W//PFLCaS4fWg3QKUIQAqyk8aaAC3DSDHhJBbjUEwAwJbcth/xHwKfRCPfy1wOIUgCr316IN5doZvCjH2gV6SKhD4CULYGrfnvkN5feM9V2oI2d1AcJlLFCyMYtMQdwuvrJz9Ox/aXT5ak7hy9PmMws73auUvfHFTA5FbzHS0sG9hBAAC65ClwPzW5mh3uPDZdnoFCuBfDT7VDj7RFwSZqbGa+xHYBuqZSSqfCxzcXb7dBMXpdjoQ4ne4bQg2XZrgbSCy1Puu25mp+OfvQDF7MQOfULbAE321fAf8hUkyvaBH6AVrGLQZJAkpKr0sQjgmEJuB6aeToWURXoupMsCLOsJuHmaXOin7SIfhroFAk9oGzZkkuVur9SASWNvkilkaI5SNlyZVwvaTWFODQjXkMZBqkP6iUsm2qr+BLD5y7Ol0SNdJLUC2HanN+QlCjpJw1F9YtBPWVYYVKiVsDHgeQ0l9kY7dDGLgIESVLGqQL+i4WSRjNLpdQyDNJdG6x+e8y4bi5dD4cJ8LoYdJGAzCRjh0uk7VVAFcblNRQOuiSgSRmowPXqXg3+Yt35qUgOwcxAO4qWWv32yhRbRRuU7iqzFcSvTPWt9Zt7oQwL4wLYaot9bTX6wrfKF4ZZtuyue1fH06/s1RSxtB262MXSYUt5GexvIpB+Rf0Ks+H6cxkGOcGVRkzHFtpIJEqYCRPvbN2zfbjK7PbpD+++W/OmX635NetX/eluXPcKB8Y1Zr/9SM99x62RxmVvMJYeu0wVNe/hk3H/JnP74vPvv+FNM3fm24+/XhMhvx9XBdIf/bp4W2f2wRNWV5T/fv4EVN2HzS3Z4JEAAAAASUVORK5CYII="><div>PINDAI UNTUK<br>ISI DAFTAR HADIR<b>bit.ly/absenwebinarbhp</b></div></div>
  </section>
  <section class="form">
   <form id="f" novalidate>
