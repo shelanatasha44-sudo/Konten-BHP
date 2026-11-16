@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daftar Hadir · Webinar Pengampuan BHP Medan</title>
+<meta name="description" content="Daftar hadir Webinar Pengampuan Balai Harta Peninggalan Medan, Selasa 24 November 2026.">
+<meta name="theme-color" content="#0B1A3A">
+<meta property="og:title" content="Daftar Hadir Webinar Pengampuan BHP Medan">
+<meta property="og:description" content="Menjaga yang Tak Lagi Mampu, Melindungi Hak yang Tetap Ada. Isi daftar hadir untuk e-sertifikat.">
+<meta property="og:image" content="logo.png">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0B1A3A;--navy2:#13284F;--gold:#C9A45C;--gold2:#E3C98A;--cream:#F5EEDC;--ink:#1B2433}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Inter,system-ui,sans-serif;color:var(--cream);background:var(--navy);
+ background-image:radial-gradient(120% 80% at 50% 0%,#1d3a6e 0%,var(--navy2) 38%,var(--navy) 75%);background-attachment:fixed;
+ padding:max(18px,env(safe-area-inset-top)) 16px 40px}
+.wm{position:fixed;inset:0;pointer-events:none;opacity:.06;display:flex;align-items:flex-end;justify-content:center}
+.wm svg{width:min(900px,140vw);height:auto}
+.wrap{position:relative;max-width:560px;margin:0 auto}
+.frame{position:relative;border:1px solid rgba(201,164,92,.55);border-radius:18px;padding:28px 22px 26px;
+ background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.frame:before{content:"";position:absolute;inset:7px;border:1px solid rgba(201,164,92,.25);border-radius:13px;pointer-events:none}
+.kop{text-align:center}
+.kop img{width:78px;height:auto;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
+.kop .l1{margin-top:10px;font-size:10.5px;letter-spacing:.22em;color:var(--gold2);font-weight:600}
+.kop .l2{font-size:10.5px;letter-spacing:.22em;color:var(--gold2);font-weight:600}
+.kop .l3{font-size:12.5px;letter-spacing:.2em;color:var(--cream);font-weight:700;margin-top:2px}
+.rule{display:flex;align-items:center;gap:10px;margin:16px auto 14px;max-width:320px;color:var(--gold)}
+.rule:before,.rule:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.rule i{font-style:normal;font-size:11px}
+.tag{text-align:center;font-size:11px;letter-spacing:.32em;color:var(--gold);font-weight:600}
+h1{font-family:"Cormorant Garamond",serif;font-weight:700;text-align:center;font-size:42px;line-height:1.02;margin:8px 0 4px;color:#fff}
+h1 em{color:var(--gold2);font-style:italic}
+.tema{text-align:center;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:20px;line-height:1.25;color:var(--cream);margin:10px 6px 4px}
+.sub{text-align:center;font-size:12.5px;color:rgba(245,238,220,.78);margin:0 8px}
+.meta{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
+.chip{border:1px solid rgba(201,164,92,.45);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--cream);background:rgba(11,26,58,.5)}
+.card{margin-top:20px;background:var(--cream);color:var(--ink);border-radius:14px;padding:20px 18px 18px;box-shadow:inset 0 0 0 1px rgba(201,164,92,.6)}
+.card h2{margin:0 0 4px;font-family:"Cormorant Garamond",serif;font-size:24px;color:var(--navy)}
+.card p.note{margin:0 0 14px;font-size:12.5px;line-height:1.5;color:#4a5263}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin:12px 0 6px}
+label small{font-weight:400;color:#6b7280}
+input,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:#fff;border:1px solid #d7cfbb;border-radius:10px;padding:12px 13px;outline:none;transition:border-color .15s,box-shadow .15s}
+textarea{min-height:84px;resize:vertical}
+input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,92,.25)}
+.err{display:none;margin-top:12px;font-size:12.5px;color:#9b1c1c;background:#fde8e8;border-radius:8px;padding:9px 11px}
+button{margin-top:18px;width:100%;border:0;border-radius:12px;padding:15px 16px;font:inherit;font-weight:700;font-size:15.5px;letter-spacing:.02em;
+ color:var(--navy);background:linear-gradient(180deg,var(--gold2),var(--gold));box-shadow:0 10px 24px rgba(201,164,92,.35);cursor:pointer}
+button[disabled]{opacity:.65;cursor:wait}
+.ok{display:none;text-align:center;padding:10px 4px 4px}
+.ok .seal{width:64px;height:64px;border-radius:50%;margin:4px auto 10px;display:grid;place-items:center;background:var(--navy);color:var(--gold2);font-size:30px;box-shadow:0 0 0 3px var(--gold)}
+.ok h2{font-size:28px}
+.ok p{font-size:13.5px;line-height:1.55;color:#3b4252;margin:6px 0}
+.ok .nm{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:700;color:var(--navy);margin:8px 0}
+.foot{text-align:center;font-size:11px;color:rgba(245,238,220,.6);margin-top:18px;line-height:1.6}
+@media (min-width:520px){h1{font-size:50px}.frame{padding:34px 34px 30px}}
+</style>
+</head>
+<body>
+<div class="wm" aria-hidden="true">
+<svg viewBox="0 0 900 420" fill="none" stroke="#E3C98A" stroke-width="3">
+<path d="M90 400h720M120 380h660M150 360h600"/><path d="M180 360V170M270 360V170M360 360V170M450 360V170M540 360V170M630 360V170M720 360V170"/>
+<path d="M150 170h600M140 150h620M450 30L130 140h640z"/><circle cx="450" cy="100" r="18"/>
+</svg>
+</div>
+<main class="wrap">
+ <section class="frame">
+  <div class="kop">
+   <img src="logo.png" alt="Logo Pengayoman">
+   <div class="l1">KEMENTERIAN HUKUM REPUBLIK INDONESIA</div>
+   <div class="l2">KANTOR WILAYAH SUMATERA UTARA</div>
+   <div class="l3">BALAI HARTA PENINGGALAN MEDAN</div>
+  </div>
+  <div class="rule"><i>§</i></div>
+  <div class="tag">WEBINAR PENGAMPUAN</div>
+  <h1>Daftar <em>Hadir</em></h1>
+  <p class="tema">“Menjaga yang Tak Lagi Mampu, Melindungi Hak yang Tetap Ada”</p>
+  <p class="sub">Sub tema: Pengampuan sebagai Pencegah Sengketa Harta Keluarga</p>
+  <div class="meta">
+   <span class="chip">Selasa, 24 November 2026</span>
+   <span class="chip">09.30 s.d. 12.00 WIB</span>
+   <span class="chip">Zoom Meeting</span>
+  </div>
+
+  <div class="card">
+   <form id="f" novalidate>
+    <div id="formArea">
+     <h2>Isi daftar hadir</h2>
+     <p class="note">Daftar hadir ini menjadi dasar penerbitan e-sertifikat. Tulis nama dan gelar persis seperti yang ingin dicetak, dan gunakan email yang sama dengan saat mendaftar.</p>
+     <label for="nama">Nama lengkap dan gelar</label>
+     <input id="nama" name="nama" autocomplete="name" placeholder="Contoh: Dr. Siti Aminah, S.H., M.Kn." required>
+     <label for="email">Email yang dipakai saat mendaftar</label>
+     <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="nama@contoh.com" required>
+     <label for="instansi">Instansi atau profesi</label>
+     <input id="instansi" name="instansi" autocomplete="organization" placeholder="Contoh: Notaris Kota Medan" required>
+     <label for="wa">Nomor WhatsApp</label>
+     <input id="wa" name="wa" type="tel" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" required>
+     <label for="saran">Kesan dan saran <small>(boleh dikosongkan)</small></label>
+     <textarea id="saran" name="saran" placeholder="Tulis kesan atau saran Bapak/Ibu untuk webinar ini"></textarea>
+     <div class="err" id="err"></div>
+     <button id="btn" type="submit">Kirim Daftar Hadir</button>
+    </div>
+    <div class="ok" id="ok">
+     <div class="seal">✓</div>
+     <h2>Terima kasih</h2>
+     <div class="nm" id="okName"></div>
+     <p>Kehadiran Bapak/Ibu sudah tercatat.</p>
+     <p>E-sertifikat akan dikirim ke email yang Bapak/Ibu isi setelah webinar selesai.</p>
+    </div>
+   </form>
+  </div>
+  <div class="foot">Balai Harta Peninggalan Medan · Jalan Listrik No. 10 Medan<br>Data hanya dipakai untuk keperluan webinar, e-sertifikat, dan pelaporan kegiatan.</div>
+ </section>
+</main>
+<script>
+(function(){
+ var FORM_ID="263190836682061";
+ var f=document.getElementById('f'),btn=document.getElementById('btn'),err=document.getElementById('err');
+ function v(id){return document.getElementById(id).value.trim()}
+ function show(m){err.textContent=m;err.style.display='block'}
+ f.addEventListener('submit',function(e){
+  e.preventDefault();err.style.display='none';
+  var nama=v('nama'),email=v('email'),ins=v('instansi'),wa=v('wa').replace(/[^\d+]/g,''),saran=v('saran');
+  if(nama.length<3)return show('Mohon isi nama lengkap dan gelar.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return show('Mohon periksa kembali alamat email.');
+  if(ins.length<2)return show('Mohon isi instansi atau profesi.');
+  if(wa.replace('+','').length<9)return show('Mohon periksa kembali nomor WhatsApp.');
+  var d=new FormData();
+  d.append('formID',FORM_ID);d.append('simple_spc',FORM_ID+'-'+FORM_ID);d.append('website','');
+  d.append('q2_q2_fullname0[first]',nama);d.append('q2_q2_fullname0[last]','');
+  d.append('q3_q3_email1',email);d.append('q4_q4_textbox2',ins);d.append('q5_q5_textbox3',wa);d.append('q6_q6_textarea4',saran);
+  btn.disabled=true;btn.textContent='Mengirim...';
+  fetch('https://submit.jotform.com/submit/'+FORM_ID,{method:'POST',body:d,mode:'no-cors'})
+   .then(function(){
+    try{localStorage.setItem('hadirWebinarBHP',nama)}catch(x){}
+    document.getElementById('formArea').style.display='none';
+    document.getElementById('okName').textContent=nama;
+    document.getElementById('ok').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+   })
+   .catch(function(){btn.disabled=false;btn.textContent='Kirim Daftar Hadir';show('Koneksi terputus. Mohon coba kirim sekali lagi.')});
+ });
+})();
+</script>
+</body>
+</html>
