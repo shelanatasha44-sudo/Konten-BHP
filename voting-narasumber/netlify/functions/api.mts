@@ -5,31 +5,6 @@ import type { Config, Context } from "@netlify/functions"
 const KANDIDAT = new Set(["a1", "a2", "a3", "a4", "a6", "a7", "a8", "a9", "a10", "h1"])
 const MAX_PILIHAN = 2
 
-/** Nama singkat kandidat, untuk isi email notifikasi. */
-const NAMA: Record<string, string> = {
-  a1: "Dr. Tengku Erwinsyahbana", a2: "Ratna D. E. Sirait", a3: "Prof. Dr. Elisabeth N. Butarbutar",
-  a4: "Prof. Dr. Maidin Gultom", a6: "Ria Juliana Siregar", a7: "Besty Habeahan", a8: "Dr. Azwir Agus",
-  a9: "Prof. Dr. Syafruddin Syam", a10: "Dr. Tetty Marlina Tarigan", h1: "Satya Frida Lestari (Hakim)",
-}
-
-/** Kirim notifikasi lewat Netlify Forms (form "notif-vote"); Netlify meneruskannya ke email yang diatur di dasbor. */
-async function notify(req: Request, v: Vote, total: number) {
-  const body = new URLSearchParams({
-    "form-name": "notif-vote",
-    nama: v.nama,
-    pilihan: v.pilihan.map((id) => NAMA[id] ?? id).join("; ") || "(tidak memilih nama)",
-    usulan: v.usulan || "-",
-    jaringan: v.ipHash.slice(0, 6).toUpperCase(),
-    waktu: new Date(v.at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
-    total_suara: String(total),
-  })
-  try {
-    const r = await fetch(new URL("/", req.url), { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body })
-    if (!r.ok) console.error("notif gagal", r.status)
-  } catch (e) {
-    console.error("notif gagal", e)
-  }
-}
 
 /** Sumber foto kandidat (dicoba berurutan). Diambil lewat server agar tidak diblokir situs asal. */
 const FOTO: Record<string, string[]> = {
@@ -183,9 +158,7 @@ export default async (req: Request, context: Context) => {
       const { modified } = await s.setJSON(id, vote, { onlyIfNew: true })
       if (!modified) return json({ code: "already", error: "Suara dari perangkat ini sudah tercatat." }, 409)
       cache = null
-      const res = (await results()) as { total: number }
-      context.waitUntil(notify(req, vote, res.total))
-      return json({ ok: true, ...res })
+      return json({ ok: true, ...(await results() as object) })
     }
 
     if (route === "admin" && req.method === "POST") {
