@@ -36,8 +36,8 @@ button{padding:8px 14px;border-radius:6px;border:0;background:var(--pri);color:#
 <label class="cek"><input type="checkbox" id="aktif"> Isi otomatis aktif</label>
 <label class="cek"><input type="checkbox" id="simpanOtomatis"> Tekan Simpan otomatis <span class="mut">(matikan untuk uji coba: form hanya diisi)</span></label>
 <label class="cek"><input type="checkbox" id="isiKemarin"> Susulkan H-1 bila kemarin belum terisi (mis. laptop tidak dibuka)</label>
-<label>Masa tutup SIMPEG tiap bulan (penarikan tukin) <small>— tanggal dari–sampai; kosongkan bila tidak ada</small></label>
-<div class="grid" style="grid-template-columns:1fr 1fr"><input type="number" id="tutupDari" min="1" max="31" placeholder="14"><input type="number" id="tutupSampai" min="1" max="31" placeholder="18"></div>
+<label>Masa tutup SIMPEG tiap bulan (penarikan tukin) <small>— bawaan 14–17 (tgl 18 sudah buka); kosongkan bila tidak ada. Hari kerja terakhir sebelumnya (biasanya tgl 13) bisa mengisi maju s.d. tgl 17 — otomatis bila tgl 13 jatuh di akhir pekan/libur; tgl 18 menyusulkan hari 14–17 yang kosong.</small></label>
+<div class="grid" style="grid-template-columns:1fr 1fr"><input type="number" id="tutupDari" min="1" max="31" placeholder="14"><input type="number" id="tutupSampai" min="1" max="31" placeholder="17"></div>
 <label>Hari libur / cuti (satu tanggal per baris, yyyy-mm-dd)</label><textarea id="libur"></textarea>
 <label>Kunjungan dinas (satu per baris: mulai,selesai,kota) <small>— kegiatan diganti tema penyumpahan di lokasi</small></label><textarea id="kunjungan"></textarea>
 </section>

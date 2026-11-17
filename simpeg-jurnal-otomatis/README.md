@@ -15,11 +15,15 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
 - Laptop baru dibuka siang? Dicek tiap 30 menit dan saat Chrome dibuka, jadi tetap terisi hari itu.
 - **H-1 disusulkan otomatis** bila kemarin hari kerja dan belum terisi (sesuai aturan SIMPEG: H-1, H, H+1).
 - Sabtu/Minggu & tanggal libur/cuti di Pengaturan dilewati.
-- **Masa tutup SIMPEG tgl 14–18 tiap bulan** (penarikan tukin): plugin tidak mencoba mengisi, lencana ikon
-  menjadi `tup`, dan pengisian berjalan lagi setelah masa tutup. Tanggalnya bisa diubah atau dikosongkan di Pengaturan.
-- **Susulan masa tutup sekali klik.** Pilih tanggal di masa tutup (mis. 18) lalu tekan **Isi sekarang**:
-  semua hari kerja masa tutup bulan itu yang belum lengkap diisi berurutan sampai tanggal tersebut
-  (November 2026: 16, 17, 18, karena 14–15 akhir pekan).
+- **Masa tutup SIMPEG tgl 14–17 tiap bulan** (penarikan tukin; tgl 18 sudah buka): plugin tidak mencoba
+  mengisi, lencana ikon menjadi `tup`. Tanggalnya bisa diubah atau dikosongkan di Pengaturan.
+- **Isi maju sebelum masa tutup.** Pada hari kerja terakhir sebelum tgl 14 (biasanya tgl 13) popup
+  menampilkan tombol **Isi s.d. tgl 17 (masa tutup)** untuk mengisi hari itu + hari kerja 14–17 sekaligus.
+  Bila tgl 13 jatuh di akhir pekan/libur, pengisian maju ini berjalan **otomatis** pada hari kerja
+  terakhirnya (mis. Desember 2026: Jumat 11 → 11, 14, 15, 16, 17).
+- **Susulan setelah masa tutup.** Pada hari kerja pertama setelah masa tutup (biasanya tgl 18) plugin
+  otomatis menyusulkan hari kerja 14–17 yang masih kosong, lalu tanggal itu sendiri. Tombol **Isi sekarang**
+  pada tanggal itu melakukan hal yang sama.
 - **Tetap login**: selama Chrome menyala, SIMPEG "disentuh" tiap 15 menit supaya sesi web tidak habis karena menganggur.
 - Sesi tetap habis (mis. laptop mati semalam) → notifikasi "SIMPEG perlu login". Login sekali
   (NIP → password → captcha); pengisian yang tertunda **lanjut sendiri**. Captcha tidak diisi otomatis.
@@ -41,7 +45,7 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
   SIMPEG perlu login, dan tanda … berarti plugin sedang mengisi.
 - **Tab ditutup sendiri.** Tab SIMPEG milik plugin ditutup setelah jurnal lengkap dan terverifikasi
   (bisa dimatikan di Pengaturan). Tab yang sedang Anda lihat tidak ikut ditutup.
-- **Masa tutup bulanan (tgl 14–18).** Selama SIMPEG ditutup untuk penarikan tukin, plugin berhenti mengisi
+- **Masa tutup bulanan (tgl 14–17).** Selama SIMPEG ditutup untuk penarikan tukin, plugin berhenti mengisi
   agar tidak memunculkan galat. Pesan SIMPEG yang memuat kata "ditutup" juga dikenali sebagai penolakan.
 - **Klik notifikasi membuka SIMPEG**, sehingga login ulang lebih cepat.
 - **Popup** menampilkan kemajuan sebagian (mis. "baru 3 dari 6 kegiatan") dan punya tombol **↗ Buka SIMPEG**.

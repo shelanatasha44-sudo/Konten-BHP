@@ -277,13 +277,19 @@ async function rutin(alasan) {
     var s = await chrome.storage.local.get('catatTutup');
     if (s.catatTutup !== h) {
       await chrome.storage.local.set({ catatTutup: h });
-      await catat('SIMPEG sedang ditutup (penarikan tukin tgl ' + cfg.masaTutup.dari + '–' + cfg.masaTutup.sampai + '). Pengisian otomatis berhenti dan berjalan lagi setelah masa tutup.', 'info');
+      await catat('SIMPEG sedang ditutup (penarikan tukin tgl ' + J.tutupDari(cfg).dari + '–' + J.tutupDari(cfg).sampai + '). Pengisian otomatis berjalan lagi tgl ' + (+(J.hariSetelahTutup(h, cfg) || '').slice(8)) + ' dan menyusulkan hari yang kosong.', 'info');
     }
     return;
   }
   var target = [];
-  if (cfg.isiKemarin) { var kmrn = J.addDays(h, -1); if (J.hariKerja(kmrn, cfg)) target.push(kmrn); }
-  if (J.hariKerja(h, cfg) && lewatJam(cfg)) target.push(h);
+  // tgl 18 (hari kerja pertama setelah masa tutup): susulkan hari kerja 14–17 yang masih kosong
+  if (J.tutupDari(cfg) && h === J.hariSetelahTutup(h, cfg)) J.hariKerjaTutup(h, cfg).forEach(function (t) { target.push(t); });
+  if (cfg.isiKemarin) { var kmrn = J.addDays(h, -1); if (J.hariKerja(kmrn, cfg) && target.indexOf(kmrn) < 0) target.push(kmrn); }
+  if (J.hariKerja(h, cfg) && lewatJam(cfg)) {
+    target.push(h);
+    // tgl 13 bukan hari kerja → pada hari kerja terakhir sebelum masa tutup, isi maju s.d. tgl 17 otomatis
+    if (J.majuOtomatis(h, cfg)) J.isiMajuTutup(h, cfg).slice(1).forEach(function (t) { target.push(t); });
+  }
   var st = await ambilStatus();
   target = target.filter(function (t) { return !(st.selesai[t] && st.selesai[t].jumlah >= J.susunJurnal(t, cfg).length); });
   if (!target.length) return;
@@ -384,10 +390,11 @@ chrome.runtime.onMessage.addListener(function (m, _s, balas) {
         if (m.uji) { balas(await isiTanggal(m.tanggal, { paksa: m.paksa, uji: true })); return; }
         // Tanggal di masa tutup: hari kerja masa tutup sebelumnya yang belum lengkap ikut diisi berurutan.
         var cfgS = await ambilCfg(), stS = await ambilStatus();
-        var urut = J.tanggalSusulan(m.tanggal, cfgS).filter(function (t) {
+        // m.daftar: isi maju sebelum masa tutup (tgl 13 → s.d. 17); selain itu susulan masa tutup
+        var urut = (Array.isArray(m.daftar) && m.daftar.length ? m.daftar : J.tanggalSusulan(m.tanggal, cfgS)).filter(function (t) {
           return t === m.tanggal || !(stS.selesai[t] && stS.selesai[t].jumlah >= J.susunJurnal(t, cfgS).length);
         });
-        if (urut.length > 1) await catat('Isi berurutan (susulan masa tutup): ' + urut.join(', '), 'info');
+        if (urut.length > 1) await catat('Isi berurutan (masa tutup): ' + urut.join(', '), 'info');
         var hasilAkhir = { ok: true, pesan: '' }, pesan = [];
         for (var u = 0; u < urut.length; u++) {
           hasilAkhir = await isiTanggal(urut[u], { paksa: m.paksa });

@@ -123,7 +123,7 @@
       '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
     ],
     kunjungan: [{ mulai: '2026-11-23', selesai: '2026-11-27', kota: 'Batam' }],
-    masaTutup: { dari: 14, sampai: 18 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–18)
+    masaTutup: { dari: 14, sampai: 17 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–17; tgl 18 sudah buka)
     kegiatanTambahan: []     // [{u,o,s,vol:[a,b]}] dari Pengaturan
   };
 
@@ -138,16 +138,18 @@
   }
   /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–18 tiap bulan)? */
   function dalamMasaTutup(s, cfg) {
-    var m = cfg && 'masaTutup' in cfg ? cfg.masaTutup : DEFAULTS.masaTutup;   // null = tidak ada masa tutup
-    if (!m || !m.dari || !m.sampai) return false;
+    var m = tutupDari(cfg);   // null = tidak ada masa tutup
+    if (!m) return false;
     var tgl = +s.split('-')[2];
     return m.dari <= m.sampai ? (tgl >= m.dari && tgl <= m.sampai) : (tgl >= m.dari || tgl <= m.sampai);
   }
   /** Tanggal yang ikut diisi saat tanggal t diklik: bila t jatuh di masa tutup, semua hari kerja
    *  masa tutup bulan itu sampai t (mis. klik 18 → 16, 17, 18 bila 14–15 akhir pekan); selain itu [t]. */
   function tanggalSusulan(t, cfg) {
+    // hari pertama setelah masa tutup (tgl 18): susulkan hari kerja 14–17 lalu tanggal itu
+    if (tutupDari(cfg) && t === hariSetelahTutup(t, cfg)) return hariKerjaTutup(t, cfg).concat([t]);
     if (!dalamMasaTutup(t, cfg)) return [t];
-    var m = (cfg && 'masaTutup' in cfg) ? cfg.masaTutup : DEFAULTS.masaTutup;
+    var m = tutupDari(cfg);
     var hasil = [], d = t;
     for (var i = 0; i < 31 && dalamMasaTutup(d, cfg); i++) {
       if (hariKerja(d, cfg)) hasil.unshift(d);
@@ -156,6 +158,44 @@
     }
     return hasil.length ? hasil : [t];
   }
+  function tutupDari(cfg) {
+    var m = (cfg && 'masaTutup' in cfg) ? cfg.masaTutup : DEFAULTS.masaTutup;
+    // pengaturan lama tersimpan 14–18; masa tutup sebenarnya 14–17 (tgl 18 sudah buka)
+    if (m && m.dari === 14 && m.sampai === 18) m = { dari: 14, sampai: 17 };
+    return (m && m.dari && m.sampai && m.dari <= m.sampai) ? m : null;
+  }
+  function tglBulan(t, hari) { return t.slice(0, 8) + pad(hari); }
+  /** Hari kerja masa tutup pada bulan tanggal t (mis. 14–17 yang jatuh Senin–Jumat). */
+  function hariKerjaTutup(t, cfg) {
+    var m = tutupDari(cfg), hasil = [];
+    if (!m) return hasil;
+    for (var h = m.dari; h <= m.sampai; h++) { var d = tglBulan(t, h); if (hariKerja(d, cfg)) hasil.push(d); }
+    return hasil;
+  }
+  /** Hari kerja terakhir sebelum masa tutup (biasanya tgl 13; bila 13 akhir pekan/libur, mundur ke 12, 11, …). */
+  function hariSebelumTutup(t, cfg) {
+    var m = tutupDari(cfg); if (!m) return null;
+    for (var h = m.dari - 1; h >= Math.max(1, m.dari - 8); h--) { var d = tglBulan(t, h); if (hariKerja(d, cfg)) return d; }
+    return null;
+  }
+  /** Hari kerja pertama setelah masa tutup (biasanya tgl 18). */
+  function hariSetelahTutup(t, cfg) {
+    var m = tutupDari(cfg); if (!m) return null;
+    var d = tglBulan(t, m.sampai);
+    for (var i = 0; i < 10; i++) { d = addDays(d, 1); if (hariKerja(d, cfg)) return d; }
+    return null;
+  }
+  /** Pada hari kerja terakhir sebelum masa tutup: [hari itu + semua hari kerja masa tutup]. Selain itu null. */
+  function isiMajuTutup(t, cfg) {
+    if (!tutupDari(cfg) || t !== hariSebelumTutup(t, cfg)) return null;
+    return [t].concat(hariKerjaTutup(t, cfg));
+  }
+  /** Isi maju otomatis bila tgl sebelum masa tutup (13) bukan hari kerja. */
+  function majuOtomatis(t, cfg) {
+    var m = tutupDari(cfg);
+    return !!(m && isiMajuTutup(t, cfg) && t !== tglBulan(t, m.dari - 1));
+  }
+
   function formatTanggal(s, fmt) {
     var p = s.split('-');
     return (fmt || 'dd-mm-yyyy').replace('yyyy', p[0]).replace('mm', p[1]).replace('dd', p[2]);
@@ -285,7 +325,9 @@
     DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
     gabungRemote: gabungRemote, validBank: validBank,
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
-    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup, tanggalSusulan: tanggalSusulan,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup, tanggalSusulan: tanggalSusulan, tutupDari: tutupDari,
+    hariKerjaTutup: hariKerjaTutup, hariSebelumTutup: hariSebelumTutup, hariSetelahTutup: hariSetelahTutup,
+    isiMajuTutup: isiMajuTutup, majuOtomatis: majuOtomatis,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);
