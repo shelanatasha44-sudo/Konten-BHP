@@ -75,7 +75,7 @@ async function results() {
   const counts: Record<string, number> = {}
   for (const id of KANDIDAT) counts[id] = 0
   for (const { v } of votes) for (const id of v.pilihan ?? []) if (id in counts) counts[id]++
-  const body = { total: votes.length, counts }
+  const body = { total: votes.filter(({ v }) => (v.pilihan ?? []).length > 0).length, counts }
   cache = { at: Date.now(), body }
   return body
 }
@@ -143,7 +143,8 @@ export default async (req: Request, context: Context) => {
       if (nama.length < 2) return json({ error: "Tulis nama Anda terlebih dahulu." }, 400)
       const pilihan = pick(b.pilihan, KANDIDAT, MAX_PILIHAN)
       if (!pilihan) return json({ error: "Pilihan tidak sesuai. Maksimal " + MAX_PILIHAN + " nama." }, 400)
-      if (pilihan.length === 0) return json({ error: "Pilih minimal satu nama." }, 400)
+      const usulan = clean(b.usulan, 1500)
+      if (pilihan.length === 0 && !usulan) return json({ error: "Pilih minimal satu nama atau tulis usulan narasumber." }, 400)
 
       const s = store()
       if (await s.get(id)) return json({ code: "already", error: "Suara dari perangkat ini sudah tercatat." }, 409)
@@ -152,7 +153,7 @@ export default async (req: Request, context: Context) => {
       if (used >= maxPerIp()) return json({ code: "ip_limit", ipUsed: used, ipMax: maxPerIp(), error: "Jatah suara dari jaringan ini sudah habis." }, 429)
 
       const now = new Date().toISOString()
-      const vote: Vote = { nama, usulan: clean(b.usulan, 1500), pilihan, ipHash, createdAt: now, at: now }
+      const vote: Vote = { nama, usulan, pilihan, ipHash, createdAt: now, at: now }
       const { modified } = await s.setJSON(id, vote, { onlyIfNew: true })
       if (!modified) return json({ code: "already", error: "Suara dari perangkat ini sudah tercatat." }, 409)
       cache = null

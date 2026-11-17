@@ -173,6 +173,7 @@ details textarea{margin-top:10px;min-height:70px;resize:vertical}
 .pk b{font-size:14px;line-height:1.2;display:block}
 .pk span{font-size:12px;color:var(--muted)}
 .pk.none{color:var(--muted);font-size:13px;justify-content:center}
+.pk.usul{display:block;font-size:13px;white-space:pre-wrap;word-break:break-word}
 .share{display:flex;gap:6px;width:100%;margin-top:2px}
 .share code{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13px;font-family:var(--f);font-weight:600;color:var(--navy);user-select:all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .share button{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:0 12px;font-size:13px;font-weight:700;color:var(--navy)}
@@ -257,7 +258,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
   <div class="list" id="list"></div>
 
   <details id="usulan-box">
-    <summary>Ada narasumber lain yang Anda usulkan? (boleh dikosongkan)</summary>
+    <summary>Usulkan narasumber lain (boleh dikirim tanpa memilih nama)</summary>
     <textarea id="usulan" placeholder="Tulis nama, instansi, dan alasannya"></textarea>
   </details>
 
@@ -513,7 +514,9 @@ function render(){
   $("usulan").disabled = locked();
   const btn = $("btn-submit");
   btn.textContent = state.hasVoted ? "Terkirim" : "Kirim Suara";
-  btn.disabled = locked() || state.sel.size===0 || btn.dataset.busy==="1";
+  const adaUsulan = $("usulan").value.trim().length > 0;
+  btn.disabled = locked() || (state.sel.size===0 && !adaUsulan) || btn.dataset.busy==="1";
+  if (!locked() && state.sel.size===0 && adaUsulan) setMsg("Usulan bisa dikirim tanpa memilih nama.","info");
   if (state.hasVoted) setMsg("Suara Anda sudah tercatat.","ok");
   else if (state.blocked) setMsg("Jatah suara dari jaringan ini sudah habis.","info");
   renderIntro();
@@ -541,9 +544,13 @@ async function poll(){
 /* ---------- Konfirmasi & kirim ---------- */
 function openConfirm(){
   const box = $("cf-picks"); box.textContent = "";
-  for (const c of LIST.filter(c => state.sel.has(c.id))){
+  const dipilih = LIST.filter(c => state.sel.has(c.id));
+  if (!dipilih.length) box.appendChild(el("div","pk none","Tidak memilih nama dari daftar"));
+  for (const c of dipilih){
     const r = el("div","pk"); r.appendChild(avatar(c)); const tx = el("div"); tx.appendChild(el("b", null, shortName(c.nama))); tx.appendChild(el("span", null, c.inst)); r.appendChild(tx); box.appendChild(r);
   }
+  const u = $("usulan").value.trim();
+  if (u){ box.appendChild(el("div","grp","Usulan Anda")); box.appendChild(el("div","pk usul", u)); }
   $("confirm").hidden = false; $("cf-ok").focus();
 }
 async function submit(){
@@ -619,6 +626,7 @@ function renderAdmin(){
 /* ---------- Mulai ---------- */
 buildParade(); buildList();
 $("nama").addEventListener("input", renderIntro);
+$("usulan").addEventListener("input", render);
 $("nama").addEventListener("keydown", e => { if (e.key==="Enter" && !$("btn-start").disabled) closeIntro(); });
 $("btn-start").addEventListener("click", closeIntro);
 $("btn-submit").addEventListener("click", openConfirm);
