@@ -2,15 +2,44 @@ import { createHash } from "node:crypto"
 import { getStore } from "@netlify/blobs"
 import type { Config, Context } from "@netlify/functions"
 
-const AKADEMISI = new Set(["a1", "a2", "a3", "a4", "a6", "a7", "a8", "a9", "a10"])
-const HAKIM = new Set(["h1", "h2", "h3", "h4"])
+const KANDIDAT = new Set(["a1", "a2", "a3", "a4", "a6", "a7", "a8", "a9", "a10", "h1", "h2", "h3", "h4"])
+const MAX_PILIHAN = 3
+
+/** Sumber foto kandidat (dicoba berurutan). Diambil lewat server agar tidak diblokir situs asal. */
+const FOTO: Record<string, string[]> = {
+  a1: ["https://fahum.umsu.ac.id/wp-content/uploads/2022/03/pp-2.jpg"],
+  a3: [
+    "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg0tEqCNrypspiY2gfZigSd2RoI6Vh4ekeMe7L-50ErtRS1Dpqxw6AxwP5C_Vrz7813AkWcdkRRYoe32F_OZ1QFrjBEFaNR8OVxXaxIPbjmdWPx8c-m6UvMEmzqlikkuQ1wWymec6c30l1Nv9W3KR8CekzG8WnlGya9Ex2yRgk8T50b0LoVN7xDuK_GKdg/s1534/FB_IMG_1691765859314.jpg",
+  ],
+  a4: ["https://pascasarjana.ust.ac.id/wp-content/uploads/2024/03/Prof-Dr-Maidin-Gultom-SH-M-Hum.png"],
+  a8: ["https://cdn.matatelinga.com/photo/berita/dir022022/_9611_Dr-Azwir-Agus-SH-MH-Ketua-Peradi-Medan-Menggantikan-Charles-Silalahi.jpg"],
+  a9: ["https://fasih.uinsu.ac.id/wp-content/uploads/2026/01/dekan.jpg"],
+  a10: ["https://muamalah.uinsu.ac.id/wp-content/uploads/2024/08/tettymarlina-Photoroom.png"],
+}
+
+async function foto(id: string, n: number | null) {
+  const list = FOTO[id]
+  if (!list) return new Response("Tidak ada foto", { status: 404 })
+  const urls = n === null ? list : list.slice(n, n + 1)
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36", accept: "image/*" } })
+      const type = r.headers.get("content-type") ?? ""
+      if (r.ok && type.startsWith("image/")) {
+        return new Response(await r.arrayBuffer(), {
+          headers: { "content-type": type, "cache-control": "public, max-age=86400", "netlify-cdn-cache-control": "public, durable, s-maxage=604800" },
+        })
+      }
+    } catch {}
+  }
+  return new Response("Foto tidak tersedia", { status: 404 })
+}
 const ID_RE = /^[a-zA-Z0-9-]{16,64}$/
 
 type Vote = {
   nama: string
   usulan: string
-  akademisi: string[]
-  hakim: string[]
+  pilihan: string[]
   ipHash: string
   createdAt: string
   at: string
@@ -44,8 +73,8 @@ async function results() {
   if (cache && Date.now() - cache.at < 2500) return cache.body
   const votes = await allVotes()
   const counts: Record<string, number> = {}
-  for (const id of [...AKADEMISI, ...HAKIM]) counts[id] = 0
-  for (const { v } of votes) for (const id of [...v.akademisi, ...v.hakim]) if (id in counts) counts[id]++
+  for (const id of KANDIDAT) counts[id] = 0
+  for (const { v } of votes) for (const id of v.pilihan ?? []) if (id in counts) counts[id]++
   const body = { total: votes.length, counts }
   cache = { at: Date.now(), body }
   return body
@@ -82,13 +111,18 @@ async function readBody(req: Request): Promise<Record<string, unknown>> {
   }
 }
 
-const publicVote = (v: Vote) => ({ akademisi: v.akademisi, hakim: v.hakim, at: v.at })
+const publicVote = (v: Vote) => ({ pilihan: v.pilihan ?? [], at: v.at })
 
 export default async (req: Request, context: Context) => {
   const url = new URL(req.url)
   const route = url.pathname.replace(/^\/api\/?/, "")
 
   try {
+    if (route === "foto" && req.method === "GET") {
+      const n = url.searchParams.get("n")
+      return foto(url.searchParams.get("id") ?? "", n === null ? null : Number(n) || 0)
+    }
+
     if (route === "results" && req.method === "GET") {
       return json(await results())
     }
@@ -107,10 +141,9 @@ export default async (req: Request, context: Context) => {
       if (!ID_RE.test(id)) return json({ error: "Halaman perlu dimuat ulang. Silakan muat ulang lalu coba lagi." }, 400)
       const nama = clean(b.nama, 80)
       if (nama.length < 2) return json({ error: "Tulis nama Anda terlebih dahulu." }, 400)
-      const akademisi = pick(b.akademisi, AKADEMISI, 3)
-      const hakim = pick(b.hakim, HAKIM, 1)
-      if (!akademisi || !hakim) return json({ error: "Pilihan tidak sesuai. Maksimal 3 akademisi dan 1 hakim." }, 400)
-      if (akademisi.length + hakim.length === 0) return json({ error: "Pilih minimal satu nama." }, 400)
+      const pilihan = pick(b.pilihan, KANDIDAT, MAX_PILIHAN)
+      if (!pilihan) return json({ error: "Pilihan tidak sesuai. Maksimal " + MAX_PILIHAN + " nama." }, 400)
+      if (pilihan.length === 0) return json({ error: "Pilih minimal satu nama." }, 400)
 
       const s = store()
       if (await s.get(id)) return json({ code: "already", error: "Suara dari perangkat ini sudah tercatat." }, 409)
@@ -119,7 +152,7 @@ export default async (req: Request, context: Context) => {
       if (used >= maxPerIp()) return json({ code: "ip_limit", ipUsed: used, ipMax: maxPerIp(), error: "Jatah suara dari jaringan ini sudah habis." }, 429)
 
       const now = new Date().toISOString()
-      const vote: Vote = { nama, usulan: clean(b.usulan, 1500), akademisi, hakim, ipHash, createdAt: now, at: now }
+      const vote: Vote = { nama, usulan: clean(b.usulan, 1500), pilihan, ipHash, createdAt: now, at: now }
       const { modified } = await s.setJSON(id, vote, { onlyIfNew: true })
       if (!modified) return json({ code: "already", error: "Suara dari perangkat ini sudah tercatat." }, 409)
       cache = null
@@ -134,7 +167,7 @@ export default async (req: Request, context: Context) => {
       return json({
         ipMax: maxPerIp(),
         votes: votes.map(({ id, v }) => ({
-          id, nama: v.nama ?? "", usulan: v.usulan, akademisi: v.akademisi, hakim: v.hakim, at: v.at,
+          id, nama: v.nama ?? "", usulan: v.usulan, pilihan: v.pilihan ?? [], at: v.at,
           jaringan: (v.ipHash ?? "").slice(0, 6).toUpperCase(),
         })),
       })

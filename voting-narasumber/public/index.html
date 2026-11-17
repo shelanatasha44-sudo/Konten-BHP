@@ -110,6 +110,7 @@ input[type=text]:focus,textarea:focus{border-color:var(--navy);outline:none;box-
 .locked .c:not(.sel){opacity:.75}
 .av{width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--navy-soft);color:var(--navy);display:grid;place-items:center;font-weight:800;font-size:14px;position:relative;flex:none}
 .av img{width:100%;height:100%;object-fit:cover;object-position:center 18%;position:absolute;inset:0}
+.av img.crop{height:auto;max-width:none;object-fit:fill;inset:auto}
 .nm{min-width:0}
 .nm b{font-size:14.5px;line-height:1.22;font-weight:700;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .nm>span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -193,6 +194,22 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
 .rank{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;font-size:13px}
 .rank ol{margin:4px 0 0;padding-left:18px}
 @media (max-width:440px){.rank{grid-template-columns:1fr}}
+.pickhead{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:8px 2px}
+.pickhead b{display:block;font-family:var(--serif);font-size:19px;color:var(--navy);line-height:1.1}
+.pickhead span{font-size:12.5px;color:var(--muted)}
+.slots-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.slots{display:flex;gap:5px}
+.slots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--navy-2);transition:background .25s,transform .25s}
+.slots i.on{background:var(--gold);border-color:var(--gold-deep);transform:scale(1.15)}
+.slots-wrap small{font-size:11.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.rank{grid-template-columns:1fr!important}
+.rel dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:4px 0 0;text-align:left}
+.rel dt{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.rel dd{margin:0;font-size:13px}
+.rel p{margin:6px 0 0;font-size:12.5px;color:var(--muted);text-align:left}
+.chip{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--navy-soft);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--gold-soft);color:var(--gold-deep);border:1px solid rgba(217,177,15,.5)}
+@media (max-width:380px){.rel dl{grid-template-columns:1fr}.rel dt{margin-top:4px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -204,7 +221,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
     <div class="halo"><img class="logo" src="data:image/png;base64,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" alt="Logo Pengayoman"></div>
     <div class="eyebrow rise d1">Uji Publik Pengampuan · BHP Medan</div>
     <h1 class="rise d2">Siapa Narasumber <em>Pilihan Anda?</em></h1>
-    <p class="lede rise d3">Kita mencari narasumber pengganti <b>Dr. Janpatar Simamora</b>. Pilih paling banyak 3 akademisi dan 1 hakim.</p>
+    <p class="lede rise d3">Kita mencari narasumber pengganti <b>Dr. Janpatar Simamora</b>. Pilih paling banyak 3 nama dari para akademisi dan hakim.</p>
     <div class="parade rise d3" aria-hidden="true"><div class="track" id="parade"></div></div>
     <div class="pill-live rise d4"><span class="dot"></span><span id="intro-count">Memuat jumlah suara…</span></div>
 
@@ -232,13 +249,12 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
 
   <div class="banner" id="banner" hidden></div>
 
-  <nav class="steps" role="tablist">
-    <button class="step on" id="tab-akademisi" role="tab" aria-selected="true"><span class="no">1</span><span><b>Akademisi</b><span id="m-akademisi">0 dari 3</span></span></button>
-    <button class="step" id="tab-hakim" role="tab" aria-selected="false"><span class="no">2</span><span><b>Hakim</b><span id="m-hakim">0 dari 1</span></span></button>
-  </nav>
+  <div class="pickhead">
+    <div><b>Daftar Narasumber</b><span>Pilih paling banyak 3 nama</span></div>
+    <div class="slots-wrap"><span class="slots" id="slots"></span><small id="count-sel">0 dari 3 dipilih</small></div>
+  </div>
 
-  <div class="list" id="list-akademisi"></div>
-  <div class="list" id="list-hakim" hidden></div>
+  <div class="list" id="list"></div>
 
   <details id="usulan-box">
     <summary>Ada narasumber lain yang Anda usulkan? (boleh dikosongkan)</summary>
@@ -258,10 +274,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
       <div class="msg err" id="admin-msg" style="width:100%;text-align:center;font-size:13px"></div>
     </div>
     <div id="admin-body" hidden>
-      <div class="rank"><div><b>Akademisi</b><ol id="rank-akademisi"></ol></div><div><b>Hakim</b><ol id="rank-hakim"></ol></div></div>
+      <div class="rank"><div><b>Peringkat sementara</b><ol id="rank"></ol></div></div>
       <p class="msg info" id="admin-note" style="font-size:13px;margin:0 0 8px"></p>
       <div class="tbl"><table>
-        <thead><tr><th>No</th><th>Nama</th><th>Akademisi</th><th>Hakim</th><th>Usulan</th><th>Jaringan</th><th>Waktu</th><th></th></tr></thead>
+        <thead><tr><th>No</th><th>Nama</th><th>Pilihan</th><th>Usulan</th><th>Jaringan</th><th>Waktu</th><th></th></tr></thead>
         <tbody id="tb-admin"></tbody>
       </table></div>
       <div class="row" style="margin-top:10px"><button class="btn-ghost" id="btn-refresh">Muat ulang</button><button class="btn-ghost" id="btn-lock">Tutup</button></div>
@@ -313,40 +329,66 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
 
 <script>
 const SHARE = "https://bit.ly/4jmB4l9";
-const AKADEMISI = [
-  {id:"a1", nama:"Dr. Tengku Erwinsyahbana, S.H., M.Hum.", inst:"FH UMSU", foto:"https://fahum.umsu.ac.id/wp-content/uploads/2022/03/pp-2.jpg", rel:"Menulis artikel tentang penguatan peran BHP sebagai wali pengawas harta warisan anak (Jurnal Notarius UMSU)."},
-  {id:"a2", nama:"Ratna D. E. Sirait, S.H., M.Hum.", inst:"FH UNIKA Santo Thomas", rel:"Menulis artikel tentang penyalahgunaan hak perwalian anak di bawah umur (Studi Putusan No. 655/Pdt.G/2024/PN.Mdn)."},
-  {id:"a3", nama:"Prof. Dr. Elisabeth N. Butarbutar, S.H., M.Hum.", inst:"Dekan FH UNIKA Santo Thomas", rel:"Kemungkinan ikut menulis kajian tentang tugas BHP Medan sebagai wali pengawas warisan anak (2023). Keterlibatannya masih perlu dipastikan."},
-  {id:"a4", nama:"Prof. Dr. Maidin Gultom, S.H., M.Hum.", inst:"Rektor UNIKA Santo Thomas", foto:"https://pascasarjana.ust.ac.id/wp-content/uploads/2024/03/Prof-Dr-Maidin-Gultom-SH-M-Hum.png", rel:"Pakar hukum perlindungan anak. Cocok untuk membahas pengampuan dari sisi kepentingan terbaik anak."},
-  {id:"a6", nama:"Ria Juliana Siregar", inst:"FH Universitas HKBP Nommensen", rel:"Ikut menulis kajian tentang penunjukan wali berdasarkan surat wasiat (Al-Risalah, 2026)."},
-  {id:"a7", nama:"Besty Habeahan", inst:"FH Universitas HKBP Nommensen", rel:"Ikut menulis kajian tentang sumpah wali dan pengawasan oleh BHP (2025)."},
-  {id:"a8", nama:"Dr. Azwir Agus, S.H., M.Hum.", inst:"FH Universitas Medan Area", rel:"Membimbing skripsi tentang izin BHP Medan bagi wali yang ingin menjual harta anak (2025)."},
-  {id:"a9", nama:"Prof. Dr. Syafruddin Syam, M.Ag.", inst:"UIN Sumatera Utara", foto:"https://fasih.uinsu.ac.id/wp-content/uploads/2026/01/dekan.jpg", rel:"Ikut menulis kajian tentang perbedaan putusan perwalian di Pengadilan Agama Medan."},
-  {id:"a10", nama:"Dr. Tetty Marlina Tarigan, S.H., M.Kn.", inst:"UIN Sumatera Utara", foto:"https://muamalah.uinsu.ac.id/wp-content/uploads/2024/08/tettymarlina-Photoroom.png", rel:"Ikut menulis kajian tentang perbedaan putusan perwalian di Pengadilan Agama Medan."}
+/* sinta: tingkat akreditasi jurnal (null = belum terverifikasi); skor: SINTA Score penulis */
+const KANDIDAT = [
+  {id:"a1", nama:"Dr. Tengku Erwinsyahbana, S.H., M.Hum.", inst:"FH UMSU", crop:[0.51,0.22,2.2],
+   bidang:"Hukum perdata, keluarga, dan perkawinan", skor:527,
+   karya:"Perlindungan hukum harta warisan anak melalui revitalisasi BHP", jurnal:"Jurnal Notarius UMSU, 2022", sinta:null,
+   catatan:"Artikelnya tentang BHP sudah dikutip sekitar 22 kali."},
+  {id:"a2", nama:"Ratna D. E. Sirait, S.H., M.Hum.", inst:"FH UNIKA Santo Thomas",
+   bidang:"Hukum perdata", skor:185,
+   karya:"Penyalahgunaan hak perwalian anak di bawah umur (Putusan No. 655/Pdt.G/2024/PN.Mdn)", jurnal:"Jurnal Hukum Justice UNIKA, 2026", sinta:null},
+  {id:"a3", nama:"Prof. Dr. Elisabeth N. Butarbutar, S.H., M.Hum.", inst:"Guru Besar FH UNIKA Santo Thomas", crop:[0.58,0.36,4.5],
+   bidang:"Hukum perdata", jabatan:"Guru Besar Ilmu Hukum, Dekan FH UNIKA periode 2022–2026", skor:452,
+   karya:"Pelaksanaan tugas BHP Kota Medan sebagai wali pengawas warisan anak", jurnal:"Jurnal JPH UNIKA, 2023", sinta:null,
+   catatan:"Juga menulis tentang peran BHP sebagai wali pengawas dan pengampu pengawas (2023)."},
+  {id:"a4", nama:"Prof. Dr. Maidin Gultom, S.H., M.Hum.", inst:"Guru Besar FH UNIKA Santo Thomas", crop:[0.43,0.37,2.2],
+   bidang:"Hukum pidana anak dan perlindungan anak", jabatan:"Guru Besar, Rektor UNIKA periode 2022–2026",
+   karya:"Perlindungan Hukum terhadap Anak dalam Sistem Peradilan Pidana Anak di Indonesia", jurnal:"Buku, Refika Aditama", sinta:"bukan jurnal",
+   catatan:"Belum ditemukan tulisan khusus tentang BHP atau pengampuan. Keahliannya relevan untuk sisi kepentingan terbaik anak."},
+  {id:"a6", nama:"Ria Juliana Siregar", inst:"FH Universitas HKBP Nommensen",
+   bidang:"Hukum perdata dan pertanahan", skor:172,
+   karya:"Penunjukan wali melalui surat wasiat", jurnal:"Al-Risalah, UIN Alauddin Makassar, 2026", sinta:3},
+  {id:"a7", nama:"Besty Habeahan", inst:"FH Universitas HKBP Nommensen",
+   bidang:"Hukum perdata, kepailitan, dan BHP",
+   karya:"Peran sumpah wali dalam pengurusan harta anak di BHP", jurnal:"Jurnal Media Informatika (JuMIn), 2025", sinta:5,
+   catatan:"Juga menulis tentang pengawasan BHP atas wasiat dan pembagian harta peninggalan (2025)."},
+  {id:"a8", nama:"Dr. Azwir Agus, S.H., M.Hum.", inst:"FH Universitas Medan Area", crop:[0.34,0.40,5.5],
+   bidang:"Hukum perdata dan advokat", jabatan:"Ketua DPC Peradi Medan",
+   karya:"Membimbing skripsi tentang izin BHP Medan bagi wali yang ingin menjual harta anak", jurnal:"Repositori FH UMA, 2025", sinta:"bukan jurnal"},
+  {id:"a9", nama:"Prof. Dr. Syafruddin Syam, M.Ag.", inst:"Dekan FSH UIN Sumatera Utara", crop:[0.49,0.37,3.3],
+   bidang:"Hukum Islam dan hukum keluarga", jabatan:"Guru Besar, Dekan Fakultas Syariah dan Hukum UINSU",
+   karya:"Perbedaan putusan perwalian ayah atas anak kandung di Pengadilan Agama Medan", jurnal:"Ganaya, 2023", sinta:3},
+  {id:"a10", nama:"Dr. Tetty Marlina Tarigan, S.H., M.Kn.", inst:"UIN Sumatera Utara", crop:[0.54,0.26,3],
+   bidang:"Hukum keluarga Islam dan kenotariatan",
+   karya:"Perbedaan putusan perwalian ayah atas anak kandung di Pengadilan Agama Medan", jurnal:"Ganaya, 2023", sinta:3,
+   catatan:"Membimbing tesis tentang perwalian di Magister Hukum Keluarga Islam UINSU."},
+  {id:"h1", nama:"Satya Frida Lestari, S.H.", inst:"Hakim PN Simalungun",
+   bidang:"Hakim perkara perdata",
+   karya:"Penetapan No. 174/Pdt.P/2025/PN Sim: mengabulkan pengampuan bagi penyandang autisme dan memerintahkan BHP Medan mengawasi pengelolaan hartanya", jurnal:"Putusan pengadilan, 2025", sinta:"bukan jurnal"},
+  {id:"h2", nama:"Hakim perdata yang ditunjuk", inst:"PN Medan",
+   catatan:"Hakim yang akan ditunjuk oleh Ketua PN Medan atas permohonan panitia."},
+  {id:"h3", nama:"Hakim yang ditunjuk", inst:"Pengadilan Tinggi Medan",
+   catatan:"Hakim yang akan ditunjuk oleh Ketua PT Medan atas permohonan panitia."},
+  {id:"h4", nama:"Hakim yang ditunjuk", inst:"Pengadilan Agama Medan",
+   catatan:"Untuk membahas penetapan perwalian di lingkungan peradilan agama."}
 ];
-const HAKIM = [
-  {id:"h1", nama:"Satya Frida Lestari", inst:"Hakim PN Simalungun", rel:"Hakim yang memutus perkara pengampuan No. 174/Pdt.P/2025/PN Sim, dengan permohonan agar pengawasannya dilakukan oleh BHP Medan."},
-  {id:"h2", nama:"Hakim perdata yang ditunjuk", inst:"PN Medan", rel:"Hakim yang akan ditunjuk oleh Ketua PN Medan atas permohonan panitia."},
-  {id:"h3", nama:"Hakim yang ditunjuk", inst:"Pengadilan Tinggi Medan", rel:"Hakim yang akan ditunjuk oleh Ketua PT Medan atas permohonan panitia."},
-  {id:"h4", nama:"Hakim yang ditunjuk", inst:"Pengadilan Agama Medan", rel:"Untuk membahas penetapan perwalian di lingkungan peradilan agama."}
-];
-const MAX = {akademisi:3, hakim:1};
-const byId = Object.fromEntries([...AKADEMISI, ...HAKIM].map(c => [c.id, c]));
+const MAX = 3;
+const byId = Object.fromEntries(KANDIDAT.map(c => [c.id, c]));
 const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function voterId(){
   const make = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b=>b.toString(16).padStart(2,"0")).join(""));
   try{ let id = localStorage.getItem("voterId"); if(!id){ id = make(); localStorage.setItem("voterId", id); } return id; }catch(_){ return make(); }
 }
-/* Urutan acak yang tetap untuk satu perangkat, diturunkan dari id perangkat. */
 function seededShuffle(arr, seedStr){
   let h = 2166136261; for (const ch of seedStr){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
   const rnd = () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   const a = [...arr]; for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a;
 }
-const state = { counts:null, total:0, sel:{akademisi:new Set(), hakim:new Set()}, uid:voterId(),
+const state = { counts:null, total:0, sel:new Set(), uid:voterId(),
   hasVoted:false, blocked:false, ipUsed:0, ipMax:2, meLoaded:false, loaded:false, firstLoad:true, adminPass:null, adminVotes:[] };
-const LIST = { akademisi: seededShuffle(AKADEMISI, state.uid+"a"), hakim: seededShuffle(HAKIM, state.uid+"h") };
+const LIST = seededShuffle(KANDIDAT, state.uid+"k");
 const $ = id => document.getElementById(id);
 function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
 const TICK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -364,16 +406,22 @@ function shortName(n){ return n.replace(/,\s*(S\.H\.|M\.Hum\.|M\.Kn\.|M\.Ag\.|S\
 function initials(n){ if (n.startsWith("Hakim")) return "H"; const w = shortName(n).replace(/^(Prof\.\s*)?(Dr\.\s*)?/,"").split(/\s+/).filter(x=>/^[A-Z][a-z]/.test(x)); return ((w[0]||"?")[0]+(w.length>1 ? w[w.length-1][0] : "")).toUpperCase(); }
 function avatar(c){
   const av = el("div","av", initials(c.nama));
-  if (c.foto){ const img = new Image(); img.alt = ""; img.decoding = "async"; img.referrerPolicy = "no-referrer"; img.onerror = () => img.remove(); img.src = c.foto; av.appendChild(img); }
+  if (c.crop){
+    const [cx, cy, k] = c.crop; const img = new Image(); img.alt = ""; img.decoding = "async"; img.className = "crop";
+    img.style.width = (k*100)+"%"; img.style.left = (50 - cx*k*100)+"%"; img.style.visibility = "hidden";
+    img.onload = () => { const r = img.naturalHeight / img.naturalWidth; img.style.top = (50 - cy*k*r*100)+"%"; img.style.visibility = ""; };
+    img.onerror = () => img.remove(); img.src = "/api/foto?id="+c.id; av.appendChild(img);
+  }
   return av;
 }
+function sintaLabel(s){ if (s===null || s===undefined) return "SINTA jurnal belum terverifikasi"; if (typeof s==="number") return "Jurnal SINTA "+s; return "Bukan artikel jurnal"; }
 function funnyIpText(max){
-  return "Dari jaringan internet ini sudah masuk "+max+" suara, dan itu batas maksimalnya. Semangat Anda luar biasa, tapi kursi pemilih berikutnya kita sisakan untuk rekan yang lain ya.";
+  return "Dari jaringan internet ini sudah masuk "+max+" suara, dan itu batas maksimalnya. Semangat Anda luar biasa, tapi kesempatan berikutnya kita sisakan untuk rekan yang lain ya.";
 }
 
 /* ---------- Layar pembuka ---------- */
 function buildParade(){
-  const t = $("parade"); const people = seededShuffle([...AKADEMISI, HAKIM[0]], state.uid+"p");
+  const t = $("parade"); const people = seededShuffle(KANDIDAT.filter(c => !c.nama.startsWith("Hakim")), state.uid+"p");
   for (const round of [0,1]) for (const c of people){ const a = avatar(c); a.title = shortName(c.nama); t.appendChild(a); }
 }
 function renderIntro(){
@@ -396,9 +444,23 @@ function closeIntro(){
 
 /* ---------- Kartu kandidat ---------- */
 const cards = {};
-function buildList(kind){
-  const box = $("list-"+kind);
-  LIST[kind].forEach(c => {
+function infoBox(c){
+  const info = el("div","rel");
+  info.appendChild(el("b", null, c.nama));
+  const dl = el("dl");
+  const add = (k, v, extra) => { if (!v) return; const dt = el("dt", null, k); const dd = el("dd", null, v); if (extra) dd.appendChild(extra); dl.append(dt, dd); };
+  add("Kepakaran", c.bidang);
+  add("Jabatan", c.jabatan);
+  if (c.karya){ const chip = el("span", "chip"+(typeof c.sinta==="number" ? " ok" : ""), sintaLabel(c.sinta)); add("Karya terkait", c.karya+" · "+c.jurnal+" ", chip); }
+  if (c.skor) add("Skor SINTA penulis", String(c.skor));
+  if (dl.children.length) info.appendChild(dl);
+  if (c.catatan) info.appendChild(el("p", null, c.catatan));
+  info.hidden = true;
+  return info;
+}
+function buildList(){
+  const box = $("list");
+  LIST.forEach(c => {
     const card = el("div","c"); card.tabIndex = 0; card.setAttribute("role","checkbox"); card.setAttribute("aria-label", c.nama+", "+c.inst);
     const nm = el("div","nm"); nm.appendChild(el("b", null, shortName(c.nama))); nm.appendChild(el("span", null, c.inst));
     const more = el("button","more"); more.type="button"; more.setAttribute("aria-expanded","false");
@@ -406,11 +468,12 @@ function buildList(kind){
     nm.appendChild(more);
     const ct = el("div","ct"); ct.innerHTML = CROWN; const n = el("b", null, "0"); ct.appendChild(n); ct.appendChild(el("small", null, "suara"));
     const tick = el("div","tick"); tick.innerHTML = TICK;
-    const info = el("div","rel"); info.appendChild(el("b", null, c.nama)); info.appendChild(document.createTextNode(c.rel)); info.hidden = true;
+    const info = infoBox(c);
     const bar = el("div","bar"); const fill = el("i"); bar.appendChild(fill);
     card.append(avatar(c), nm, ct, tick, info, bar);
     more.addEventListener("click", e => { e.stopPropagation(); info.hidden = !info.hidden; more.setAttribute("aria-expanded", String(!info.hidden)); ml.textContent = info.hidden ? "Lihat info" : "Tutup info"; document.querySelectorAll(".more.nudge").forEach(x=>x.classList.remove("nudge")); });
-    const go = () => toggle(kind, c.id);
+    info.addEventListener("click", e => e.stopPropagation());
+    const go = () => toggle(c.id);
     card.addEventListener("click", go);
     card.addEventListener("keydown", e => { if(e.target===card && (e.key===" "||e.key==="Enter")){ e.preventDefault(); go(); } });
     if (box.children.length===0) more.classList.add("nudge");
@@ -418,23 +481,16 @@ function buildList(kind){
     cards[c.id] = {card, n, fill};
   });
 }
-function toggle(kind, id){
+function toggle(id){
   if (state.hasVoted){ toast("Suara Anda sudah terkirim, jadi pilihan tidak bisa diubah."); return; }
   if (state.blocked){ showFunny(); return; }
-  const s = state.sel[kind];
+  const s = state.sel;
   if (s.has(id)) s.delete(id);
-  else if (MAX[kind]===1){ s.clear(); s.add(id); }
-  else if (s.size < MAX[kind]) s.add(id);
-  else { toast("Sudah 3 akademisi. Batalkan salah satu dulu kalau ingin mengganti."); return; }
+  else if (s.size < MAX) s.add(id);
+  else { toast("Sudah 3 nama. Batalkan salah satu dulu kalau ingin mengganti."); return; }
   if (navigator.vibrate) try{ navigator.vibrate(8); }catch(_){}
   render();
-  if (kind==="akademisi" && s.size===MAX.akademisi && state.sel.hakim.size===0){ setTimeout(() => { toast("Akademisi sudah lengkap. Sekarang pilih 1 hakim."); setTab("hakim"); }, 380); }
-  if (kind==="hakim" && s.size===1 && state.sel.akademisi.size>0) setMsg("Siap! Tekan Kirim Suara.","ok");
-}
-function setTab(t){
-  for (const k of ["akademisi","hakim"]){ const on = k===t; $("tab-"+k).classList.toggle("on", on); $("tab-"+k).setAttribute("aria-selected", on); $("list-"+k).hidden = !on; }
-  const top = document.querySelector(".steps").getBoundingClientRect().top + scrollY - 8;
-  if (scrollY > top) window.scrollTo({top, behavior: reduceMotion?"auto":"smooth"});
+  if (s.size===MAX) setMsg("Sudah 3 nama. Tekan Kirim Suara.","ok");
 }
 function bump(node){ if(reduceMotion||state.firstLoad) return; node.classList.remove("bump"); void node.offsetWidth; node.classList.add("bump"); }
 
@@ -442,30 +498,27 @@ function bump(node){ if(reduceMotion||state.firstLoad) return; node.classList.re
 function render(){
   const c = counts();
   document.body.classList.toggle("locked", locked());
-  for (const kind of ["akademisi","hakim"]){
-    const s = state.sel[kind];
-    const max = Math.max(1, ...LIST[kind].map(x=>c[x.id]));
-    const top = Math.max(...LIST[kind].map(x=>c[x.id]));
-    for (const cand of LIST[kind]){
-      const o = cards[cand.id]; const on = s.has(cand.id);
-      o.card.classList.toggle("sel", on); o.card.setAttribute("aria-checked", on);
-      o.card.classList.toggle("lead", top>0 && c[cand.id]===top);
-      o.fill.style.width = (c[cand.id]/max*100)+"%";
-      if (o.n.textContent !== String(c[cand.id])){ o.n.textContent = c[cand.id]; bump(o.n); }
-    }
-    $("m-"+kind).textContent = s.size+" dari "+MAX[kind];
-    $("tab-"+kind).classList.toggle("done", s.size>0 && (s.size===MAX[kind] || state.hasVoted));
+  const max = Math.max(1, ...LIST.map(x=>c[x.id]));
+  const top = Math.max(...LIST.map(x=>c[x.id]));
+  for (const cand of LIST){
+    const o = cards[cand.id]; const on = state.sel.has(cand.id);
+    o.card.classList.toggle("sel", on); o.card.setAttribute("aria-checked", on);
+    o.card.classList.toggle("lead", top>0 && c[cand.id]===top);
+    o.fill.style.width = (c[cand.id]/max*100)+"%";
+    if (o.n.textContent !== String(c[cand.id])){ o.n.textContent = c[cand.id]; bump(o.n); }
   }
+  const sl = $("slots"); sl.textContent = "";
+  for (let i=0;i<MAX;i++) sl.appendChild(el("i", i<state.sel.size ? "on" : null));
+  $("count-sel").textContent = state.sel.size+" dari "+MAX+" dipilih";
   const t = $("total"); if (t.textContent !== String(state.total)){ t.textContent = state.total; bump(t); }
   const bn = $("banner");
   if (state.hasVoted){ bn.hidden=false; bn.className="banner"; bn.textContent="Suara Anda sudah tercatat. Pilihan Anda ditandai warna emas. Terima kasih!"; }
   else if (state.blocked){ bn.hidden=false; bn.className="banner warn"; bn.textContent="🙈 "+funnyIpText(state.ipMax); }
   else bn.hidden = true;
   $("usulan").disabled = locked();
-  const any = state.sel.akademisi.size + state.sel.hakim.size > 0;
   const btn = $("btn-submit");
   btn.textContent = state.hasVoted ? "Terkirim" : "Kirim Suara";
-  btn.disabled = locked() || !any || btn.dataset.busy==="1";
+  btn.disabled = locked() || state.sel.size===0 || btn.dataset.busy==="1";
   if (state.hasVoted) setMsg("Suara Anda sudah tercatat.","ok");
   else if (state.blocked) setMsg("Jatah suara dari jaringan ini sudah habis.","info");
   renderIntro();
@@ -493,11 +546,8 @@ async function poll(){
 /* ---------- Konfirmasi & kirim ---------- */
 function openConfirm(){
   const box = $("cf-picks"); box.textContent = "";
-  for (const [kind, label] of [["akademisi","Akademisi"],["hakim","Hakim"]]){
-    box.appendChild(el("div","grp",label));
-    const ids = LIST[kind].filter(c => state.sel[kind].has(c.id));
-    if (!ids.length) box.appendChild(el("div","pk none","Tidak memilih"));
-    for (const c of ids){ const r = el("div","pk"); r.appendChild(avatar(c)); const tx = el("div"); tx.appendChild(el("b", null, shortName(c.nama))); tx.appendChild(el("span", null, c.inst)); r.appendChild(tx); box.appendChild(r); }
+  for (const c of LIST.filter(c => state.sel.has(c.id))){
+    const r = el("div","pk"); r.appendChild(avatar(c)); const tx = el("div"); tx.appendChild(el("b", null, shortName(c.nama))); tx.appendChild(el("span", null, c.inst)); r.appendChild(tx); box.appendChild(r);
   }
   $("confirm").hidden = false; $("cf-ok").focus();
 }
@@ -505,7 +555,7 @@ async function submit(){
   $("confirm").hidden = true;
   const btn = $("btn-submit"); btn.dataset.busy="1"; render(); setMsg("Menyimpan suara…");
   try{
-    const d = await api("vote", { voterId:state.uid, nama:$("nama").value.trim(), usulan:$("usulan").value.trim(), akademisi:[...state.sel.akademisi], hakim:[...state.sel.hakim] });
+    const d = await api("vote", { voterId:state.uid, nama:$("nama").value.trim(), usulan:$("usulan").value.trim(), pilihan:[...state.sel] });
     state.hasVoted = true; applyResults(d, true);
     $("success").hidden = false; $("sx-close").focus(); confetti();
   }catch(e){
@@ -548,11 +598,8 @@ function lockAdmin(){ state.adminPass=null; state.adminVotes=[]; $("admin-lock")
 function fmtTime(iso){ try{ return new Date(iso).toLocaleString("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}); }catch(_){ return iso||"-"; } }
 function renderAdmin(){
   const c = counts();
-  for (const kind of ["akademisi","hakim"]){
-    const ol = $("rank-"+kind); ol.textContent="";
-    const base = kind==="akademisi" ? AKADEMISI : HAKIM;
-    [...base].sort((a,b)=>c[b.id]-c[a.id]).forEach(x => ol.appendChild(el("li", null, shortName(x.nama)+" ("+x.inst+"): "+c[x.id])));
-  }
+  const ol = $("rank"); ol.textContent="";
+  [...KANDIDAT].sort((a,b)=>c[b.id]-c[a.id]).forEach(x => ol.appendChild(el("li", null, shortName(x.nama)+" ("+x.inst+"): "+c[x.id])));
   const tb = $("tb-admin"); tb.textContent="";
   const vs = state.adminVotes;
   $("admin-note").textContent = vs.length===0 ? "Belum ada suara." : vs.length+" suara masuk. Kolom Jaringan berisi kode samaran alamat IP; kode yang sama berarti jaringan yang sama (maksimal "+(state.adminIpMax||2)+" suara per jaringan).";
@@ -560,8 +607,7 @@ function renderAdmin(){
     const tr = el("tr");
     tr.appendChild(el("td", null, String(i+1)));
     tr.appendChild(el("td", null, v.nama || "-"));
-    tr.appendChild(el("td", null, (v.akademisi||[]).map(id=>byId[id] ? shortName(byId[id].nama) : id).join("; ") || "-"));
-    tr.appendChild(el("td", null, (v.hakim||[]).map(id=>byId[id] ? byId[id].nama+" ("+byId[id].inst+")" : id).join("; ") || "-"));
+    tr.appendChild(el("td", null, (v.pilihan||[]).map(id=>byId[id] ? shortName(byId[id].nama)+(byId[id].nama.startsWith("Hakim") ? " ("+byId[id].inst+")" : "") : id).join("; ") || "-"));
     tr.appendChild(el("td", null, v.usulan || "-"));
     tr.appendChild(el("td", null, v.jaringan || "-"));
     tr.appendChild(el("td", null, fmtTime(v.at)));
@@ -576,12 +622,10 @@ function renderAdmin(){
 }
 
 /* ---------- Mulai ---------- */
-buildParade(); buildList("akademisi"); buildList("hakim");
+buildParade(); buildList();
 $("nama").addEventListener("input", renderIntro);
 $("nama").addEventListener("keydown", e => { if (e.key==="Enter" && !$("btn-start").disabled) closeIntro(); });
 $("btn-start").addEventListener("click", closeIntro);
-$("tab-akademisi").addEventListener("click", () => setTab("akademisi"));
-$("tab-hakim").addEventListener("click", () => setTab("hakim"));
 $("btn-submit").addEventListener("click", openConfirm);
 $("cf-back").addEventListener("click", () => { $("confirm").hidden = true; setMsg("Silakan pilih lagi.","info"); });
 $("cf-ok").addEventListener("click", submit);
@@ -603,7 +647,7 @@ document.addEventListener("visibilitychange", () => { if(!document.hidden) poll(
   try{
     const d = await api("me?id="+encodeURIComponent(state.uid));
     state.ipUsed = d.ipUsed; state.ipMax = d.ipMax;
-    if (d.vote){ state.hasVoted = true; state.sel.akademisi = new Set(d.vote.akademisi||[]); state.sel.hakim = new Set(d.vote.hakim||[]); }
+    if (d.vote){ state.hasVoted = true; state.sel = new Set(d.vote.pilihan||[]); }
     else if (d.ipUsed >= d.ipMax) state.blocked = true;
   }catch(_){}
   state.meLoaded = true; render();
