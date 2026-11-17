@@ -388,7 +388,9 @@ function seededShuffle(arr, seedStr){
 }
 const state = { counts:null, total:0, sel:new Set(), uid:voterId(),
   hasVoted:false, blocked:false, ipUsed:0, ipMax:2, meLoaded:false, loaded:false, firstLoad:true, adminPass:null, adminVotes:[] };
-const LIST = seededShuffle(KANDIDAT, state.uid+"k");
+/* Urutan diacak ulang setiap kali halaman dibuka. */
+const RUN_SEED = Array.from(crypto.getRandomValues(new Uint32Array(2))).join("-");
+const LIST = seededShuffle(KANDIDAT, RUN_SEED+"k");
 const $ = id => document.getElementById(id);
 function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
 const TICK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -421,7 +423,7 @@ function funnyIpText(max){
 
 /* ---------- Layar pembuka ---------- */
 function buildParade(){
-  const t = $("parade"); const people = seededShuffle(KANDIDAT.filter(c => !c.nama.startsWith("Hakim")), state.uid+"p");
+  const t = $("parade"); const people = seededShuffle(KANDIDAT, RUN_SEED+"p");
   for (const round of [0,1]) for (const c of people){ const a = avatar(c); a.title = shortName(c.nama); t.appendChild(a); }
 }
 function renderIntro(){
