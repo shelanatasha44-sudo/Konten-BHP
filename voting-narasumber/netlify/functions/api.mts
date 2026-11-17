@@ -2,8 +2,8 @@ import { createHash } from "node:crypto"
 import { getStore } from "@netlify/blobs"
 import type { Config, Context } from "@netlify/functions"
 
-const KANDIDAT = new Set(["a1", "a2", "a3", "a4", "a6", "a7", "a8", "a9", "a10", "h1", "h2", "h3", "h4"])
-const MAX_PILIHAN = 3
+const KANDIDAT = new Set(["a1", "a2", "a3", "a4", "a6", "a7", "a8", "a9", "a10", "h1"])
+const MAX_PILIHAN = 2
 
 /** Sumber foto kandidat (dicoba berurutan). Diambil lewat server agar tidak diblokir situs asal. */
 const FOTO: Record<string, string[]> = {
