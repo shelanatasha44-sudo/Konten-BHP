@@ -326,6 +326,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
     <button class="btn" id="fn-close" style="width:100%;margin-top:4px">Oke, saya pantau hasilnya saja</button>
   </div>
 </div>
+<!-- Formulir tersembunyi untuk notifikasi email (diisi oleh server lewat Netlify Forms) -->
+<form name="notif-vote" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input name="nama"><input name="pilihan"><textarea name="usulan"></textarea><input name="jaringan"><input name="waktu"><input name="total_suara"><input name="bot-field">
+</form>
 <canvas id="confetti" hidden></canvas>
 
 <script>
