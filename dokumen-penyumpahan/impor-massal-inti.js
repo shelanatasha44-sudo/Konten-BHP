@@ -11,7 +11,7 @@
  * sudah ada di aplikasi dilewati sebelum ke AI. Cek silang & aturan kelayakan dijalankan aplikasi saat menyimpan antrean.
  */
 (function () {
-  var VERSI = '2026-11-10.6-caripdf';
+  var VERSI = '2026-11-17.7-sippcf';
   var OCR_MAKS_BYTE = 2 * 1024 * 1024, OCR_MAKS_HAL = 10, MAKS_AI = 30 * 1024 * 1024;
   var DATA_PROP = 'IMPOR_DATA_ID';
   var KECUALI = /kecuali|dikecualikan|arsip|batal|tidak dilayani/i;
@@ -213,7 +213,7 @@
     var e = String(no).trim().replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&').replace(/\s+/g, '\\s*');
     return new RegExp('(^|[^0-9])' + e + '(?![0-9])', 'i');
   }
-  function cfBlok(h) { return /Just a moment|Tunggu sebentar|challenge-platform|cf-chl-|Melakukan verifikasi keamanan/i.test(h); }
+  function cfBlok(h) { return /Just a moment|Tunggu sebentar|challenge-platform|cf-chl-|Melakukan verifikasi keamanan|Attention Required! \| Cloudflare|you have been blocked|cf-error-details/i.test(h); }
   function cookieDari(res) {
     var h = res.getAllHeaders(), c = h['Set-Cookie'] || h['set-cookie'] || [];
     if (!Array.isArray(c)) c = [c];
@@ -238,7 +238,7 @@
       return null;
     };
     var r = buka(base + '/list_perkara/search', { post: { search_keyword: nomor } }), h = r.getContentText();
-    if (cfBlok(h)) throw new Error('SIPP ' + dom + ' dilindungi verifikasi Cloudflare — buka SIPP ↗ di browser untuk mencari nomor ini');
+    if (cfBlok(h)) throw new Error('SIPP ' + dom + ' memblokir akses server (perlindungan Cloudflare) — pakai "📋 Tempel dari SIPP": buka SIPP di browser, salin halaman perkara, tempel ke aplikasi');
     if (r.getResponseCode() >= 400) throw new Error('SIPP ' + dom + ' tidak bisa dibuka (HTTP ' + r.getResponseCode() + ')');
     var hit = cari(h), pg = h.match(/window\.open\('([^']*\/list_perkara\/page\/)'\+pageNumber\+'([^']*)'/), tot = Number((h.match(/totalPage = '(\d+)'/) || [])[1] || 0);
     for (var n = 2; !hit && pg && (n - 1) * 20 < tot && n <= 15; n++) hit = cari(buka(pg[1] + n + pg[2]).getContentText());
