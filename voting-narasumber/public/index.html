@@ -331,35 +331,35 @@ footer{text-align:center;color:var(--muted);font-size:12px;display:flex;flex-dir
 const SHARE = "https://bit.ly/4jmB4l9";
 /* sinta: tingkat akreditasi jurnal (null = belum terverifikasi); skor: SINTA Score penulis */
 const KANDIDAT = [
-  {id:"a1", nama:"Dr. Tengku Erwinsyahbana, S.H., M.Hum.", inst:"FH UMSU", crop:[0.51,0.22,2.2],
-   bidang:"Hukum perdata, keluarga, dan perkawinan", skor:527,
+  {id:"a1", skor:527, nama:"Dr. Tengku Erwinsyahbana, S.H., M.Hum.", inst:"FH UMSU", crop:[0.51,0.22,2.2],
+   bidang:"Hukum perdata, keluarga, dan perkawinan",
    karya:"Perlindungan hukum harta warisan anak melalui revitalisasi BHP (bersama Desi Yani)", jurnal:"Jurnal Notarius UMSU, 2022", sinta:null,
    catatan:"Artikelnya tentang BHP sudah dikutip sekitar 22 kali."},
-  {id:"a2", nama:"Ratna D. E. Sirait, S.H., M.Hum.", inst:"FH UNIKA Santo Thomas",
-   bidang:"Hukum perdata", skor:185,
+  {id:"a2", skor:185, nama:"Ratna D. E. Sirait, S.H., M.Hum.", inst:"FH UNIKA Santo Thomas",
+   bidang:"Hukum perdata",
    karya:"Penyalahgunaan hak perwalian anak di bawah umur (Putusan No. 655/Pdt.G/2024/PN.Mdn)", jurnal:"Jurnal Hukum Justice UNIKA, 2026", sinta:null},
-  {id:"a3", nama:"Prof. Dr. Elisabeth N. Butarbutar, S.H., M.Hum.", inst:"Guru Besar FH UNIKA Santo Thomas", crop:[0.58,0.36,4.5],
-   bidang:"Hukum perdata", jabatan:"Guru Besar Ilmu Hukum, Dekan FH UNIKA periode 2022–2026", skor:452,
+  {id:"a3", skor:413, nama:"Prof. Dr. Elisabeth N. Butarbutar, S.H., M.Hum.", inst:"Guru Besar FH UNIKA Santo Thomas", crop:[0.58,0.36,4.5],
+   bidang:"Hukum perdata", jabatan:"Guru Besar Ilmu Hukum, Dekan FH UNIKA periode 2022–2026",
    karya:"Pelaksanaan tugas BHP Kota Medan sebagai wali pengawas warisan anak", jurnal:"Jurnal Profil Hukum UNIKA, 2023", sinta:null,
    catatan:"Juga menulis tentang peran BHP sebagai wali pengawas dan pengampu pengawas (2023)."},
-  {id:"a4", nama:"Prof. Dr. Maidin Gultom, S.H., M.Hum.", inst:"Guru Besar FH UNIKA Santo Thomas", crop:[0.43,0.37,2.2],
+  {id:"a4", skor:892, nama:"Prof. Dr. Maidin Gultom, S.H., M.Hum.", inst:"Guru Besar FH UNIKA Santo Thomas", crop:[0.43,0.37,2.2],
    bidang:"Hukum pidana anak dan perlindungan anak", jabatan:"Guru Besar, Rektor UNIKA periode 2022–2026",
    karya:"Perlindungan Hukum terhadap Anak dalam Sistem Peradilan Pidana Anak di Indonesia", jurnal:"Buku, Refika Aditama", sinta:"bukan jurnal",
    catatan:"Belum ditemukan tulisan khusus tentang BHP atau pengampuan. Keahliannya relevan untuk sisi kepentingan terbaik anak."},
-  {id:"a6", nama:"Ria Juliana Siregar", inst:"FH Universitas HKBP Nommensen",
-   bidang:"Hukum perdata dan pertanahan", skor:172,
+  {id:"a6", skor:172, nama:"Ria Juliana Siregar", inst:"FH Universitas HKBP Nommensen",
+   bidang:"Hukum perdata dan pertanahan",
    karya:"Penunjukan wali melalui surat wasiat", jurnal:"Al-Risalah, UIN Alauddin Makassar, 2026", sinta:3},
-  {id:"a7", nama:"Besty Habeahan", inst:"FH Universitas HKBP Nommensen",
+  {id:"a7", skor:32, nama:"Besty Habeahan", inst:"FH Universitas HKBP Nommensen",
    bidang:"Hukum perdata, kepailitan, dan BHP",
    karya:"Peran sumpah wali dalam pengurusan harta anak di BHP", jurnal:"Jurnal Media Informatika (JuMIn), 2025", sinta:5,
    catatan:"Juga menulis tentang pengawasan BHP atas wasiat dan pembagian harta peninggalan (2025)."},
-  {id:"a8", nama:"Dr. Azwir Agus, S.H., M.Hum.", inst:"FH Universitas Medan Area", crop:[0.34,0.40,5.5],
+  {id:"a8", skor:147, nama:"Dr. Azwir Agus, S.H., M.Hum.", inst:"FH Universitas Medan Area", crop:[0.34,0.40,5.5],
    bidang:"Hukum perdata dan advokat", jabatan:"Ketua DPC Peradi Medan",
    karya:"Membimbing skripsi tentang izin BHP Medan bagi wali yang ingin menjual harta anak", jurnal:"Repositori FH UMA, 2025", sinta:"bukan jurnal"},
-  {id:"a9", nama:"Prof. Dr. Syafruddin Syam, M.Ag.", inst:"Dekan FSH UIN Sumatera Utara", crop:[0.49,0.37,3.3],
+  {id:"a9", skor:693, nama:"Prof. Dr. Syafruddin Syam, M.Ag.", inst:"Dekan FSH UIN Sumatera Utara", crop:[0.49,0.37,3.3],
    bidang:"Hukum Islam dan hukum keluarga", jabatan:"Guru Besar, Dekan Fakultas Syariah dan Hukum UINSU",
    karya:"Perbedaan putusan perwalian ayah atas anak kandung di Pengadilan Agama Medan", jurnal:"Ganaya, 2023", sinta:3},
-  {id:"a10", nama:"Dr. Tetty Marlina Tarigan, S.H., M.Kn.", inst:"UIN Sumatera Utara", crop:[0.54,0.26,3],
+  {id:"a10", skor:524, nama:"Dr. Tetty Marlina Tarigan, S.H., M.Kn.", inst:"UIN Sumatera Utara", crop:[0.54,0.26,3],
    bidang:"Hukum keluarga Islam dan kenotariatan",
    karya:"Perbedaan putusan perwalian ayah atas anak kandung di Pengadilan Agama Medan", jurnal:"Ganaya, 2023", sinta:3,
    catatan:"Membimbing tesis tentang perwalian di Magister Hukum Keluarga Islam UINSU."},
@@ -446,8 +446,8 @@ function infoBox(c){
   const add = (k, v, extra) => { if (!v) return; const dt = el("dt", null, k); const dd = el("dd", null, v); if (extra) dd.appendChild(extra); dl.append(dt, dd); };
   add("Kepakaran", c.bidang);
   add("Jabatan", c.jabatan);
-  if (c.karya){ const chip = el("span", "chip"+(typeof c.sinta==="number" ? " ok" : ""), sintaLabel(c.sinta)); add("Karya terkait", c.karya+" · "+c.jurnal+" ", chip); }
-  if (c.skor) add("Skor SINTA penulis", String(c.skor));
+  if (c.skor) add("Skor SINTA", c.skor.toLocaleString("id-ID"));
+  if (c.karya) add("Karya terkait", c.karya+" · "+c.jurnal);
   if (dl.children.length) info.appendChild(dl);
   if (c.catatan) info.appendChild(el("p", null, c.catatan));
   info.hidden = true;
