@@ -2,7 +2,7 @@
 
 Ekstensi Chrome yang mengisi **jurnal harian SIMPEG** sendiri setiap **Senin–Jumat pukul 08.15**
 dengan **3–4 kegiatan** Seksi Harta Peninggalan Wilayah II (perwalian/pengampuan, surat antar,
-penyumpahan, SIPP, SPS, SAPA WALI, kunjungan Kepri, dll.), ditambah **Zoom Apel Pagi** dan **ISHOMA**.
+penyumpahan, SIPP, SPS, SAPA WALI, kunjungan Kepri, dll.), ditambah **Apel Pagi** (Senin), **Zoom Apel Pagi** (Jumat), dan **ISHOMA**.
 
 Disesuaikan dengan form asli **Kinerja → Jurnal Harian** (`/devp/siap/skp_journal.php`): pilih tanggal di
 kotak tanggal → **Tambah** → Jam Mulai/Selesai (jam & menit) → *SKP Tahunan/Tugas Tambahan/Kreatifitas*
@@ -23,7 +23,7 @@ Satuan → Biaya 0 → **Simpan**. Kegiatan yang sudah ada di tabel tanggal itu 
 - **Tetap login**: selama Chrome menyala, SIMPEG "disentuh" tiap 15 menit supaya sesi web tidak habis karena menganggur.
 - Sesi tetap habis (mis. laptop mati semalam) → notifikasi "SIMPEG perlu login". Login sekali
   (NIP → password → captcha); pengisian yang tertunda **lanjut sendiri**. Captcha tidak diisi otomatis.
-- Kegiatan tidak berulang dalam satu minggu. Jam kerja penuh **07.30–16.30** tanpa celah: Zoom Apel Pagi 07.30–08.00, ISHOMA 12.00–13.00 (Jumat 11.30–13.30); jam pergantian kegiatan diacak per hari (kelipatan 15 menit, min. 1 jam).
+- Kegiatan tidak berulang dalam satu minggu. Jam kerja penuh **07.30–16.30** tanpa celah: Apel Pagi tiap Senin & Zoom Apel Pagi tiap Jumat (07.30–08.00; Selasa–Kamis langsung kegiatan dari 07.30), ISHOMA 12.00–13.00 (Jumat 11.30–13.30); jam pergantian kegiatan diacak per hari (kelipatan 15 menit, min. 1 jam).
 - **23–27 Nov 2026** (kunjungan Kepri, Batam) otomatis berisi kegiatan perjalanan dinas, penyumpahan, inventarisasi harta, dan konsultasi di lokasi. Tanggal/kota bisa diubah.
 
 ## Yang baru di versi 1.2.0
