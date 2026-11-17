@@ -88,7 +88,6 @@ export default async (req: Request, _context: Context) => {
       if (!ID_RE.test(id)) return json({ error: "Identitas perangkat tidak valid. Muat ulang halaman." }, 400)
       const nama = clean(b.nama, 120)
       const jabatan = clean(b.jabatan, 160)
-      if (!nama || !jabatan) return json({ error: "Nama dan jabatan wajib diisi." }, 400)
       const akademisi = pick(b.akademisi, AKADEMISI, 3)
       const hakim = pick(b.hakim, HAKIM, 1)
       if (!akademisi || !hakim) return json({ error: "Pilihan tidak valid: maksimal 3 akademisi dan 1 hakim." }, 400)

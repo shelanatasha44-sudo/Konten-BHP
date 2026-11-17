@@ -2,8 +2,8 @@
 
 Halaman voting publik untuk Uji Publik Pengampuan Balai Harta Peninggalan Medan.
 
-- Situs live: https://voting-narasumber-bhp-medan.netlify.app
-- `public/index.html`: halaman voting (tema terang, tab Akademisi/Hakim, hasil live).
+- Situs live: https://voting-narasumber-bhp-medan.netlify.app (link pendek: https://bit.ly/4jmB4l9)
+- `public/index.html`: halaman voting tema terang dengan layar pembuka, urutan nama diacak per perangkat, tab Akademisi/Hakim, dan hasil live. Voting anonim tanpa isi nama.
 - `netlify/functions/api.mts`: server kecil yang menyimpan suara di Netlify Blobs.
   - `GET /api/results`: jumlah suara per kandidat (tanpa nama pemilih).
   - `POST /api/vote`: simpan atau perbarui suara satu perangkat.
