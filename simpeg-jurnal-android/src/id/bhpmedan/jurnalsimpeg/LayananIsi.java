@@ -420,7 +420,7 @@ public class LayananIsi extends AccessibilityService {
                 if (f == null) f = cari(n, mulai ? "jam mulai" : "jam selesai");
                 if (sub == 9) {
                     String isi = f == null ? "" : teks(f);
-                    Matcher mj = Pattern.compile("(\\d{1,2})[:.](\\d{2})").matcher(isi);   // SIMPEG menulis "7:30", bukan "07:30"
+                    Matcher mj = Pattern.compile("(\\d{1,2})[:.](\\d{1,2})").matcher(isi);   // SIMPEG menulis "7:30" dan "8:0", bukan "07:30"/"08:00"
                     if (mj.find() && Integer.parseInt(mj.group(1)) == Integer.parseInt(jm[0]) && Integer.parseInt(mj.group(2)) == Integer.parseInt(jm[1])) { lanjutLangkah(); return; }
                     if (ulang++ >= 2) { gagal("Jam di form (" + isi + ") tidak sama dengan " + jm[0] + ":" + jm[1] + "."); return; }
                     sub = 0;
