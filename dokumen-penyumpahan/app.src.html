@@ -446,7 +446,10 @@ function kotaKab(t){const seg=String(t||'').split(/[,;]/).map(x=>x.trim()).filte
 const kota=r=>r.kotaPermohonan||(kotaKab(r.kelurahan)||kotaKab(r.alamat)||{}).nama||(isKepri(r)?((kotaKantor(r)||{}).kota||'Batam').replace(/^(Kota|Kabupaten)\s+/,''):'Medan');
 /* alamat lengkap pemohon (wali/pengampu): alamat + kelurahan/kecamatan/kota bila belum tercantum */
 function alamatLengkap(r){const a=String(r.alamat||'').trim().replace(/[\s.,;]+$/,''),k=String(r.kelurahan||'').trim().replace(/[\s.,;]+$/,'');if(!a||!k)return a||k;if(a.toLowerCase().includes(k.toLowerCase()))return a;
-  const kn=k.match(/Kel(?:urahan)?\.?\s+([^,]+)/i);return kn&&a.toLowerCase().includes(kn[1].trim().toLowerCase())?a:a+', '+k}
+  /* kelurahan dianggap sudah tertulis hanya bila alamat memuat "Kel./Kelurahan/Desa <nama>" atau kecamatannya —
+     nama jalan yang kebetulan sama dengan nama kelurahan (mis. "Jalan Suka Damai") tidak dihitung */
+  const kn=k.match(/(?:Kel(?:urahan)?|Desa)\.?\s+([^,]+)/i),kc=k.match(/Kec(?:amatan)?\.?\s+([^,]+)/i),rx=x=>x.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const ada=(kn&&new RegExp('\\b(kel(urahan)?|desa)\\.?\\s*'+rx(kn[1]),'i').test(a))||(kc&&new RegExp('\\bkec(amatan)?\\.?\\s*'+rx(kc[1]),'i').test(a));return ada?a:a+', '+k}
 const KANTOR_BHP=/balai harta peninggalan|\bbhp\b|jl\.?\s*listrik|jalan listrik/i;
 const lokasiSumpah=r=>r.zoom?'zoom':KANTOR_BHP.test(String(r.tempat||''))?'kantor':'rumah';
 const kalimatKegiatan=(r,s)=>({kantor:`Balai Harta Peninggalan Medan akan menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di Kantor Balai Harta Peninggalan Medan pada:`,
@@ -495,7 +498,7 @@ function rentangTgl(a,b){const x=pd(a),y=pd(b);if(a===b)return tgl(a).replace(/^
 const rentangHari=(a,b)=>a===b?hari(a):hari(a)+' s.d. '+hari(b);
 const kw=r=>kunjKepri(r)?'tanggal dan waktu':'waktu';
 const kegiatanKepri=(r,s)=>{const t=kalimatKegiatan(r,s);return kunjKepri(r)&&lokasiSumpah(r)==='rumah'?t.replace('melakukan kunjungan ','melakukan kunjungan ke Provinsi Kepulauan Riau '):t};
-const jadwal=(r,note,tempat)=>{const k=kunjKepri(r);return`<table style="margin:0 0 10pt 36pt"><tr><td style="width:90pt">Hari/Tanggal</td><td>:</td><td>${k?`${rentangHari(k.mulai,k.sampai)} / ${rentangTgl(k.mulai,k.sampai)}<br>(dapat dipilih salah satu hari)`:`${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}`}</td></tr>
+const jadwal=(r,note,tempat)=>{const k=kunjKepri(r);return`<table style="margin:6pt 0 6pt 36pt"><tr><td style="width:90pt">Hari/Tanggal</td><td>:</td><td>${k?`${rentangHari(k.mulai,k.sampai)} / ${rentangTgl(k.mulai,k.sampai)}<br>(dapat dipilih salah satu hari)`:`${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}`}</td></tr>
 <tr><td>Pukul</td><td>:</td><td>${V(r.waktu)}<br>(${note} ${WA()})</td></tr>${tempat===false?'':`<tr><td>Tempat</td><td>:</td><td>${tempat||tempatTampil(r)}</td></tr>`}${r.zoom?`<tr><td>Tautan Zoom</td><td>:</td><td>${esc(r.zoom)}</td></tr>`:''}</table>`};
 /* belum ada tanggal sumpah & bukan rentang kunjungan Kepri: surat antar memberitahukan penyumpahan dan meminta konfirmasi kesediaan (tanpa tanggal) */
 const tanpaJadwal=r=>!kunjKepri(r)&&!String(r.tglSumpah||'').trim();
@@ -509,7 +512,7 @@ const ajakKepri=(r,s)=>{if(!kunjKepri(r))return'';const d=derive(r),J=d.J,P=d.pi
   return`<p>Perlu kami sampaikan bahwa Balai Harta Peninggalan Medan hadir sebagai perpanjangan tangan negara untuk mendampingi dan memberikan konsultasi hukum kepada ${s} dalam menjalankan tugas sebagai ${J}. Pengangkatan sumpah ini bukan sekadar formalitas, melainkan bentuk perlindungan hukum bagi ${s}: setelah diambil sumpahnya, kedudukan ${s} sebagai ${J} diakui secara sah, sehingga ${s} dapat bertindak mewakili ${P} di hadapan bank, sekolah, instansi kependudukan, maupun pihak lainnya, serta terlindungi dari kemungkinan prasangka negatif dalam mengelola hak dan harta ${P}. Setelah penyumpahan pun, ${s} tetap dapat berkonsultasi dengan kami apabila menemui kendala dalam mengurus kepentingan ${P}.</p>
 <p>Mengingat Tim Balai Harta Peninggalan Medan berada di Provinsi Kepulauan Riau hanya pada rentang tanggal tersebut, kami mohon dengan hormat kesediaan ${s} untuk memilih hari dan jam yang paling sesuai, kemudian menyampaikannya melalui WhatsApp Layanan Perwalian Pengampuan di nomor ${WA()} sesegera mungkin setelah surat ini diterima. Pengangkatan sumpah dilaksanakan langsung di kediaman ${s}, sehingga ${s} tidak perlu menempuh perjalanan ke kantor kami di Medan. Konfirmasi yang lebih awal akan sangat membantu kami menyusun jadwal kunjungan, sehingga kegiatan dapat berlangsung tepat waktu dan tidak mengganggu aktivitas ${s}.</p>`};
 const yth=(nama,alamat)=>`<p class="ni" style="text-align:left">Yth. <b>${nama}</b><br>di</p><p class="ni" style="margin-left:18pt;max-width:260pt;text-align:left">${alamat}</p><br>`;
-const syarat=(items,after)=>`<ol style="margin-left:36pt;line-height:1.15">${items.map(x=>`<li>${x}</li>`).join('')}</ol>${after.map(x=>`<p class="ni" style="margin-left:54pt;line-height:1.15">${x}</p>`).join('')}`;
+const syarat=(items,after)=>`<ol style="margin-left:36pt;line-height:1.15">${items.map(x=>`<li>${x}</li>`).join('')}</ol>${after.map((x,i)=>`<p class="ni" style="margin-left:54pt;line-height:1.15;margin-top:6pt">${x}</p>`).join('')}`;
 /* dasar hukum PNBP: PP 30/2026 (berlaku 1 Agustus 2026, menggantikan PP 45/2024); bisa diubah di Pengaturan bila ada peraturan baru */
 const PNBP_LAMA=/Nomor 45 Tahun 2024|Hak Asasi Manusia/i;
 const dasarPnbp=()=>String(SET.dasarPnbp&&!PNBP_LAMA.test(SET.dasarPnbp)?SET.dasarPnbp:DEF_SET.dasarPnbp).replace(/\.\s*$/,'');
@@ -596,7 +599,7 @@ ${tbl([[esc(jp.replace(/\s+/g,' ')),esc(kotaPg)],['Nomor Penetapan',V(r.nomorPen
     return kop()+`<p class="ctr" style="line-height:1.15"><b><u>BERITA ACARA PENGHADAPAN</u></b><br>${d.w?`Perwalian atas Anak Di Bawah Umur an. ${V(d.objek)}`:`Pengampuan atas Terampu ${V(d.objek)}`}<br><b>Nomor : ${noManual(r,'nomorBAP')}</b></p><br>
 <p>Pada hari ini, ${tglBA(r.tglSumpah)}, telah hadir dihadapan saya, <b>${V(p.nama)}, NIP. ${V(p.nip)},</b> ${esc(p.jabatan||'')} pada Balai Harta Peninggalan Medan yang dalam ini bertindak dalam jabatan tersebut, yaitu :</p>
 <table style="margin:8pt 0 8pt 36pt"><tr><td style="width:130pt">Nama</td><td>:</td><td><b>${V(r.nama)}</b></td></tr><tr><td>Tanggal Lahir/Umur</td><td>:</td><td>${lahirUsia(r.tglLahir,r.tglSumpah)}</td></tr>
-<tr><td>Agama</td><td>:</td><td>${esc(r.agama)}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>${V(r.pekerjaan)}</td></tr><tr><td>Alamat</td><td>:</td><td>${V(r.alamat)}</td></tr></table>
+<tr><td>Agama</td><td>:</td><td>${esc(r.agama)}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>${V(r.pekerjaan)}</td></tr><tr><td>Alamat</td><td>:</td><td>${V(alamatLengkap(r)||r.alamat)}</td></tr></table>
 <p>Berkenaan dengan ${d.w?'perwalian':'pengampuan'} atas nama <b>${V(d.objek)}</b>, terhadap pertanyaan-pertanyaan kami, penghadap tersebut diatas telah memberikan keterangan-keterangan dan penjelasan tentang hal-hal yang akan disebut dibawah ini serta menguatkannya dengan pernyataan.</p>
 ${bapList(isi.length?r.isiBap:buatBap(r),r)}
 <p style="margin-top:8pt">Oleh karena tidak ada lagi yang perlu diterangkan dan dijelaskan, maka Berita Acara Penghadapan ini ditutup pada hari dan tanggal tersebut diatas, kemudian ditandatangani oleh saya dan penghadap.</p>`+
