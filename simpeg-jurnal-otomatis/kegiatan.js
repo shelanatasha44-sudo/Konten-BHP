@@ -136,7 +136,7 @@
     if (g === 0 || g === 6) return false;
     return !((cfg && cfg.libur) || []).includes(s);
   }
-  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–18 tiap bulan)? */
+  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–17 tiap bulan; tgl 18 sudah buka)? */
   function dalamMasaTutup(s, cfg) {
     var m = tutupDari(cfg);   // null = tidak ada masa tutup
     if (!m) return false;
