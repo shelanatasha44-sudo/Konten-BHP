@@ -1,6 +1,6 @@
 {
-  "versi": "2026-11-15.1",
-  "catatan": "Data kegiatan Jurnal SIMPEG. Edit file ini di GitHub; plugin mengambilnya otomatis tiap 6 jam / saat Chrome dibuka. bank: kegiatan harian ({u}=uraian, {o}=output, {s}=satuan, {vol}=[min,max]). Placeholder {kota} dan {pn} diganti otomatis. libur: yyyy-mm-dd. kunjungan: tema kegiatan dinas luar.",
+  "versi": "2026-11-17.1",
+  "catatan": "Data kegiatan Jurnal SIMPEG. Edit file ini di GitHub; plugin mengambilnya otomatis tiap 6 jam / saat Chrome dibuka. bank: kegiatan harian ({u}=uraian, {o}=output, {s}=satuan, {vol}=[min,max]). Placeholder {kota} dan {pn} diganti otomatis. libur: yyyy-mm-dd. kunjungan: tema kegiatan dinas luar. rutinPagi: kegiatan pagi per hari (hari 1=Senin … 5=Jumat).",
   "libur": [
     "2026-12-24",
     "2026-12-25",
@@ -316,8 +316,8 @@
       ]
     },
     {
-      "u": "Mengikuti rapat koordinasi secara daring (Zoom) dengan Kantor Wilayah/Direktorat Jenderal AHU terkait pelaksanaan tugas kurator keperdataan",
-      "o": "Catatan hasil rapat daring",
+      "u": "Mengikuti rapat koordinasi dengan Kantor Wilayah Kementerian Hukum Sumatera Utara terkait pelaksanaan tugas kurator keperdataan",
+      "o": "Catatan hasil rapat koordinasi",
       "s": "Kegiatan",
       "vol": [
         1,
@@ -325,7 +325,7 @@
       ]
     },
     {
-      "u": "Mengikuti sosialisasi/bimbingan teknis perwalian dan pengampuan secara daring melalui Zoom Meeting",
+      "u": "Mengikuti sosialisasi/bimbingan teknis peningkatan kualitas layanan perwalian dan pengampuan",
       "o": "Catatan hasil bimbingan teknis",
       "s": "Kegiatan",
       "vol": [
@@ -334,7 +334,7 @@
       ]
     },
     {
-      "u": "Mengikuti rapat internal Seksi Harta Peninggalan Wilayah II melalui Zoom membahas pembagian dan progres berkas",
+      "u": "Mengikuti rapat internal Seksi Harta Peninggalan Wilayah II membahas pembagian tugas dan target penyelesaian berkas bulan berjalan",
       "o": "Notulen rapat internal",
       "s": "Kegiatan",
       "vol": [
@@ -343,8 +343,8 @@
       ]
     },
     {
-      "u": "Mengikuti webinar/FGD peningkatan kompetensi kurator keperdataan secara daring",
-      "o": "Sertifikat/catatan webinar",
+      "u": "Mengikuti FGD/diskusi peningkatan kompetensi kurator keperdataan",
+      "o": "Catatan hasil diskusi",
       "s": "Kegiatan",
       "vol": [
         1,
@@ -412,6 +412,213 @@
       "vol": [
         1,
         4
+      ]
+    },
+    {
+      "u": "Melakukan verifikasi berkas permohonan Surat Keterangan Hak Waris (SKHW) yang masuk melalui aplikasi Tuntas Waris",
+      "o": "Hasil verifikasi permohonan SKHW",
+      "s": "Berkas",
+      "vol": [
+        2,
+        6
+      ]
+    },
+    {
+      "u": "Menyusun konsep Surat Keterangan Hak Waris berdasarkan dokumen ahli waris yang telah diverifikasi",
+      "o": "Konsep Surat Keterangan Hak Waris",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        3
+      ]
+    },
+    {
+      "u": "Memberikan layanan konsultasi kepada pemohon SKHW terkait persyaratan dan perbaikan dokumen",
+      "o": "Layanan konsultasi SKHW",
+      "s": "Orang",
+      "vol": [
+        1,
+        4
+      ]
+    },
+    {
+      "u": "Melakukan penelaahan dan pencatatan pendaftaran akta wasiat yang disampaikan oleh notaris",
+      "o": "Register pendaftaran wasiat",
+      "s": "Berkas",
+      "vol": [
+        1,
+        4
+      ]
+    },
+    {
+      "u": "Menelaah laporan/informasi harta peninggalan yang tidak terurus sebagai bahan penentuan langkah pengurusan oleh Balai Harta Peninggalan",
+      "o": "Hasil telaah harta peninggalan tidak terurus",
+      "s": "Berkas",
+      "vol": [
+        1,
+        2
+      ]
+    },
+    {
+      "u": "Menyusun dan memperbarui daftar persyaratan layanan perwalian dan pengampuan sesuai standar pelayanan",
+      "o": "Daftar persyaratan layanan",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Melakukan reviu Standar Operasional Prosedur (SOP) layanan perwalian dan pengampuan",
+      "o": "Catatan reviu SOP",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        2
+      ]
+    },
+    {
+      "u": "Menginput data pengguna layanan perwalian/pengampuan sebagai bahan Survei Kepuasan Masyarakat (SKM)",
+      "o": "Data responden SKM",
+      "s": "Orang",
+      "vol": [
+        3,
+        10
+      ]
+    },
+    {
+      "u": "Merekap hasil Survei Kepuasan Masyarakat (SKM) layanan perwalian dan pengampuan",
+      "o": "Rekapitulasi SKM",
+      "s": "Laporan",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Menindaklanjuti pengaduan/pertanyaan masyarakat terkait layanan perwalian dan pengampuan",
+      "o": "Tindak lanjut pengaduan",
+      "s": "Kegiatan",
+      "vol": [
+        1,
+        2
+      ]
+    },
+    {
+      "u": "Menyiapkan data dukung capaian Indikator Kinerja Utama (IKU) Seksi Harta Peninggalan Wilayah II",
+      "o": "Data dukung capaian IKU",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        3
+      ]
+    },
+    {
+      "u": "Menyusun bahan Laporan Kinerja Instansi Pemerintah (LKjIP) terkait layanan perwalian dan pengampuan",
+      "o": "Bahan laporan kinerja",
+      "s": "Laporan",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Menyusun bahan tindak lanjut rekomendasi hasil pengawasan internal pada Seksi Harta Peninggalan Wilayah II",
+      "o": "Bahan tindak lanjut hasil pengawasan",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        2
+      ]
+    },
+    {
+      "u": "Menyusun konten informasi layanan perwalian dan pengampuan untuk media sosial Balai Harta Peninggalan Medan",
+      "o": "Konten informasi layanan",
+      "s": "Konten",
+      "vol": [
+        1,
+        2
+      ]
+    },
+    {
+      "u": "Menyiapkan kegiatan webinar/sosialisasi layanan Balai Harta Peninggalan Medan (materi, undangan, dan daftar hadir)",
+      "o": "Bahan dan perlengkapan webinar",
+      "s": "Kegiatan",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Menyusun laporan pelaksanaan webinar/sosialisasi layanan Balai Harta Peninggalan Medan beserta dokumentasinya",
+      "o": "Laporan kegiatan webinar",
+      "s": "Laporan",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Memutakhirkan data kontak (telepon/WhatsApp/email) Wali/Pengampu wilayah {kota} untuk keperluan monitoring",
+      "o": "Data kontak Wali/Pengampu terbarui",
+      "s": "Orang",
+      "vol": [
+        5,
+        15
+      ]
+    },
+    {
+      "u": "Berkoordinasi dengan Dinas Kependudukan dan Pencatatan Sipil {kota} terkait validasi data kependudukan pemohon",
+      "o": "Hasil koordinasi dengan Disdukcapil",
+      "s": "Kegiatan",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Menyusun konsep nota dinas kepada Kepala Seksi mengenai perkembangan penyelesaian berkas perwalian/pengampuan",
+      "o": "Konsep nota dinas",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        2
+      ]
+    },
+    {
+      "u": "Menelaah peraturan perundang-undangan terkait perwalian dan pengampuan sebagai bahan telaahan staf",
+      "o": "Bahan telaahan staf",
+      "s": "Dokumen",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Menyusun rekapitulasi PNBP layanan perwalian/pengampuan bulanan untuk dilaporkan ke Subbagian Umum",
+      "o": "Rekap PNBP bulanan",
+      "s": "Laporan",
+      "vol": [
+        1,
+        1
+      ]
+    },
+    {
+      "u": "Memeriksa bukti setor PNBP pemohon dan mencocokkannya dengan data layanan perwalian/pengampuan",
+      "o": "Bukti setor PNBP terverifikasi",
+      "s": "Berkas",
+      "vol": [
+        2,
+        6
+      ]
+    },
+    {
+      "u": "Melakukan digitalisasi (pemindaian) penetapan pengadilan dan berita acara ke arsip digital seksi",
+      "o": "Dokumen terdigitalisasi",
+      "s": "Dokumen",
+      "vol": [
+        5,
+        15
       ]
     },
     {
@@ -496,6 +703,20 @@
         4,
         10
       ]
+    }
+  ],
+  "rutinPagi": [
+    {
+      "hari": 1,
+      "mulai": "07:30",
+      "selesai": "08:00",
+      "uraian": "Apel Pagi"
+    },
+    {
+      "hari": 5,
+      "mulai": "07:30",
+      "selesai": "08:00",
+      "uraian": "Zoom Apel Pagi"
     }
   ]
 }

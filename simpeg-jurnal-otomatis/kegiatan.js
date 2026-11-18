@@ -43,12 +43,12 @@
     { u: 'Melakukan koordinasi ke {pn} untuk mengambil salinan penetapan perwalian/pengampuan yang telah berkekuatan hukum tetap', o: 'Salinan penetapan dari pengadilan', s: 'Berkas', vol: [2, 6] },
     { u: 'Berkoordinasi dengan Kepaniteraan {pn} terkait kelengkapan dan pemutakhiran data perkara perwalian/pengampuan', o: 'Hasil koordinasi dengan kepaniteraan', s: 'Kegiatan', vol: [1, 1] },
     { u: 'Mengantar dan mengambil berkas permohonan ke {pn} dalam rangka penyelesaian perwalian/pengampuan', o: 'Berkas terkirim/terterima dari pengadilan', s: 'Berkas', vol: [1, 4] },
-    // --- Rapat & Zoom ---
+    // --- Rapat & koordinasi ---
     { u: 'Mengikuti rapat koordinasi Seksi Harta Peninggalan Wilayah II membahas progres penyelesaian berkas perwalian/pengampuan', o: 'Catatan hasil rapat koordinasi', s: 'Kegiatan', vol: [1, 1] },
-    { u: 'Mengikuti rapat koordinasi secara daring (Zoom) dengan Kantor Wilayah/Direktorat Jenderal AHU terkait pelaksanaan tugas kurator keperdataan', o: 'Catatan hasil rapat daring', s: 'Kegiatan', vol: [1, 1] },
-    { u: 'Mengikuti sosialisasi/bimbingan teknis perwalian dan pengampuan secara daring melalui Zoom Meeting', o: 'Catatan hasil bimbingan teknis', s: 'Kegiatan', vol: [1, 1] },
-    { u: 'Mengikuti rapat internal Seksi Harta Peninggalan Wilayah II melalui Zoom membahas pembagian dan progres berkas', o: 'Notulen rapat internal', s: 'Kegiatan', vol: [1, 1] },
-    { u: 'Mengikuti webinar/FGD peningkatan kompetensi kurator keperdataan secara daring', o: 'Sertifikat/catatan webinar', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti rapat koordinasi dengan Kantor Wilayah Kementerian Hukum Sumatera Utara terkait pelaksanaan tugas kurator keperdataan', o: 'Catatan hasil rapat koordinasi', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti sosialisasi/bimbingan teknis peningkatan kualitas layanan perwalian dan pengampuan', o: 'Catatan hasil bimbingan teknis', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti rapat internal Seksi Harta Peninggalan Wilayah II membahas pembagian tugas dan target penyelesaian berkas bulan berjalan', o: 'Notulen rapat internal', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Mengikuti FGD/diskusi peningkatan kompetensi kurator keperdataan', o: 'Catatan hasil diskusi', s: 'Kegiatan', vol: [1, 1] },
     // --- Zona Integritas (ZI) / WBK-WBBM ---
     { u: 'Mengikuti rapat tim kerja Pembangunan Zona Integritas (ZI) menuju WBK/WBBM Balai Harta Peninggalan Medan', o: 'Catatan hasil rapat ZI', s: 'Kegiatan', vol: [1, 1] },
     { u: 'Menyusun dan memutakhirkan dokumen bukti dukung (evidence) Lembar Kerja Evaluasi Zona Integritas pada area perubahan', o: 'Dokumen bukti dukung ZI', s: 'Dokumen', vol: [2, 6] },
@@ -59,6 +59,30 @@
     // --- SPIP ---
     { u: 'Mengikuti rapat penyelenggaraan dan penilaian Sistem Pengendalian Intern Pemerintah (SPIP) di lingkungan Balai Harta Peninggalan Medan', o: 'Catatan hasil rapat SPIP', s: 'Kegiatan', vol: [1, 1] },
     { u: 'Menyiapkan dokumen pendukung penilaian mandiri penyelenggaraan SPIP', o: 'Dokumen pendukung SPIP', s: 'Dokumen', vol: [1, 4] },
+    // --- SKHW, wasiat, harta tak terurus, pelayanan publik, kinerja, kehumasan ---
+    { u: 'Melakukan verifikasi berkas permohonan Surat Keterangan Hak Waris (SKHW) yang masuk melalui aplikasi Tuntas Waris', o: 'Hasil verifikasi permohonan SKHW', s: 'Berkas', vol: [2, 6] },
+    { u: 'Menyusun konsep Surat Keterangan Hak Waris berdasarkan dokumen ahli waris yang telah diverifikasi', o: 'Konsep Surat Keterangan Hak Waris', s: 'Dokumen', vol: [1, 3] },
+    { u: 'Memberikan layanan konsultasi kepada pemohon SKHW terkait persyaratan dan perbaikan dokumen', o: 'Layanan konsultasi SKHW', s: 'Orang', vol: [1, 4] },
+    { u: 'Melakukan penelaahan dan pencatatan pendaftaran akta wasiat yang disampaikan oleh notaris', o: 'Register pendaftaran wasiat', s: 'Berkas', vol: [1, 4] },
+    { u: 'Menelaah laporan/informasi harta peninggalan yang tidak terurus sebagai bahan penentuan langkah pengurusan oleh Balai Harta Peninggalan', o: 'Hasil telaah harta peninggalan tidak terurus', s: 'Berkas', vol: [1, 2] },
+    { u: 'Menyusun dan memperbarui daftar persyaratan layanan perwalian dan pengampuan sesuai standar pelayanan', o: 'Daftar persyaratan layanan', s: 'Dokumen', vol: [1, 1] },
+    { u: 'Melakukan reviu Standar Operasional Prosedur (SOP) layanan perwalian dan pengampuan', o: 'Catatan reviu SOP', s: 'Dokumen', vol: [1, 2] },
+    { u: 'Menginput data pengguna layanan perwalian/pengampuan sebagai bahan Survei Kepuasan Masyarakat (SKM)', o: 'Data responden SKM', s: 'Orang', vol: [3, 10] },
+    { u: 'Merekap hasil Survei Kepuasan Masyarakat (SKM) layanan perwalian dan pengampuan', o: 'Rekapitulasi SKM', s: 'Laporan', vol: [1, 1] },
+    { u: 'Menindaklanjuti pengaduan/pertanyaan masyarakat terkait layanan perwalian dan pengampuan', o: 'Tindak lanjut pengaduan', s: 'Kegiatan', vol: [1, 2] },
+    { u: 'Menyiapkan data dukung capaian Indikator Kinerja Utama (IKU) Seksi Harta Peninggalan Wilayah II', o: 'Data dukung capaian IKU', s: 'Dokumen', vol: [1, 3] },
+    { u: 'Menyusun bahan Laporan Kinerja Instansi Pemerintah (LKjIP) terkait layanan perwalian dan pengampuan', o: 'Bahan laporan kinerja', s: 'Laporan', vol: [1, 1] },
+    { u: 'Menyusun bahan tindak lanjut rekomendasi hasil pengawasan internal pada Seksi Harta Peninggalan Wilayah II', o: 'Bahan tindak lanjut hasil pengawasan', s: 'Dokumen', vol: [1, 2] },
+    { u: 'Menyusun konten informasi layanan perwalian dan pengampuan untuk media sosial Balai Harta Peninggalan Medan', o: 'Konten informasi layanan', s: 'Konten', vol: [1, 2] },
+    { u: 'Menyiapkan kegiatan webinar/sosialisasi layanan Balai Harta Peninggalan Medan (materi, undangan, dan daftar hadir)', o: 'Bahan dan perlengkapan webinar', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Menyusun laporan pelaksanaan webinar/sosialisasi layanan Balai Harta Peninggalan Medan beserta dokumentasinya', o: 'Laporan kegiatan webinar', s: 'Laporan', vol: [1, 1] },
+    { u: 'Memutakhirkan data kontak (telepon/WhatsApp/email) Wali/Pengampu wilayah {kota} untuk keperluan monitoring', o: 'Data kontak Wali/Pengampu terbarui', s: 'Orang', vol: [5, 15] },
+    { u: 'Berkoordinasi dengan Dinas Kependudukan dan Pencatatan Sipil {kota} terkait validasi data kependudukan pemohon', o: 'Hasil koordinasi dengan Disdukcapil', s: 'Kegiatan', vol: [1, 1] },
+    { u: 'Menyusun konsep nota dinas kepada Kepala Seksi mengenai perkembangan penyelesaian berkas perwalian/pengampuan', o: 'Konsep nota dinas', s: 'Dokumen', vol: [1, 2] },
+    { u: 'Menelaah peraturan perundang-undangan terkait perwalian dan pengampuan sebagai bahan telaahan staf', o: 'Bahan telaahan staf', s: 'Dokumen', vol: [1, 1] },
+    { u: 'Menyusun rekapitulasi PNBP layanan perwalian/pengampuan bulanan untuk dilaporkan ke Subbagian Umum', o: 'Rekap PNBP bulanan', s: 'Laporan', vol: [1, 1] },
+    { u: 'Memeriksa bukti setor PNBP pemohon dan mencocokkannya dengan data layanan perwalian/pengampuan', o: 'Bukti setor PNBP terverifikasi', s: 'Berkas', vol: [2, 6] },
+    { u: 'Melakukan digitalisasi (pemindaian) penetapan pengadilan dan berita acara ke arsip digital seksi', o: 'Dokumen terdigitalisasi', s: 'Dokumen', vol: [5, 15] },
     // --- Administrasi & pelaporan ---
     { u: 'Menyusun laporan bulanan pelaksanaan kegiatan Seksi Harta Peninggalan Wilayah II', o: 'Laporan bulanan seksi', s: 'Laporan', vol: [1, 1] },
     { u: 'Menyusun notulen dan tindak lanjut hasil rapat kegiatan seksi', o: 'Notulen dan tindak lanjut rapat', s: 'Dokumen', vol: [1, 2] },
@@ -81,7 +105,11 @@
     jumlahMin: 3,
     jumlahMax: 4,
     aktif: true,
-    apelPagi: true,          // tambah 'Zoom Apel Pagi' 07.30–08.00 (SKP Lain-Lain)
+    apelPagi: true,          // tambah kegiatan rutin pagi (lihat rutinPagi), SKP Lain-Lain
+    rutinPagi: [             // hari: 1=Senin … 5=Jumat. Bisa diganti lewat data/kegiatan.json di GitHub
+      { hari: 1, mulai: '07:30', selesai: '08:00', uraian: 'Apel Pagi' },
+      { hari: 5, mulai: '07:30', selesai: '08:00', uraian: 'Zoom Apel Pagi' }
+    ],
     ishoma: true,            // tambah 'ISHOMA' (SKP Lain-Lain)
     jagaSesi: true,          // sentuh SIMPEG tiap 15 menit agar tetap login
     tutupTab: true,          // tutup tab SIMPEG milik plugin setelah jurnal berhasil terisi
@@ -95,7 +123,7 @@
       '2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'
     ],
     kunjungan: [{ mulai: '2026-11-23', selesai: '2026-11-27', kota: 'Batam' }],
-    masaTutup: { dari: 14, sampai: 18 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–18)
+    masaTutup: { dari: 14, sampai: 17 },  // SIMPEG ditutup tiap bulan untuk penarikan tukin (tgl 14–17; tgl 18 sudah buka)
     kegiatanTambahan: []     // [{u,o,s,vol:[a,b]}] dari Pengaturan
   };
 
@@ -108,18 +136,20 @@
     if (g === 0 || g === 6) return false;
     return !((cfg && cfg.libur) || []).includes(s);
   }
-  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–18 tiap bulan)? */
+  /** Apakah tanggal s jatuh di masa tutup SIMPEG (penarikan tukin, bawaan tgl 14–17 tiap bulan; tgl 18 sudah buka)? */
   function dalamMasaTutup(s, cfg) {
-    var m = cfg && 'masaTutup' in cfg ? cfg.masaTutup : DEFAULTS.masaTutup;   // null = tidak ada masa tutup
-    if (!m || !m.dari || !m.sampai) return false;
+    var m = tutupDari(cfg);   // null = tidak ada masa tutup
+    if (!m) return false;
     var tgl = +s.split('-')[2];
     return m.dari <= m.sampai ? (tgl >= m.dari && tgl <= m.sampai) : (tgl >= m.dari || tgl <= m.sampai);
   }
   /** Tanggal yang ikut diisi saat tanggal t diklik: bila t jatuh di masa tutup, semua hari kerja
    *  masa tutup bulan itu sampai t (mis. klik 18 → 16, 17, 18 bila 14–15 akhir pekan); selain itu [t]. */
   function tanggalSusulan(t, cfg) {
+    // hari pertama setelah masa tutup (tgl 18): susulkan hari kerja 14–17 lalu tanggal itu
+    if (tutupDari(cfg) && t === hariSetelahTutup(t, cfg)) return hariKerjaTutup(t, cfg).concat([t]);
     if (!dalamMasaTutup(t, cfg)) return [t];
-    var m = (cfg && 'masaTutup' in cfg) ? cfg.masaTutup : DEFAULTS.masaTutup;
+    var m = tutupDari(cfg);
     var hasil = [], d = t;
     for (var i = 0; i < 31 && dalamMasaTutup(d, cfg); i++) {
       if (hariKerja(d, cfg)) hasil.unshift(d);
@@ -128,6 +158,44 @@
     }
     return hasil.length ? hasil : [t];
   }
+  function tutupDari(cfg) {
+    var m = (cfg && 'masaTutup' in cfg) ? cfg.masaTutup : DEFAULTS.masaTutup;
+    // pengaturan lama tersimpan 14–18; masa tutup sebenarnya 14–17 (tgl 18 sudah buka)
+    if (m && m.dari === 14 && m.sampai === 18) m = { dari: 14, sampai: 17 };
+    return (m && m.dari && m.sampai && m.dari <= m.sampai) ? m : null;
+  }
+  function tglBulan(t, hari) { return t.slice(0, 8) + pad(hari); }
+  /** Hari kerja masa tutup pada bulan tanggal t (mis. 14–17 yang jatuh Senin–Jumat). */
+  function hariKerjaTutup(t, cfg) {
+    var m = tutupDari(cfg), hasil = [];
+    if (!m) return hasil;
+    for (var h = m.dari; h <= m.sampai; h++) { var d = tglBulan(t, h); if (hariKerja(d, cfg)) hasil.push(d); }
+    return hasil;
+  }
+  /** Hari kerja terakhir sebelum masa tutup (biasanya tgl 13; bila 13 akhir pekan/libur, mundur ke 12, 11, …). */
+  function hariSebelumTutup(t, cfg) {
+    var m = tutupDari(cfg); if (!m) return null;
+    for (var h = m.dari - 1; h >= Math.max(1, m.dari - 8); h--) { var d = tglBulan(t, h); if (hariKerja(d, cfg)) return d; }
+    return null;
+  }
+  /** Hari kerja pertama setelah masa tutup (biasanya tgl 18). */
+  function hariSetelahTutup(t, cfg) {
+    var m = tutupDari(cfg); if (!m) return null;
+    var d = tglBulan(t, m.sampai);
+    for (var i = 0; i < 10; i++) { d = addDays(d, 1); if (hariKerja(d, cfg)) return d; }
+    return null;
+  }
+  /** Pada hari kerja terakhir sebelum masa tutup: [hari itu + semua hari kerja masa tutup]. Selain itu null. */
+  function isiMajuTutup(t, cfg) {
+    if (!tutupDari(cfg) || t !== hariSebelumTutup(t, cfg)) return null;
+    return [t].concat(hariKerjaTutup(t, cfg));
+  }
+  /** Isi maju otomatis bila tgl sebelum masa tutup (13) bukan hari kerja. */
+  function majuOtomatis(t, cfg) {
+    var m = tutupDari(cfg);
+    return !!(m && isiMajuTutup(t, cfg) && t !== tglBulan(t, m.dari - 1));
+  }
+
   function formatTanggal(s, fmt) {
     var p = s.split('-');
     return (fmt || 'dd-mm-yyyy').replace('yyyy', p[0]).replace('mm', p[1]).replace('dd', p[2]);
@@ -150,7 +218,9 @@
       bank: validBank(d.bank) ? d.bank : BANK,
       bankKunjungan: validBank(d.bankKunjungan) ? d.bankKunjungan : BANK_KUNJUNGAN,
       kota: Array.isArray(d.kota) && d.kota.length ? d.kota : KOTA,
-      pengadilan: Array.isArray(d.pengadilan) && d.pengadilan.length ? d.pengadilan : PENGADILAN
+      pengadilan: Array.isArray(d.pengadilan) && d.pengadilan.length ? d.pengadilan : PENGADILAN,
+      rutinPagi: Array.isArray(d.rutinPagi) && d.rutinPagi.every(function (x) { return x && x.hari >= 1 && x.hari <= 5 && /^\d\d:\d\d$/.test(x.mulai) && /^\d\d:\d\d$/.test(x.selesai) && x.uraian; })
+        ? d.rutinPagi : (cfg.rutinPagi || DEFAULTS.rutinPagi)
     };
   }
   /** Gabungkan data GitHub ke pengaturan: libur & kunjungan ditambahkan, bank kegiatan diganti. */
@@ -229,10 +299,11 @@
       for (var i = 0; i < n; i++) dipilih.push(urut[(hariKe * 4 + i) % urut.length]);
     }
     var jumat = parseIso(tanggal).getDay() === 5;
-    var adaApel = cfg.apelPagi && !kj;
-    var jam = slotJam(n, jumat, rng(seedOf('jam:' + tanggal)), adaApel ? '08:00' : '07:30');
+    var hariIni = parseIso(tanggal).getDay();
+    var pagiIni = (cfg.apelPagi && !kj) ? src.rutinPagi.filter(function (x) { return x.hari === hariIni; })[0] : null;
+    var jam = slotJam(n, jumat, rng(seedOf('jam:' + tanggal)), pagiIni ? pagiIni.selesai : '07:30');
     var rutin = [];
-    if (adaApel) rutin.push({ tanggal: tanggal, jamMulai: '07:30', jamSelesai: '08:00', uraian: 'Zoom Apel Pagi', output: '', satuan: 'kegiatan', volume: '1', skp: 'Lain-Lain', keterangan: '' });
+    if (pagiIni) rutin.push({ tanggal: tanggal, jamMulai: pagiIni.mulai, jamSelesai: pagiIni.selesai, uraian: pagiIni.uraian, output: '', satuan: 'kegiatan', volume: '1', skp: 'Lain-Lain', keterangan: '' });
     if (cfg.ishoma) rutin.push({ tanggal: tanggal, jamMulai: jumat ? '11:30' : '12:00', jamSelesai: jumat ? '13:30' : '13:00', uraian: 'ISHOMA', output: '', satuan: 'kegiatan', volume: '0', skp: 'Lain-Lain', keterangan: '' });
     return dipilih.map(function (k, i) {
       var vol = k.vol || [1, 1];
@@ -254,7 +325,9 @@
     DEFAULTS: DEFAULTS, BANK: BANK, BANK_KUNJUNGAN: BANK_KUNJUNGAN, KOTA: KOTA, PENGADILAN: PENGADILAN,
     gabungRemote: gabungRemote, validBank: validBank,
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
-    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup, tanggalSusulan: tanggalSusulan,
+    susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup, tanggalSusulan: tanggalSusulan, tutupDari: tutupDari,
+    hariKerjaTutup: hariKerjaTutup, hariSebelumTutup: hariSebelumTutup, hariSetelahTutup: hariSetelahTutup,
+    isiMajuTutup: isiMajuTutup, majuOtomatis: majuOtomatis,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);

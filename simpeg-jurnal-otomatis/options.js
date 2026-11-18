@@ -5,8 +5,9 @@ chrome.storage.sync.get('cfg', function (s) {
   var c = Object.assign({}, J.DEFAULTS, s.cfg || {});
   ['url', 'tombolTambah', 'tombolSimpan', 'jedaMs', 'jam', 'jumlahMin', 'jumlahMax', 'nilaiSkp'].forEach(function (k) { $(k).value = c[k]; });
   ['aktif', 'simpanOtomatis', 'isiKemarin', 'apelPagi', 'ishoma', 'jagaSesi', 'tutupTab'].forEach(function (k) { $(k).checked = !!c[k]; });
-  $('tutupDari').value = c.masaTutup ? c.masaTutup.dari : '';
-  $('tutupSampai').value = c.masaTutup ? c.masaTutup.sampai : '';
+  var mt = J.tutupDari(c);   // pengaturan lama 14–18 tampil sebagai 14–17
+  $('tutupDari').value = mt ? mt.dari : '';
+  $('tutupSampai').value = mt ? mt.sampai : '';
   $('libur').value = (c.libur || []).join('\n');
   $('kunjungan').value = (c.kunjungan || []).map(function (k) { return [k.mulai, k.selesai, k.kota].join(','); }).join('\n');
   $('kegiatanTambahan').value = (c.kegiatanTambahan || []).map(function (k) { return [k.u, k.o, k.s, k.vol.join('-')].join(' | '); }).join('\n');

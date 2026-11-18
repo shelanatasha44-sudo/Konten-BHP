@@ -36,15 +36,15 @@ button{padding:8px 14px;border-radius:6px;border:0;background:var(--pri);color:#
 <label class="cek"><input type="checkbox" id="aktif"> Isi otomatis aktif</label>
 <label class="cek"><input type="checkbox" id="simpanOtomatis"> Tekan Simpan otomatis <span class="mut">(matikan untuk uji coba: form hanya diisi)</span></label>
 <label class="cek"><input type="checkbox" id="isiKemarin"> Susulkan H-1 bila kemarin belum terisi (mis. laptop tidak dibuka)</label>
-<label>Masa tutup SIMPEG tiap bulan (penarikan tukin) <small>— tanggal dari–sampai; kosongkan bila tidak ada</small></label>
-<div class="grid" style="grid-template-columns:1fr 1fr"><input type="number" id="tutupDari" min="1" max="31" placeholder="14"><input type="number" id="tutupSampai" min="1" max="31" placeholder="18"></div>
+<label>Masa tutup SIMPEG tiap bulan (penarikan tukin) <small>— bawaan 14–17 (tgl 18 sudah buka); kosongkan bila tidak ada. Hari kerja terakhir sebelumnya (biasanya tgl 13) bisa mengisi maju s.d. tgl 17 — otomatis bila tgl 13 jatuh di akhir pekan/libur; tgl 18 menyusulkan hari 14–17 yang kosong.</small></label>
+<div class="grid" style="grid-template-columns:1fr 1fr"><input type="number" id="tutupDari" min="1" max="31" placeholder="14"><input type="number" id="tutupSampai" min="1" max="31" placeholder="17"></div>
 <label>Hari libur / cuti (satu tanggal per baris, yyyy-mm-dd)</label><textarea id="libur"></textarea>
 <label>Kunjungan dinas (satu per baris: mulai,selesai,kota) <small>— kegiatan diganti tema penyumpahan di lokasi</small></label><textarea id="kunjungan"></textarea>
 </section>
 
 <section><h2>3. Isi form</h2>
 <label>Pilihan "SKP Tahunan/Tugas Tambahan/Kreatifitas" untuk kegiatan kerja <small>(kosong = butir SKP tahunan pertama, mis. "Membantu kepala seksi dalam penyiapan bahan penyelesaian pengampuan…")</small></label><input type="text" id="nilaiSkp">
-<label class="cek"><input type="checkbox" id="apelPagi"> Tambah "Zoom Apel Pagi" 07.30–08.00 (SKP Lain-Lain)</label>
+<label class="cek"><input type="checkbox" id="apelPagi"> Tambah "Apel Pagi" tiap Senin &amp; "Zoom Apel Pagi" tiap Jumat, 07.30–08.00 (SKP Lain-Lain)</label>
 <label class="cek"><input type="checkbox" id="ishoma"> Tambah "ISHOMA" 12.00–13.00, Jumat 11.30–13.30 (SKP Lain-Lain)</label>
 <label class="cek"><input type="checkbox" id="tutupTab"> Tutup tab SIMPEG milik plugin setelah jurnal berhasil terisi dan terverifikasi</label>
 <label class="cek"><input type="checkbox" id="jagaSesi"> Jaga sesi tetap login (SIMPEG disentuh tiap 15 menit selama Chrome menyala)</label>

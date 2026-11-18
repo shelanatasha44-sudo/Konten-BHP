@@ -16,7 +16,7 @@ async function muat() {
   document.getElementById('info').innerHTML =
     (cfg.aktif ? '⏰ Otomatis Senin–Jumat pukul ' + cfg.jam : '⏸ Otomatis dimatikan') +
     (cfg.simpanOtomatis ? '' : ' · mode uji (tidak menyimpan)') +
-    (J.dalamMasaTutup(J.iso(new Date()), cfg) ? '<br>🔒 SIMPEG sedang ditutup (penarikan tukin tgl ' + cfg.masaTutup.dari + '–' + cfg.masaTutup.sampai + '); pengisian otomatis menunggu masa tutup selesai' : '') +
+    (J.dalamMasaTutup(J.iso(new Date()), cfg) ? '<br>🔒 SIMPEG sedang ditutup (penarikan tukin tgl ' + J.tutupDari(cfg).dari + '–' + J.tutupDari(cfg).sampai + '); tgl ' + (+J.hariSetelahTutup(J.iso(new Date()), cfg).slice(8)) + ' hari yang kosong disusulkan otomatis' : '') +
     '<br>' + sesi + '<br>' + dataInfo;
   if (!tgl.value) tgl.value = J.iso(new Date());
   tampil();
@@ -42,6 +42,13 @@ async function tampil() {
     li.appendChild(el('div', '', k.uraian)); ol.appendChild(li);
   });
   document.getElementById('tandai').textContent = sel ? 'Tandai belum' : 'Tandai sudah';
+  // hari kerja terakhir sebelum masa tutup (biasanya tgl 13): tombol isi maju s.d. tgl 17
+  var maju = J.isiMajuTutup(J.iso(new Date()), cfg), bm = document.getElementById('maju');
+  bm.hidden = !maju;
+  if (maju) {
+    bm.textContent = 'Isi s.d. tgl ' + (+maju[maju.length - 1].slice(8)) + ' (masa tutup)' + (J.majuOtomatis(maju[0], cfg) ? ' · otomatis' : '');
+    bm.title = 'Mengisi tgl ' + maju.map(function (x) { return +x.slice(8); }).join(', ') + ' sekarang, sebelum SIMPEG ditutup';
+  }
   var lg = document.getElementById('log'); lg.textContent = '';
   (st.log || []).slice(0, 25).forEach(function (l) { lg.appendChild(el('div', l.jenis, l.waktu + ' — ' + l.pesan)); });
 }
@@ -58,8 +65,14 @@ document.getElementById('isi').onclick = function () {
   if (J.dalamMasaTutup(h, cfg) && !confirm('Hari ini masa tutup SIMPEG (penarikan tukin). Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
   if (Math.abs((new Date(tgl.value) - new Date(h)) / 864e5) > 1 && !confirm('SIMPEG biasanya hanya menerima H-1, H, H+1. Tetap coba?')) return;
   var susul = J.tanggalSusulan(tgl.value, cfg);
-  if (susul.length > 1 && !confirm('Tanggal ini di masa tutup. Hari kerja yang belum lengkap akan diisi berurutan: ' + susul.map(function (t) { return +t.slice(8); }).join(', ') + '. Lanjut?')) return;
+  if (susul.length > 1 && !confirm('Hari kerja masa tutup yang belum lengkap ikut diisi berurutan: ' + susul.map(function (t) { return +t.slice(8); }).join(', ') + '. Lanjut?')) return;
   kirim({ aksi: 'isi', tanggal: tgl.value });
+};
+document.getElementById('maju').onclick = function () {
+  var maju = J.isiMajuTutup(J.iso(new Date()), cfg); if (!maju) return;
+  if (!confirm('Isi jurnal tgl ' + maju.map(function (x) { return +x.slice(8); }).join(', ') + ' sekarang (sebelum masa tutup SIMPEG)?')) return;
+  tgl.value = maju[0];
+  kirim({ aksi: 'isi', tanggal: maju[0], daftar: maju });
 };
 document.getElementById('uji').onclick = function () { kirim({ aksi: 'isi', tanggal: tgl.value, uji: true, paksa: true }); };
 document.getElementById('tandai').onclick = async function () {
