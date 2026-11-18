@@ -451,7 +451,7 @@ function alamatLengkap(r){const a=String(r.alamat||'').trim().replace(/[\s.,;]+$
   const kn=k.match(/(?:Kel(?:urahan)?|Desa)\.?\s+([^,]+)/i),kc=k.match(/Kec(?:amatan)?\.?\s+([^,]+)/i),rx=x=>x.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const ada=(kn&&new RegExp('\\b(kel(urahan)?|desa)\\.?\\s*'+rx(kn[1]),'i').test(a))||(kc&&new RegExp('\\bkec(amatan)?\\.?\\s*'+rx(kc[1]),'i').test(a));return ada?a:a+', '+k}
 const KANTOR_BHP=/balai harta peninggalan|\bbhp\b|jl\.?\s*listrik|jalan listrik/i;
-const lokasiSumpah=r=>r.zoom?'zoom':KANTOR_BHP.test(String(r.tempat||''))?'kantor':'rumah';
+const lokasiSumpah=r=>r.zoom||r.zoomLurah?'zoom':KANTOR_BHP.test(String(r.tempat||''))?'kantor':'rumah';
 const kalimatKegiatan=(r,s)=>({kantor:`Balai Harta Peninggalan Medan akan menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di Kantor Balai Harta Peninggalan Medan pada:`,
   zoom:`Balai Harta Peninggalan Medan akan menyelenggarakan kegiatan Pengangkatan Sumpah tersebut secara virtual (daring) pada:`,
   rumah:`Tim Balai Harta Peninggalan Medan akan melakukan kunjungan untuk menyelenggarakan kegiatan Pengangkatan Sumpah tersebut di kediaman ${s} pada:`})[lokasiSumpah(r)];
@@ -529,7 +529,7 @@ const tabelJadwal=r=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:1
 const ALAMAT_RE=/\b(jl|jln|jalan|gg|gang|lorong|lr|desa|kel|kelurahan|dusun|dsn|no|nomor|rt|rw|perum|perumahan|komp|kompleks|blok|kec|kecamatan)\b\.?/i;
 const tempatRumah=r=>{const t=String(r.tempat||'').trim(),a=ALAMAT_RE.test(t)?t:alamatLengkap(r);return a?esc(a.replace(/^Jalan\b/,'Jl.')):V('')};
 const tempatTampil=r=>{if(lokasiSumpah(r)==='rumah')return tempatRumah(r);const t=tempatSumpah(r),kantor=KANTOR_BHP.test(t)&&!r.zoom;
-  return kantor?(/ruang/i.test(t)?esc(t.split(/,\s*(?=J(?:a)?l)/i)[0]):'Ruang Rapat Balai Harta Peninggalan Medan')+'<br>'+esc(SET.alamat||'Jl. Listrik No. 10 Medan').replace(/^Jalan\b/,'Jl.'):r.zoom?'Virtual (Zoom Meeting)':esc(t)};
+  return kantor?(/ruang/i.test(t)?esc(t.split(/,\s*(?=J(?:a)?l)/i)[0]):'Ruang Rapat Balai Harta Peninggalan Medan')+'<br>'+esc(SET.alamat||'Jl. Listrik No. 10 Medan').replace(/^Jalan\b/,'Jl.'):r.zoomLurah?esc(t)+'<br>(hadir di lokasi; dipandu Balai Harta Peninggalan Medan secara virtual melalui Zoom)':r.zoom?'Virtual (Zoom Meeting)':esc(t)};
 const tabelUndangan=r=>{const tm=tempatTampil(r);
   return `<table style="margin:0 0 10pt 36pt"><tr><td style="width:100pt">Hari/Tanggal</td><td>:</td><td>${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}</td></tr>
 <tr><td>Pukul</td><td>:</td><td>${V(r.waktu)}</td></tr><tr><td>Tempat</td><td>:</td><td>${tm}</td></tr>${r.zoom?`<tr><td>Tautan Zoom</td><td>:</td><td>${esc(r.zoom)}</td></tr>`:''}</table>`};
@@ -539,12 +539,37 @@ const DOCS_EXTRA={
     const dok=d.w?['Fotokopi Akta Kelahiran Anak;','Fotokopi Kartu Keluarga (KK);','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan yang Menjadi Hak Anak;']
       :['Fotokopi Surat Keterangan Kondisi Medis Terampu;','Fotokopi Dokumen Kepemilikan Aset / Harta Kekayaan Terampu;'];
     return kop()+head(r.nomorUndangan,`Undangan Pengambilan Sumpah<br>${d.J} dan Inventarisasi Harta`,r)+yth(`${s} ${V(r.nama)}`,V(alamatLengkap(r)||r.alamat))+
-`<p>Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap, ${s} telah ditunjuk secara resmi sebagai ${d.J} atas ${d.w?'anak di bawah umur bernama ':''}<b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${lbl}"), serta dengan memperhatikan surat permohonan${r.tglPermohonan?' tertanggal '+tgl(r.tglPermohonan):''} yang ${s.toLowerCase()} ajukan kepada Balai Harta Peninggalan Medan, kami mengundang ${s} untuk hadir dalam kegiatan Pengangkatan Sumpah tersebut${r.zoom?' yang dilaksanakan secara virtual (daring)':''} pada:</p>`+tabelUndangan(r)+
+`<p>Menindaklanjuti Penetapan ${esc(r.pengadilan)} Nomor: ${V(r.nomorPenetapan)} tertanggal ${tgl(r.tglPenetapan)} yang telah memperoleh kekuatan hukum tetap, ${s} telah ditunjuk secara resmi sebagai ${d.J} atas ${d.w?'anak di bawah umur bernama ':''}<b>${V(d.objek)}</b> (selanjutnya disebut sebagai "${lbl}"), serta dengan memperhatikan surat permohonan${r.tglPermohonan?' tertanggal '+tgl(r.tglPermohonan):''} yang ${s.toLowerCase()} ajukan kepada Balai Harta Peninggalan Medan, kami mengundang ${s} untuk hadir dalam kegiatan Pengangkatan Sumpah tersebut${r.zoom||r.zoomLurah?' yang dilaksanakan secara virtual (daring)':''} pada:</p>`+tabelUndangan(r)+
 `<p>Guna kelengkapan administrasi Berita Acara Penyumpahan dan Pencatatan Harta sesuai ketentuan peraturan perundang-undangan, kami memohon kesediaan ${s} untuk membawa dokumen pendukung pada saat kegiatan, yang meliputi:</p>`+
-    syarat([...dok,'Fotokopi Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;',
+    syarat([...(r.zoomLurah?['Hadir di lokasi 30 (tiga puluh) menit sebelum acara dimulai untuk keperluan verifikasi data dan uji coba kesiapan perangkat;','Membawa Kartu Tanda Penduduk (KTP) asli untuk ditunjukkan kepada petugas pendamping di lokasi;']:[]),...dok,'Fotokopi Kartu Tanda Penduduk (KTP) 2 (dua) orang saksi dari pihak Kepala Lingkungan dan/atau Keluarga;',
       'Meterai senilai Rp 10.000,- (Sepuluh Ribu Rupiah) sebanyak 4 (empat) lembar;',
-      pnbpUndangan(r,d)],[])+
+      ...(r.zoomLurah?['Mengenakan pakaian formal, rapi, dan sopan;']:[]),pnbpUndangan(r,d)],[])+
 `<p style="margin-top:10pt">Demikian surat pemberitahuan ini kami sampaikan. Untuk informasi lebih lanjut, ${s} dapat menghubungi <i>Contact Person</i> (WhatsApp) Layanan Perwalian dan Pengampuan di nomor: ${WA()}. Atas perhatian dan kesediaan ${s}, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,!!String(r.kelurahan||'').trim(),true,jabLurahLengkap(r))}}};
+/* Zoompah di kantor lurah/desa: wali/pengampu hadir di kantor lurah/desa, BHP Medan memandu dari kantor lewat Zoom
+   (format: Permohonan Fasilitasi Tempat dan Pendampingan Pengambilan Sumpah Wali Secara Virtual) */
+const kantorLurahTxt=r=>{const t=tujuanSurat(r);if(!t||!t.jab)return 'Kantor '+lurahNm(r).replace(/^Lurah\s+/,'').replace(/^Kepala\s+/,'');
+  const nm='Kantor '+String(t.jab).replace(/^Lurah\s+/i,'').replace(/^Kepala\s+/i,''),a=String(t.di||'').replace(/<br\s*\/?>/g,', ').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').trim();
+  return !a||/^tempat$/i.test(a)?nm:nm+', '+a};
+DOCS_EXTRA.desa={nama:r=>(t=>t&&t.camat?'Permohonan Zoompah ke Camat':'Permohonan Zoompah ke Lurah/Desa')(r&&tujuanSurat(r)),sty:{line:360},fn:r=>{const d=derive(r),J=d.J,s=d.sapa,t=tujuanSurat(r)||{pj:'Lurah',kt:'Kelurahan',jab:'',di:'Tempat'},pj=t.pj,kt=t.kt;
+  return kop()+head(r.nomorUndDesa,`Permohonan Fasilitasi Tempat dan Pendampingan Pengambilan Sumpah ${J} Secara Virtual (Zoom)`,r)+yth(t.jab?esc(t.jab):'Lurah '+V(''),t.di)+
+`<p>${penetapan(r)}, <b>${d.w?s+' ':''}${V(r.nama)}</b> telah ditunjuk secara resmi sebagai ${J} atas <b>${V(d.objek)}</b>. Bersama ini kami sampaikan bahwa Balai Harta Peninggalan Medan bermaksud melaksanakan prosesi pengambilan sumpah dimaksud secara virtual (media telekonferensi melalui aplikasi Zoom).</p>
+<p>Sehubungan dengan hal tersebut, mengingat ${J} merupakan warga yang berdomisili di lingkungan ${V(r.kelurahan||(t.jab||'').replace(/^(Lurah|Camat|Kepala Desa)\s+/,''))}, kami memohon bantuan dan dukungan Bapak/Ibu ${pj} beserta jajaran untuk memfasilitasi tempat serta sarana berupa perangkat komputer/laptop atau telepon pintar, koneksi internet, dan ruang yang representatif guna mendukung kelancaran jalannya penyumpahan.</p>
+<p>Pelaksanaan sumpah akan dipandu secara langsung oleh Balai Harta Peninggalan Medan secara daring dari Kantor Balai Harta Peninggalan Medan, sedangkan kehadiran fisik ${J} bertempat di Kantor ${esc(kt)} dengan pendampingan aparatur ${esc(kt)}, yang meliputi:</p>`+
+  syarat([`Mencocokkan Kartu Tanda Penduduk (KTP) asli ${J} dengan dokumen penetapan;`,'Memastikan kesiapan sarana (perangkat, kamera, dan stabilitas jaringan internet);',`Mendampingi ${J} selama prosesi berlangsung guna menjamin kelancaran koneksi dan komunikasi;`,
+    `Memandu ${J} membubuhkan tanda tangan asli pada Berita Acara yang draf digitalnya kami kirimkan sebelumnya, serta mengirimkan kembali dokumen fisik aslinya kepada Balai Harta Peninggalan Medan.`],[])+
+  (String(r.tglSumpah||'').trim()?`<p>Adapun pelaksanaan pengambilan sumpah tersebut direncanakan pada:</p>`+tabelUndangan(r)+`<p>Konfirmasi dan koordinasi lebih lanjut dapat disampaikan melalui narahubung di nomor: ${WA()} (WhatsApp Layanan Perwalian dan Pengampuan).</p>`
+    :`<p>Adapun jadwal pelaksanaan pengambilan sumpah tersebut akan dikoordinasikan dan diinformasikan lebih lanjut melalui narahubung di nomor: ${WA()} (WhatsApp Layanan Perwalian dan Pengampuan).</p>`)+
+`<p>Demikian permohonan fasilitasi ini kami sampaikan. Atas perhatian, bantuan sarana, serta kerja sama yang baik demi pemenuhan hak keperdataan masyarakat ini, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r,false)}};
+/* cek kelengkapan Zoompah (alur mekanisme teknis Zoompah BHP Medan) */
+const ZOOM_CEK=[['permohonan','Surat permohonan sumpah virtual dari wali/pengampu'],['penetapan','Salinan penetapan pengadilan'],['ktp','KTP wali/pengampu'],['kk','Kartu Keluarga'],['akta','Akta kelahiran anak / surat keterangan medis terampu'],
+  ['saksi','KTP 2 (dua) orang saksi'],['pnbp','Bukti pembayaran PNBP (SIMPADHU)'],['fasil','Surat permohonan fasilitasi terkirim ke kantor lurah/desa'],['sedia','Kesediaan kantor lurah/desa diterima (nama & nomor PIC)'],
+  ['draf','Draf BA Sumpah, BAP & BA Inventarisasi terkirim ke PIC kelurahan/desa'],['link','Tautan Zoom & daftar hadir daring dibagikan'],['gladi','Uji coba koneksi (gladi) selesai'],['ttd','Dokumen bertanda tangan asli diterima kembali'],['bast','BAST & dokumentasi selesai']];
+function setZoomLurah(on){if(!cur||cur._dihapus)return;cur.zoomLurah=!!on;if(on&&(!String(cur.tempat||'').trim()||KANTOR_BHP.test(cur.tempat)))cur.tempat=kantorLurahTxt(cur);PILIH=null;save();renderMain()}
+function cekZoom(k,v){if(!cur||cur._dihapus)return;cur.zoomCek={...(cur.zoomCek||{}),[k]:!!v};save();renderMain()}
+const zoomCekHtml=r=>{const c=r.zoomCek||{},n=ZOOM_CEK.filter(([k])=>c[k]).length;
+  return`<div class="full card" style="padding:12px"><b>🏛 Zoompah di kantor lurah/desa — cek kelengkapan</b> <span class="tag">${n}/${ZOOM_CEK.length}</span>
+  <p class="hint" style="margin:4px 0 8px">${esc(r.nama||'Wali/pengampu')} hadir di <b>${esc(tempatSumpah(r))}</b>; BHP Medan memandu lewat Zoom. Surat ke kantor lurah/desa: tab 📄 Dokumen → <b>${esc(DOCS.desa.nama(r))}</b>.${r.zoom?'':' Isi <b>Link Zoom</b> di atas setelah tautan dibuat.'}</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 12px">${ZOOM_CEK.map(([k,l])=>`<label style="display:flex;gap:6px;align-items:flex-start;margin:0;font-weight:400;cursor:pointer"><input type="checkbox" style="width:auto;margin-top:3px" ${c[k]?'checked':''} onchange="cekZoom('${k}',this.checked)"><span>${esc(l)}</span></label>`).join('')}</div></div>`};
 const DOCS={
   permohonan:{nama:r=>'Surat Permohonan Penyumpahan',sty:{font:'Times New Roman',line:276,tline:264},fn:r=>{const d=derive(r);
     /* format surat permohonan penyumpahan di kantor BHP (contoh: permohonan Limba Sulinto Ernawati) */
@@ -632,6 +657,7 @@ ${NP('II.',18,'<b>PASSIVA</b>',';margin-top:10pt',1)}<p class="ni" style="margin
 };
 /* kelompok dokumen: dua surat antar (bernomor SPS) + satu Dokumen Penyumpahan (tiap bagian halaman baru) */
 const GRUP={surat:{nama:r=>`Surat Antar ke ${derive(r).J}`,keys:['surat'],tahap:1},lurah:{nama:r=>DOCS.lurah.nama(r),keys:['lurah'],tahap:1},
+  desa:{nama:r=>DOCS.desa.nama(r),keys:['desa'],tahap:1,ket:'Zoompah: wali/pengampu hadir di kantor lurah/desa, BHP memandu lewat Zoom'},
   undangan:{nama:r=>`Undangan Sumpah ke ${derive(r).J}`,keys:['undangan'],tahap:1,ket:'Bila penghadap memohon disumpah di kantor BHP (atau Kanwil / virtual Zoom)'},
   penyumpahan:{nama:()=>'Dokumen Penyumpahan',keys:['permohonan','bap','ba','harta'],tahap:2,ket:'Permohonan · BAP · BA Sumpah · BA Inventarisasi (tiap bagian halaman baru)'}};
 const TAHAP={1:'Sebelum sumpah',2:'Hari penyumpahan',3:'Setelah sumpah'};
@@ -1092,7 +1118,7 @@ async function gdocCore(key,keys,judul){const blob=await buatDocx(keys);const b6
 let PILIH=null;
 function pilihDefault(r){const sudah=g=>(r.dokumen||{})[g],dtg=r.zoom||/kantor|kanwil|balai|\bbhp\b|jl\.?\s*listrik/i.test(r.tempat||'');
   /* sumpah di kantor BHP / Kanwil / Zoom → Undangan; sumpah di kediaman → Surat Antar + Surat Lurah */
-  const L=(dtg?['undangan','penyumpahan']:['surat','lurah','penyumpahan']).filter(g=>!sudah(g));
+  const L=(r.zoomLurah?['desa','undangan','penyumpahan']:dtg?['undangan','penyumpahan']:['surat','lurah','penyumpahan']).filter(g=>!sudah(g));
   return L.length?L:['penyumpahan']}
 function paketBerkas(){const r=cur,P=PILIH||pilihDefault(r);PILIH=P;
   const siap=Object.keys(GRUP).filter(g=>(r.dokumen||{})[g]).length,tot=Object.keys(GRUP).length;
@@ -1155,7 +1181,7 @@ function kosongSurat(k,r){if(!SURAT_ANTAR.includes(k))return[];const d=derive(r)
   if(d.w){if(!d.anak.length)m.push('Data anak')}else need(r.terampu&&r.terampu.nama,'Nama terampu');return m}
 const kosongGrup=(g,r)=>[...new Set(GRUP[g].keys.flatMap(k=>kosongSurat(k,r)))];
 function infoNomor(k,r){const d=derive(r);return{kurang:kurang(k,r),
-  perihal:{surat:`Pengambilan Sumpah dan Inventarisasi Harta an. ${d.J} ${r.nama}`,lurah:`Koordinasi Terkait Pengambilan Sumpah dan Inventarisasi Harta an. ${d.J} ${r.nama}`,undangan:`Undangan Pengambilan Sumpah ${d.J} an. ${r.nama}`,desa:`Undangan Menghadiri Pengambilan Sumpah ${d.J} an. ${r.nama}`,bap:`Berita Acara Penghadapan ${d.jenisTxt} an. ${r.nama}`,ba:`Berita Acara Penyumpahan ${d.jenisTxt} an. ${r.nama}`,harta:`Berita Acara Pencatatan Harta ${d.jenisTxt} an. ${r.nama}`}[k],
+  perihal:{surat:`Pengambilan Sumpah dan Inventarisasi Harta an. ${d.J} ${r.nama}`,lurah:`Koordinasi Terkait Pengambilan Sumpah dan Inventarisasi Harta an. ${d.J} ${r.nama}`,undangan:`Undangan Pengambilan Sumpah ${d.J} an. ${r.nama}`,desa:`Permohonan Fasilitasi Tempat dan Pendampingan Pengambilan Sumpah ${d.J} Secara Virtual (Zoom) an. ${r.nama}`,bap:`Berita Acara Penghadapan ${d.jenisTxt} an. ${r.nama}`,ba:`Berita Acara Penyumpahan ${d.jenisTxt} an. ${r.nama}`,harta:`Berita Acara Pencatatan Harta ${d.jenisTxt} an. ${r.nama}`}[k],
   tujuan:k==='lurah'||k==='desa'?(t=>t?t.jab:'Lurah '+r.kelurahan)(tujuanSurat(r)):r.nama,tanggal:['surat','lurah','undangan','desa'].includes(k)?r.tanggalSurat:r.tglSumpah}}
 /* SPS diblokir dari server (mis. perlindungan bot CDN membalas HTTP 307): nomor diambil manual di SPS lalu diketik di sini */
 const SPS_DIBLOK=e=>/HTTP 30[78]|Temporary Redirect|Permanent Redirect|menolak server Google/i.test(String(e&&e.message||e));
@@ -1323,7 +1349,7 @@ function renderMain(){
     <button onclick="cur.anak.push({nama:'',jk:'',tglLahir:''});save();renderMain()">+ Tambah anak</button></div>`}
     else h+=F('terampu.nama','Nama Terampu')+F('terampu.jk','Jenis Kelamin','select',['','Laki-laki','Perempuan'])+F('terampu.tglLahir','Tanggal Lahir','date')+
     `<div><label>Usia (otomatis)</label><input disabled value="${usia(cur.terampu.tglLahir,cur.tglSumpah)}"></div>`+F('terampu.kondisi','Kondisi medis + surat dokter','area')}
-  if(tab==='jadwal')h+=`<div class="full" style="max-width:460px"><label>Pilih tanggal sumpah — angka kuning = jumlah penyumpahan yang sudah terjadwal di hari itu</label><div id="miniCal" class="cal mini">${kalHtml(KAL.ymMini||(cur.tglSumpah||today()).slice(0,7),true)}</div></div>`+F('tglSumpah','Tanggal Sumpah','date')+F('waktu','Waktu')+F('tempat','Tempat (kosong = alamat pemohon)').replace('<input ',`<input placeholder="${esc(alamatLengkap(cur)||'Alamat pemohon')}" `)+`<div><label>&nbsp;</label><button onclick="setv('tempat','Ruang Rapat Balai Harta Peninggalan Medan, Jl. Listrik No. 10 Medan');setv('zoom','');renderMain()" title="Penghadap memohon disumpah di kantor BHP">🏢 Sumpah di kantor BHP</button></div>`+F('tglPermohonan','Tanggal surat permohonan (untuk Undangan)','date')+F('zoom','Link Zoom (isi bila sumpah virtual)')+
+  if(tab==='jadwal')h+=`<div class="full" style="max-width:460px"><label>Pilih tanggal sumpah — angka kuning = jumlah penyumpahan yang sudah terjadwal di hari itu</label><div id="miniCal" class="cal mini">${kalHtml(KAL.ymMini||(cur.tglSumpah||today()).slice(0,7),true)}</div></div>`+F('tglSumpah','Tanggal Sumpah','date')+F('waktu','Waktu')+F('tempat','Tempat (kosong = alamat pemohon)').replace('<input ',`<input placeholder="${esc(alamatLengkap(cur)||'Alamat pemohon')}" `)+`<div><label>&nbsp;</label><button onclick="setv('tempat','Ruang Rapat Balai Harta Peninggalan Medan, Jl. Listrik No. 10 Medan');setv('zoom','');cur.zoomLurah=false;renderMain()" title="Penghadap memohon disumpah di kantor BHP">🏢 Sumpah di kantor BHP</button></div><div><label>&nbsp;</label><button onclick="setZoomLurah(!cur.zoomLurah)" title="Wali/pengampu hadir di kantor lurah/desa, BHP memandu lewat Zoom">${cur.zoomLurah?'✅ Zoompah di kantor lurah/desa (klik untuk batal)':'🏛 Zoompah di kantor lurah/desa'}</button></div>${cur.zoomLurah?zoomCekHtml(cur):''}`+F('tglPermohonan','Tanggal surat permohonan (untuk Undangan)','date')+F('zoom','Link Zoom (isi bila sumpah virtual)')+
     `<div><label>Hari/tanggal di BA (otomatis)</label><input disabled value="${tglBA(cur.tglSumpah)}"></div>
     <div><label>Pejabat BA Sumpah <span class="hint">(Kurator min. Ahli Muda / Kepala Seksi Harta Peninggalan)</span></label><select onchange="setv('madya',this.value);renderMain()">${pjOptLayak(cur.madya)}</select>${pjPeringatan(cur.madya)}</div>
     <div><label>Pejabat BA Inventarisasi Harta</label><select onchange="setv('muda',this.value);renderMain()">${pjOptLayak(cur.muda)}</select>${pjPeringatan(cur.muda)}</div>
@@ -1356,7 +1382,7 @@ function setRingkas(v){RINGKAS=v;ss('bhpRingkas',v?'1':'0');renderMain()}
 function ringkasForm(){const g=$('#main').lastElementChild;if(!g||!g.classList.contains('grid')||!['umum','pihak','objek','jadwal','harta'].includes(tab))return;
   /* nomor BA/BAP/BA Inventarisasi diisi petugas di hari H → tampil sejak tanggal sumpah */
   const hariH=!!cur.tglSumpah&&cur.tglSumpah<=today();let n=0;
-  g.querySelectorAll('[data-f]').forEach(e=>{const f=e.dataset.f;if(!OPSI.has(f)||CEK[f]||String(get(f)).trim()||(hariH&&/^nomorBA/.test(f)))return;e.hidden=true;n++});
+  g.querySelectorAll('[data-f]').forEach(e=>{const f=e.dataset.f;if(!OPSI.has(f)||CEK[f]||String(get(f)).trim()||(hariH&&/^nomorBA/.test(f))||(f==='zoom'&&cur.zoomLurah))return;e.hidden=true;n++});
   /* kotak "(otomatis)" hanya tampilan hitungan aplikasi */
   g.querySelectorAll('input[disabled],textarea[disabled]').forEach(i=>{const e=i.parentElement;if(e&&e!==g&&!e.hidden&&/otomatis/i.test((e.querySelector('label')||{}).textContent||'')){e.hidden=true;n++}});
   if(n)g.insertAdjacentHTML('beforeend',`<div class="full"><button onclick="setRingkas(false)">➕ Tampilkan ${n} kolom lainnya</button> <span class="hint">Mode ringkas: kolom opsional yang kosong & hitungan otomatis disembunyikan.</span></div>`)}
