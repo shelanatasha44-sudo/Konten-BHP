@@ -59,6 +59,7 @@ pre{white-space:pre-wrap;word-break:break-word;font-size:.7rem;max-height:320px;
 <button class="btn garis" id="henti" style="display:none">■ Hentikan</button>
 
 <details id="atur"><summary>⚙ Pengaturan</summary>
+  <label class="cek"><input type="checkbox" id="satu"> ⚡ Mode cepat: 1 kegiatan per hari (07:30–16:30)</label>
   <label class="cek"><input type="checkbox" id="pengingat"> Ingatkan tiap hari kerja (notifikasi, ketuk untuk mulai)</label>
   <label>Jam pengingat</label><input type="time" id="jam">
   <label>Masa tutup SIMPEG tiap bulan (tanggal dari–sampai, kosong = tidak ada)</label>
@@ -99,8 +100,10 @@ function susunCfg(){
   var c = Object.assign({}, J.DEFAULTS);
   if ('tutupDari' in atur) c.masaTutup = (atur.tutupDari && atur.tutupSampai) ? {dari:atur.tutupDari, sampai:atur.tutupSampai} : null;
   c.libur = (c.libur||[]).concat(atur.liburSaya||[]);
+  c.satuKegiatan = atur.satu !== false;   // bawaan: mode cepat, 1 kegiatan per hari
   var remote = simpanan('dataRemote', null);
   cfg = J.gabungRemote(c, remote);
+  cfg.satuKegiatan = c.satuKegiatan;
   if (cfg.masaTutup) cfg.masaTutup = J.tutupDari(cfg);   // pengaturan lama 14–18 dibaca 14–17 (tgl 18 sudah buka)
 }
 function kirimAtur(){
@@ -199,6 +202,7 @@ $('tandai').onclick = function(){ var t=tglSekarang(), st=JSON.parse(A.status())
 
 function isiAtur(){
   var a = simpanan('atur', {});
+  $('satu').checked = a.satu !== false;
   $('pengingat').checked = a.pengingat !== false; $('jam').value = a.jam || '08:15';
   $('tutupDari').value = cfg.masaTutup ? cfg.masaTutup.dari : ''; $('tutupSampai').value = cfg.masaTutup ? cfg.masaTutup.sampai : '';
   $('paket').value = a.paket || 'simpeg.kemenkumham.mobile'; $('teksSkp').value = a.teksSkp || '';
@@ -206,7 +210,7 @@ function isiAtur(){
   $('rekam').checked = A ? !!JSON.parse(A.status()).rekam : false;
 }
 $('simpanAtur').onclick = function(){
-  taruh('atur', { pengingat: $('pengingat').checked, jam: $('jam').value || '08:15',
+  taruh('atur', { satu: $('satu').checked, pengingat: $('pengingat').checked, jam: $('jam').value || '08:15',
     tutupDari: +$('tutupDari').value || 0, tutupSampai: +$('tutupSampai').value || 0,
     paket: $('paket').value.trim() || 'simpeg.kemenkumham.mobile', teksSkp: $('teksSkp').value.trim(),
     liburSaya: $('liburSaya').value.split('\n').map(function(x){return x.trim();}).filter(function(x){return /^\d{4}-\d{2}-\d{2}$/.test(x);}) });
