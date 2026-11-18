@@ -1377,6 +1377,7 @@ let STY={};
    Ruang tanda tangan/meterai tidak pernah dikecilkan. */
 /* tingkat rapat — pertama hanya baris titik-titik isian kosong (BA Harta) 24→20→18 pt (jarak antarbaris tetap 2 pt), baru teks;
    paling rapat 0,9× spasi / 0,5× jarak */
+const FIT_LV_LEBAR=[{line:.86,gap:.8,dot:18},{line:.8,gap:.6,dot:18},{line:.76,gap:.5,dot:18}];
 const FIT_LV=[{line:1,gap:1,dot:24},{line:1,gap:1,dot:20},{line:1,gap:1,dot:18},{line:.94,gap:.7,dot:18},{line:.9,gap:.5,dot:18}];
 /* tingkat renggang (seragam satu dokumen): spasi baris 1,15 → paling renggang ±1,35, jarak antarparagraf ikut melebar —
    lebih dari itu dokumen tampak seperti spasi ganda */
@@ -1462,17 +1463,21 @@ const recDok=r=>{const a=alamatEf(r),o={...r,alamat:rapiAlamat(a||r.alamat),kelu
   if(isKepri(r)&&isBatam(r)){const w=wilBaku(o);if(w.kel||w.kec){const s=susunAlamatBatam(o.alamat,w);if(s)o.alamat=s;
     o.kelurahan=[w.kel?'Kelurahan '+w.kel:'',w.kec?'Kecamatan '+w.kec:'','Kota Batam'].filter(Boolean).join(', ')}}if(r.alamatKelurahan)o.alamatKelurahan=rapiAlamat(r.alamatKelurahan);return o};
 function fitDok(k,r){r=recDok(r);const D=DOCS[k],sty=D.sty||{},html=D.fn(r);
-  try{const R=FIT_LV.map(f=>ukurDok(html,sty,f)),R0=R[0];
+  /* surat berspasi dasar 1,5 boleh dirapatkan sampai ±1,15 supaya tidak menyisakan halaman terakhir yang hanya berisi penutup & tanda tangan */
+  const lebar=(sty.line||360)>=340,LV=lebar?FIT_LV.concat(FIT_LV_LEBAR):FIT_LV;
+  try{const R=LV.map(f=>ukurDok(html,sty,f)),R0=R[0];
     /* 1) jumlah halaman yang PASTI tercapai (dihitung dengan halaman 10% lebih pendek dari perkiraan). Dirapatkan seperlunya saja:
           untuk hemat satu halaman, atau bila perkiraan normal pas-pasan (bisa meluber dan tanda tangan terdorong ke halaman baru) */
-    const pasti=Math.min(...R.map(x=>x.aman));let i=R.findIndex(x=>x.aman===pasti),f=FIT_LV[i],S=R[i];
+    const pasti=Math.min(...R.map(x=>x.aman));let i=R.findIndex(x=>x.aman===pasti),f=LV[i],S=R[i];
     /* pas-pasan dan tidak bisa dipastikan dengan merapatkan: rencanakan untuk kemungkinan terburuk (penutup + tanda tangan pindah
        halaman) supaya halaman sebelumnya tetap terisi — hasilnya rapi baik muat maupun meluber */
     const ragu=i===0&&R0.aman>R0.hal,P=x=>ragu?x.pes:x,cap=ragu?HAL_PT*RAPAT_AMAN:HAL_PT;
     const kosongMaks=x=>Math.max(0,...P(x).kosong.map(k=>k.pt)),batas=cap*KOSONG_MAKS;
     /* 2) selain dirapatkan: spasi SERAGAM satu dokumen, direnggangkan bertahap sampai tidak ada halaman yang banyak kosong sebelum
           halaman berikutnya. Jumlah halaman tidak boleh bertambah. */
-    if(i===0&&kosongMaks(R0)>batas)for(const g of FIT_RENGGANG){const T=ukurDok(html,sty,g);if(P(T).hal>P(R0).hal||T.aman>R0.aman)break;
+    /* dokumen yang dasarnya sudah spasi 1,5 (surat antar/undangan) tidak dilebarkan spasi barisnya lagi — hanya jarak antarparagraf —
+       supaya tidak tampak spasi ganda dan penutup + tanda tangan tidak terdorong ke halaman baru di Google Docs */
+    if(i===0&&kosongMaks(R0)>batas)for(const g0 of FIT_RENGGANG){const g=lebar?{line:1,gap:g0.gap}:g0,T=ukurDok(html,sty,g);if(P(T).hal>P(R0).hal||T.aman>R0.aman)break;
       if(kosongMaks(T)<kosongMaks(S)){f=g;S=T}if(kosongMaks(T)<=batas)break}
     if(kosongMaks(S)<=batas)return{f,html,tampil:S.styled};
     /* 3) sisa ruang kosong yang masih besar: tambah jarak antarparagraf di halaman itu (maks. 12 pt per jarak) */
