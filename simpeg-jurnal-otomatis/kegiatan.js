@@ -104,6 +104,7 @@
     jam: '08:15',            // jam pengisian otomatis (waktu laptop)
     jumlahMin: 3,
     jumlahMax: 4,
+    satuKegiatan: false,     // true = satu kegiatan per hari 07:30–16:30 (mode cepat aplikasi HP)
     aktif: true,
     apelPagi: true,          // tambah kegiatan rutin pagi (lihat rutinPagi), SKP Lain-Lain
     rutinPagi: [             // hari: 1=Senin … 5=Jumat. Bisa diganti lewat data/kegiatan.json di GitHub
@@ -303,6 +304,16 @@
       var hariKe = (parseIso(tanggal).getDay() + 6) % 7; // 0=Senin
       dipilih = [];
       for (var i = 0; i < n; i++) dipilih.push(urut[(hariKe * 4 + i) % urut.length]);
+    }
+    if (cfg.satuKegiatan) {   // mode cepat: satu kegiatan saja, satu hari penuh
+      var k1 = dipilih[0], v1 = k1.vol || [1, 1];
+      return [{
+        tanggal: tanggal, jamMulai: '07:30', jamSelesai: '16:30',
+        uraian: isi(k1.u, r, kj && kj.kota, src), output: isi(k1.o || '', r, kj && kj.kota, src),
+        satuan: (k1.s || 'kegiatan').toLowerCase(),
+        volume: String(v1[0] + Math.floor(r() * (v1[1] - v1[0] + 1))),
+        keterangan: 'Selesai', skp: ''
+      }];
     }
     var jumat = parseIso(tanggal).getDay() === 5;
     var hariIni = parseIso(tanggal).getDay();
