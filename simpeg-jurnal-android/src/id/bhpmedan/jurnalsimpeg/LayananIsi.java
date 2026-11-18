@@ -78,7 +78,7 @@ public class LayananIsi extends AccessibilityService {
         if (jalan) return "Pengisian sedang berjalan.";
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
-        idx = 0; berhasil = 0; lewati = 0; totalUlang = 0; gagalLewat = 0; cobaKegiatan = null; gulirDaftar = 0; aturRentang = false; rentangDipilih = false; rentangDicoba = false; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
+        idx = 0; pilihMenit = -1; berhasil = 0; lewati = 0; totalUlang = 0; gagalLewat = 0; cobaKegiatan = null; gulirDaftar = 0; aturRentang = false; rentangDipilih = false; rentangDicoba = false; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
         mulaiLangkah(0); sejakMuat = 0;
         sejakDikenal = System.currentTimeMillis();
         try {   // layar tetap menyala selama mengisi (maks. 30 menit), supaya tidak terkunci di tengah jalan
@@ -415,6 +415,17 @@ public class LayananIsi extends AccessibilityService {
             case "JAM_SELESAI": {
                 boolean mulai = "JAM_MULAI".equals(LANGKAH[langkah]);
                 String[] jm = e.getString(mulai ? "jamMulai" : "jamSelesai").split(":");
+                if (e.optBoolean("jamBebas")) {
+                    // Mode cepat: pilih jam yang paling sedikit putarannya. Menit mengikuti posisi awal roda:
+                    // dekat :00 → 08:00–16:00, selain itu → 07:30–16:30 (menit jam selesai tidak perlu diputar lagi).
+                    if (mulai && pilihMenit < 0 && dlgJam) {
+                        for (AccessibilityNodeInfo x : n) if (!x.isEditable() && cocok(teks(x), "select minutes?|pilih menit")) {
+                            int vm0 = angkaAkhir(teks(x)); if (vm0 >= 0) pilihMenit = vm0 < 15 ? 0 : 30; break;
+                        }
+                    }
+                    int pm = pilihMenit < 0 ? 30 : pilihMenit;
+                    jm = new String[] { mulai ? (pm == 0 ? "08" : "07") : "16", pm == 0 ? "00" : "30" };
+                }
                 if (dlgJam) { isiDialogJam(n, layar, jm); return; }
                 AccessibilityNodeInfo f = cariIsian(n, mulai ? "jam mulai" : "jam selesai", false);
                 if (f == null) f = cari(n, mulai ? "jam mulai" : "jam selesai");
@@ -427,7 +438,7 @@ public class LayananIsi extends AccessibilityService {
                 }
                 // Cara kilat: tulis jam langsung ke kolom (format SIMPEG "7:30"), tanpa membuka jam analog.
                 // Bila ternyata SIMPEG menolak simpanan, cara ini dimatikan dan jam dipilih lewat dialog.
-                if (sub == 0 && !langsungDicoba && !jamLangsungGagal && f != null) {
+                if (false && sub == 0 && !langsungDicoba && !jamLangsungGagal && f != null) {
                     isiTeks(f, Integer.parseInt(jm[0]) + ":" + Integer.parseInt(jm[1]));
                     langsungDicoba = true; jamLangsungDipakai = true; sub = 9; tandaiAksi(); return;
                 }
@@ -469,7 +480,7 @@ public class LayananIsi extends AccessibilityService {
                 AccessibilityNodeInfo keg = cariIsian(n, "kegiatan", true);
                 boolean dikosongkan = cocok(layar, "tambah jurnal harian") && keg != null && !memuat(teks(keg), e.getString("uraian"));
                 if (!cocok(layar, "tambah jurnal harian|pilih skp") || dikosongkan) {
-                    berhasil++; beres[idx] = true; jamLangsungDipakai = false;
+                    berhasil++; beres[idx] = true; jamLangsungDipakai = false; pilihMenit = -1;
                     AccessibilityNodeInfo pesan = cari(n, "berhasil|sukses|tersimpan|disimpan");
                     if (pesan != null) Catatan.tulis(this, "SIMPEG: " + teks(pesan));
                     Catatan.tulis(this, "✓ Tersimpan " + tgl() + " " + e.getString("jamMulai") + "–" + e.getString("jamSelesai") + " " + e.getString("uraian"));
@@ -538,8 +549,8 @@ public class LayananIsi extends AccessibilityService {
                 macetRoda = 0;
                 if (ketik != null) { ketuk(ketik); return; }
             }
-            if (ampm ? vj % 12 != jam % 12 : vj != jam) { geser(sj, vj, jam, ampm ? 12 : 24); tandaiAksi(); return; }
-            if (vm != mn) { geser(sm, vm, mn, 60); tandaiAksi(); return; }
+            if (ampm ? vj % 12 != jam % 12 : vj != jam) { geser(sj, vj, jam, ampm ? 12 : 24, true); tandaiAksi(); return; }
+            if (vm != mn) { geser(sm, vm, mn, 60, false); tandaiAksi(); return; }
             if (ampm) { AccessibilityNodeInfo ap = cari(n, jam24 < 12 ? "^\\s*AM\\s*$" : "^\\s*PM\\s*$"); if (ap != null && !ap.isSelected()) { ketuk(ap); return; } }
             sub = 6; return;
         }
@@ -556,6 +567,7 @@ public class LayananIsi extends AccessibilityService {
 
     private int rodaJ = -1, rodaM = -1, macetRoda, rodaTap;
     private boolean langsungDicoba, jamLangsungDipakai, jamLangsungGagal;
+    private int pilihMenit = -1;
     /** Ketuk titik pada lingkaran (sudut dari arah jam 12, searah jarum jam). */
     private void ketukTitik(float cx, float cy, float r, double sudut, long tunda) {
         double a = Math.toRadians(sudut);
@@ -573,9 +585,12 @@ public class LayananIsi extends AccessibilityService {
         return m.find() ? Integer.parseInt(m.group(1)) : -1;
     }
     /** Naikkan/turunkan nilai roda (jam atau menit) ke tujuan lewat jalur terpendek, maks. 15 langkah per detak. */
-    private static void geser(AccessibilityNodeInfo x, int dari, int ke, int putaran) {
-        boolean naik = ke > dari;                                    // jalan lurus, tidak lewat 59→00 / 23→00
-        int langkah = Math.min(Math.abs(ke - dari), 6);
+    /** Putar roda ke tujuan. Jam boleh lewat 23→00 (jalur terpendek); menit lurus (roda menit tidak lewat 59→00). */
+    private static void geser(AccessibilityNodeInfo x, int dari, int ke, int putaran, boolean bolehPutar) {
+        int maju = ((ke - dari) % putaran + putaran) % putaran;
+        boolean naik = bolehPutar ? maju <= putaran / 2 : ke > dari;
+        int langkah = bolehPutar ? Math.min(maju, putaran - maju) : Math.abs(ke - dari);
+        langkah = Math.min(langkah, 20);
         for (int i = 0; i < langkah; i++)
             x.performAction(naik ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
     }

@@ -173,7 +173,7 @@ function tampil(){
   $('mulai').disabled = !tg.length || jalan;
   $('mulai').style.display = jalan ? 'none' : 'block';
   $('henti').style.display = jalan ? 'block' : 'none';
-  $('hint').textContent = tg.some(function(t){ return t < J.addDays(h,-1); }) ? '⚠ SIMPEG biasanya hanya menerima H-1, H, H+1. H-2/H-3 bisa ditolak.' : (cfg.satuKegiatan ? '⚡ 1 kegiatan per hari, 07:30–16:30' : '');
+  $('hint').textContent = tg.some(function(t){ return t < J.addDays(h,-1); }) ? '⚠ SIMPEG biasanya hanya menerima H-1, H, H+1. H-2/H-3 bisa ditolak.' : (cfg.satuKegiatan ? '⚡ 1 kegiatan per hari, 07:30–16:30 atau 08:00–16:00 (mana yang paling cepat diputar)' : '');
 
   var isi = $('isi'); isi.textContent = '';
   tg.forEach(function(t){
