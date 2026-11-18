@@ -156,6 +156,7 @@ function tampil(){
 
   var susul = belumLengkap(t, st);
   if (susul.length > 1) info.appendChild(el('div','box warn','📅 Isi otomatis juga menyusulkan tanggal masa tutup '+susul.slice(0,-1).map(function(x){return +x.slice(8);}).join(', ')+' yang belum lengkap, berurutan sampai tanggal '+(+t.slice(8))+'.'));
+  if (t === J.iso(new Date()) && J.hariKerja(J.addDays(t,1), cfg)) info.appendChild(el('div','box','➕ Sekalian mengisi besok (H+1, '+(+J.addDays(t,1).slice(8))+') bila belum lengkap.'));
   var isi = $('isi'); isi.textContent = '';
   if (!J.hariKerja(t, cfg)) { isi.appendChild(el('div','libur',(d.getDay()===0||d.getDay()===6)?'🌴 Akhir pekan — tidak perlu isi jurnal.':'🌴 Hari libur — tidak perlu isi jurnal.')); return; }
   J.susunJurnal(t, cfg).forEach(function(k,i){
@@ -180,7 +181,10 @@ function mulai(simpan, tanggal, daftar){
   // tgl 13 bukan hari kerja → pada hari kerja terakhir sebelum masa tutup, isi otomatis sekaligus s.d. tgl 17
   if (!daftar && simpan && t === J.iso(new Date()) && J.majuOtomatis(t, cfg)) daftar = J.isiMajuTutup(t, cfg);
   var urut = !simpan ? [t] : daftar ? daftar.filter(function(d){ return d === t || !st['lengkap:'+d]; }) : belumLengkap(t, st);
-  if (urut.length > 1 && !confirm('Akan mengisi berurutan tanggal '+urut.map(function(x){return +x.slice(8);}).join(', ')+' ('+urut.length+' hari kerja). Lanjut?')) return;
+  // H+1 ikut diisi (SIMPEG menerima H-1, H, H+1) bila besok hari kerja dan belum lengkap
+  var besok = J.addDays(t, 1);
+  if (simpan && t === J.iso(new Date()) && J.hariKerja(besok, cfg) && !st['lengkap:'+besok] && urut.indexOf(besok) < 0) urut.push(besok);
+  if (urut.length > 2 && !confirm('Akan mengisi berurutan tanggal '+urut.map(function(x){return +x.slice(8);}).join(', ')+' ('+urut.length+' hari kerja). Lanjut?')) return;
   if (simpan && urut.length === 1 && J.dalamMasaTutup(J.iso(new Date()), cfg) && !confirm('Hari ini masa tutup SIMPEG. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
   var semua = [];
   urut.forEach(function(d){ semua = semua.concat(J.susunJurnal(d, cfg)); });

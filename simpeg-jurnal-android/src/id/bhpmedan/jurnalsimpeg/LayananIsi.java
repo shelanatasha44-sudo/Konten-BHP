@@ -152,7 +152,7 @@ public class LayananIsi extends AccessibilityService {
 
     private int lewati;
 
-    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; rodaJ = -1; rodaM = -1; macetRoda = 0; rodaTap = 0; sejakLangkah = System.currentTimeMillis(); }
+    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; rodaJ = -1; rodaM = -1; macetRoda = 0; rodaTap = 0; langsungDicoba = false; sejakLangkah = System.currentTimeMillis(); }
     // ---------- jurnal yang sudah ada di SIMPEG ----------
     /** Teks kartu jurnal per tanggal (iso → teks ternormalisasi), dari daftar Jurnal Harian. */
     private final java.util.Map<String, StringBuilder> teksAda = new java.util.HashMap<String, StringBuilder>();
@@ -422,8 +422,14 @@ public class LayananIsi extends AccessibilityService {
                     String isi = f == null ? "" : teks(f);
                     Matcher mj = Pattern.compile("(\\d{1,2})[:.](\\d{1,2})").matcher(isi);   // SIMPEG menulis "7:30" dan "8:0", bukan "07:30"/"08:00"
                     if (mj.find() && Integer.parseInt(mj.group(1)) == Integer.parseInt(jm[0]) && Integer.parseInt(mj.group(2)) == Integer.parseInt(jm[1])) { lanjutLangkah(); return; }
-                    if (ulang++ >= 2) { gagal("Jam di form (" + isi + ") tidak sama dengan " + jm[0] + ":" + jm[1] + "."); return; }
+                    if (ulang++ >= 3) { gagal("Jam di form (" + isi + ") tidak sama dengan " + jm[0] + ":" + jm[1] + "."); return; }
                     sub = 0;
+                }
+                // Cara kilat: tulis jam langsung ke kolom (format SIMPEG "7:30"), tanpa membuka jam analog.
+                // Bila ternyata SIMPEG menolak simpanan, cara ini dimatikan dan jam dipilih lewat dialog.
+                if (sub == 0 && !langsungDicoba && !jamLangsungGagal && f != null) {
+                    isiTeks(f, Integer.parseInt(jm[0]) + ":" + Integer.parseInt(jm[1]));
+                    langsungDicoba = true; jamLangsungDipakai = true; sub = 9; tandaiAksi(); return;
                 }
                 if (f != null) { ketuk(f); sub = 1; rodaTap = 0; rodaJ = -1; rodaM = -1; }
                 return;
@@ -463,7 +469,7 @@ public class LayananIsi extends AccessibilityService {
                 AccessibilityNodeInfo keg = cariIsian(n, "kegiatan", true);
                 boolean dikosongkan = cocok(layar, "tambah jurnal harian") && keg != null && !memuat(teks(keg), e.getString("uraian"));
                 if (!cocok(layar, "tambah jurnal harian|pilih skp") || dikosongkan) {
-                    berhasil++; beres[idx] = true;
+                    berhasil++; beres[idx] = true; jamLangsungDipakai = false;
                     AccessibilityNodeInfo pesan = cari(n, "berhasil|sukses|tersimpan|disimpan");
                     if (pesan != null) Catatan.tulis(this, "SIMPEG: " + teks(pesan));
                     Catatan.tulis(this, "✓ Tersimpan " + tgl() + " " + e.getString("jamMulai") + "–" + e.getString("jamSelesai") + " " + e.getString("uraian"));
@@ -476,6 +482,10 @@ public class LayananIsi extends AccessibilityService {
                     return;
                 }
                 if (now - sejakLangkah > 9000) {
+                    if (jamLangsungDipakai && !jamLangsungGagal) {
+                        jamLangsungGagal = true;
+                        Catatan.tulis(this, "Jam yang ditulis langsung ditolak SIMPEG; selanjutnya jam dipilih lewat dialog.");
+                    }
                     AccessibilityNodeInfo salah = cari(n, "gagal|harus|wajib|error|tidak (dapat|bisa|boleh)|ditutup|melebihi");
                     gagal("SIMPEG belum menerima simpanan" + (salah != null ? ": " + teks(salah) : "."));
                 }
@@ -545,6 +555,7 @@ public class LayananIsi extends AccessibilityService {
     }
 
     private int rodaJ = -1, rodaM = -1, macetRoda, rodaTap;
+    private boolean langsungDicoba, jamLangsungDipakai, jamLangsungGagal;
     /** Ketuk titik pada lingkaran (sudut dari arah jam 12, searah jarum jam). */
     private void ketukTitik(float cx, float cy, float r, double sudut, long tunda) {
         double a = Math.toRadians(sudut);
