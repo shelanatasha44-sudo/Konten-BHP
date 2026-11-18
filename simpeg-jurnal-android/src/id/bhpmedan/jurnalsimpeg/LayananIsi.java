@@ -35,7 +35,7 @@ public class LayananIsi extends AccessibilityService {
     static volatile LayananIsi aktif;
 
     private static final String[] LANGKAH = { "SKP", "TANGGAL", "KEGIATAN", "JAM_MULAI", "JAM_SELESAI", "JUMLAH", "SIMPAN", "TUNGGU" };
-    private static final long JEDA_AKSI = 850, BATAS_LANGKAH = 18000;
+    private static final long JEDA_AKSI = 600, BATAS_LANGKAH = 18000;
     private static final String[] BULAN = { "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
 
     private final Handler h = new Handler(Looper.getMainLooper());
@@ -51,7 +51,7 @@ public class LayananIsi extends AccessibilityService {
         public void run() {
             if (!jalan) return;
             try { langkahkan(); } catch (Exception e) { gagal("Galat: " + e); }
-            if (jalan) h.postDelayed(this, 450);
+            if (jalan) h.postDelayed(this, 250);
         }
     };
 
@@ -152,7 +152,7 @@ public class LayananIsi extends AccessibilityService {
 
     private int lewati;
 
-    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; rodaJ = -1; rodaM = -1; macetRoda = 0; sejakLangkah = System.currentTimeMillis(); }
+    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; rodaJ = -1; rodaM = -1; macetRoda = 0; rodaTap = 0; sejakLangkah = System.currentTimeMillis(); }
     // ---------- jurnal yang sudah ada di SIMPEG ----------
     /** Teks kartu jurnal per tanggal (iso → teks ternormalisasi), dari daftar Jurnal Harian. */
     private final java.util.Map<String, StringBuilder> teksAda = new java.util.HashMap<String, StringBuilder>();
@@ -425,7 +425,7 @@ public class LayananIsi extends AccessibilityService {
                     if (ulang++ >= 2) { gagal("Jam di form (" + isi + ") tidak sama dengan " + jm[0] + ":" + jm[1] + "."); return; }
                     sub = 0;
                 }
-                if (f != null) { ketuk(f); sub = 1; }
+                if (f != null) { ketuk(f); sub = 1; rodaTap = 0; rodaJ = -1; rodaM = -1; }
                 return;
             }
             case "JUMLAH": {
@@ -504,6 +504,25 @@ public class LayananIsi extends AccessibilityService {
             // pindah ke mode ketik hanya bila roda benar-benar macet (nilai tidak berubah 4 kali berturut-turut)
             if (vj == rodaJ && vm == rodaM) macetRoda++; else macetRoda = 0;
             rodaJ = vj; rodaM = vm;
+            // Cara cepat: ketuk langsung angka di jam analog (2 ketukan), lalu sisa selisih dibetulkan dengan geser
+            boolean jamPas = ampm ? vj % 12 == jam % 12 : vj == jam;
+            if (rodaTap < 2 && (!jamPas || vm != mn)) {
+                Rect hb = new Rect(), mb = new Rect(); sj.getBoundsInScreen(hb); sm.getBoundsInScreen(mb);
+                float d = getResources().getDisplayMetrics().density;
+                float cx = (hb.left + mb.right) / 2f, cy = hb.bottom + 167.5f * d;   // pusat jam analog di bawah kotak jam:menit
+                if (rodaTap == 0 && !jamPas) {
+                    boolean dalam = !ampm && jam24 >= 12;                        // 12–23 di lingkar dalam, 00–11 di luar
+                    sj.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    ketukTitik(cx, cy, (dalam ? 72 : 100) * d, (jam24 % 12) * 30, 150);
+                    rodaTap = 1; tandaiAksi(); return;
+                }
+                if (vm != mn) {
+                    sm.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    ketukTitik(cx, cy, 100 * d, mn * 6, 300);
+                    rodaTap = 2; tandaiAksi(); return;
+                }
+                rodaTap = 2;
+            }
             if (macetRoda >= 4) {
                 AccessibilityNodeInfo ketik = tombolTanpaLabelKiri(n);
                 macetRoda = 0;
@@ -525,7 +544,13 @@ public class LayananIsi extends AccessibilityService {
         }
     }
 
-    private int rodaJ = -1, rodaM = -1, macetRoda;
+    private int rodaJ = -1, rodaM = -1, macetRoda, rodaTap;
+    /** Ketuk titik pada lingkaran (sudut dari arah jam 12, searah jarum jam). */
+    private void ketukTitik(float cx, float cy, float r, double sudut, long tunda) {
+        double a = Math.toRadians(sudut);
+        Path p = new Path(); p.moveTo((float) (cx + r * Math.sin(a)), (float) (cy - r * Math.cos(a)));
+        dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(p, tunda, 60)).build(), null, null);
+    }
     /** Angka pertama dalam teks, mis. "08 Hour" → 8; -1 bila tidak ada. */
     private static int angkaAwal(String t) {
         Matcher m = Pattern.compile("^\\s*(\\d{1,2})").matcher(t);
