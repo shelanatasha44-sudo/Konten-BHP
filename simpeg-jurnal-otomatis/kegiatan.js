@@ -147,7 +147,7 @@
    *  masa tutup bulan itu sampai t (mis. klik 18 → 16, 17, 18 bila 14–15 akhir pekan); selain itu [t]. */
   function tanggalSusulan(t, cfg) {
     // hari pertama setelah masa tutup (tgl 18): susulkan hari kerja 14–17 lalu tanggal itu
-    if (tutupDari(cfg) && t === hariSetelahTutup(t, cfg)) return hariKerjaTutup(t, cfg).concat([t]);
+    if (tutupDari(cfg) && masaSusulan(t, cfg)) return hariKerjaTutup(t, cfg).filter(function (x) { return x < t; }).concat([t]);
     if (!dalamMasaTutup(t, cfg)) return [t];
     var m = tutupDari(cfg);
     var hasil = [], d = t;
@@ -184,6 +184,12 @@
     var d = tglBulan(t, m.sampai);
     for (var i = 0; i < 10; i++) { d = addDays(d, 1); if (hariKerja(d, cfg)) return d; }
     return null;
+  }
+  /** Masa susulan setelah masa tutup: hari kerja pertama setelahnya (tgl 18) s.d. 7 hari kemudian.
+   *  Bila SIMPEG ternyata dibuka lebih lambat, hari 14–17 yang kosong tetap disusulkan begitu bisa. */
+  function masaSusulan(t, cfg) {
+    var a = hariSetelahTutup(t, cfg);
+    return !!(a && t >= a && t <= addDays(a, 7));
   }
   /** Pada hari kerja terakhir sebelum masa tutup: [hari itu + semua hari kerja masa tutup]. Selain itu null. */
   function isiMajuTutup(t, cfg) {
@@ -327,7 +333,7 @@
     DATA_URL: 'https://raw.githubusercontent.com/shelanatasha44-sudo/Konten-BHP/claude/bhp-tiktok-animation-kah6rp/simpeg-jurnal-otomatis/data/kegiatan.json',
     susunJurnal: susunJurnal, hariKerja: hariKerja, iso: iso, addDays: addDays, dalamMasaTutup: dalamMasaTutup, tanggalSusulan: tanggalSusulan, tutupDari: tutupDari,
     hariKerjaTutup: hariKerjaTutup, hariSebelumTutup: hariSebelumTutup, hariSetelahTutup: hariSetelahTutup,
-    isiMajuTutup: isiMajuTutup, majuOtomatis: majuOtomatis,
+    isiMajuTutup: isiMajuTutup, majuOtomatis: majuOtomatis, masaSusulan: masaSusulan,
     formatTanggal: formatTanggal
   };
 })(typeof self !== 'undefined' ? self : globalThis);

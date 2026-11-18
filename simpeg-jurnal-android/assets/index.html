@@ -101,6 +101,7 @@ function susunCfg(){
   c.libur = (c.libur||[]).concat(atur.liburSaya||[]);
   var remote = simpanan('dataRemote', null);
   cfg = J.gabungRemote(c, remote);
+  if (cfg.masaTutup) cfg.masaTutup = J.tutupDari(cfg);   // pengaturan lama 14–18 dibaca 14–17 (tgl 18 sudah buka)
 }
 function kirimAtur(){
   var atur = simpanan('atur', {});
@@ -134,7 +135,15 @@ function tampil(){
   }
   var info = $('info'); info.textContent = '';
   var hIni = J.iso(new Date());
-  if (J.dalamMasaTutup(hIni, cfg)) info.appendChild(el('div','box warn','🔒 SIMPEG sedang ditutup untuk penarikan tukin (tgl '+cfg.masaTutup.dari+'–'+cfg.masaTutup.sampai+'). Penyimpanan kemungkinan ditolak sampai masa tutup selesai.'));
+  if (J.dalamMasaTutup(hIni, cfg)) info.appendChild(el('div','box warn','🔒 SIMPEG sedang ditutup untuk penarikan tukin (tgl '+cfg.masaTutup.dari+'–'+cfg.masaTutup.sampai+'). Tanggal yang terlewat disusulkan setelah SIMPEG dibuka lagi.'));
+  // hari kerja terakhir sebelum masa tutup (biasanya tgl 13): isi maju s.d. tgl 17
+  var maju = J.isiMajuTutup(hIni, cfg);
+  if (maju && !jalan) {
+    var bm = el('div','box warn','📅 Mulai tgl '+cfg.masaTutup.dari+' SIMPEG ditutup (s.d. tgl '+cfg.masaTutup.sampai+'). '+(J.majuOtomatis(hIni, cfg)?'Isi otomatis hari ini sekaligus mengisi ':'Bisa sekalian mengisi ')+'tanggal '+maju.slice(1).map(function(x){return +x.slice(8);}).join(', ')+'. ');
+    var tbm = el('button','btn merah','▶ Isi s.d. tgl '+(+maju[maju.length-1].slice(8))+' sekarang');
+    tbm.onclick = function(){ mulai(true, hIni, maju); };
+    bm.appendChild(tbm); info.appendChild(bm);
+  }
   if (jalan) info.appendChild(el('div','box','⏳ Sedang mengisi di aplikasi SIMPEG… jangan sentuh layar.'));
   var lengkap = st['lengkap:'+t], sebagian = st['selesai:'+t];
   if (lengkap) info.appendChild(el('div','box ok','✅ Jurnal tanggal ini sudah lengkap'+(sebagian==='manual'?' (ditandai manual)':'')+'.'));
@@ -143,7 +152,7 @@ function tampil(){
   $('henti').style.display = jalan ? 'block' : 'none';
 
   var susul = belumLengkap(t, st);
-  if (susul.length > 1) info.appendChild(el('div','box warn','📅 Tanggal ini di masa tutup. Isi otomatis juga mengisi tanggal '+susul.slice(0,-1).map(function(x){return +x.slice(8);}).join(', ')+' yang belum lengkap, berurutan sampai tanggal '+(+t.slice(8))+'.'));
+  if (susul.length > 1) info.appendChild(el('div','box warn','📅 Isi otomatis juga menyusulkan tanggal masa tutup '+susul.slice(0,-1).map(function(x){return +x.slice(8);}).join(', ')+' yang belum lengkap, berurutan sampai tanggal '+(+t.slice(8))+'.'));
   var isi = $('isi'); isi.textContent = '';
   if (!J.hariKerja(t, cfg)) { isi.appendChild(el('div','libur',(d.getDay()===0||d.getDay()===6)?'🌴 Akhir pekan — tidak perlu isi jurnal.':'🌴 Hari libur — tidak perlu isi jurnal.')); return; }
   J.susunJurnal(t, cfg).forEach(function(k,i){
@@ -161,11 +170,13 @@ function tampil(){
 function belumLengkap(t, st){
   return J.tanggalSusulan(t, cfg).filter(function(d){ return d === t || !st['lengkap:'+d]; });
 }
-function mulai(simpan, tanggal){
+function mulai(simpan, tanggal, daftar){
   var t = tanggal || tglSekarang();
   if (!J.hariKerja(t, cfg)) { A&&A.pesan('Bukan hari kerja.'); return; }
   var st = A ? JSON.parse(A.status()) : {};
-  var urut = simpan ? belumLengkap(t, st) : [t];
+  // tgl 13 bukan hari kerja → pada hari kerja terakhir sebelum masa tutup, isi otomatis sekaligus s.d. tgl 17
+  if (!daftar && simpan && t === J.iso(new Date()) && J.majuOtomatis(t, cfg)) daftar = J.isiMajuTutup(t, cfg);
+  var urut = !simpan ? [t] : daftar ? daftar.filter(function(d){ return d === t || !st['lengkap:'+d]; }) : belumLengkap(t, st);
   if (urut.length > 1 && !confirm('Akan mengisi berurutan tanggal '+urut.map(function(x){return +x.slice(8);}).join(', ')+' ('+urut.length+' hari kerja). Lanjut?')) return;
   if (simpan && urut.length === 1 && J.dalamMasaTutup(J.iso(new Date()), cfg) && !confirm('Hari ini masa tutup SIMPEG. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
   var semua = [];

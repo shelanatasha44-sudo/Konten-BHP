@@ -27,7 +27,7 @@ public class Pengingat extends BroadcastReceiver {
         if (hari == Calendar.SATURDAY || hari == Calendar.SUNDAY) return;
         String iso = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(k.getTime());
         if (("," + p.getString("libur", "") + ",").contains("," + iso + ",")) return;
-        int tgl = k.get(Calendar.DAY_OF_MONTH), dari = p.getInt("tutupDari", 14), sampai = p.getInt("tutupSampai", 18);
+        int tgl = k.get(Calendar.DAY_OF_MONTH), dari = p.getInt("tutupDari", 14), sampai = p.getInt("tutupSampai", 17);
         if (dari > 0 && sampai > 0 && (dari <= sampai ? (tgl >= dari && tgl <= sampai) : (tgl >= dari || tgl <= sampai))) return;
         if (p.getString("selesai:" + iso, "").length() > 0 && p.getBoolean("lengkap:" + iso, false)) return;
         Intent buka = new Intent(c, MainActivity.class).putExtra("mulai", iso);
