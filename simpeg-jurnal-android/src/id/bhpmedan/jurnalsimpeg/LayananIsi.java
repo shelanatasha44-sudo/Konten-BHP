@@ -35,14 +35,15 @@ public class LayananIsi extends AccessibilityService {
     static volatile LayananIsi aktif;
 
     private static final String[] LANGKAH = { "SKP", "TANGGAL", "KEGIATAN", "JAM_MULAI", "JAM_SELESAI", "JUMLAH", "SIMPAN", "TUNGGU" };
-    private static final long JEDA_AKSI = 1100, BATAS_LANGKAH = 18000;
+    private static final long JEDA_AKSI = 850, BATAS_LANGKAH = 18000;
     private static final String[] BULAN = { "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" };
 
     private final Handler h = new Handler(Looper.getMainLooper());
     private boolean jalan, simpan, formAktif;
     private JSONArray daftar;
     private int idx, langkah, sub, coba, berhasil, ulang, ulangForm;
-    private long sejakHilang;
+    private long sejakHilang, sejakMuat, tabTerakhir;
+    private android.os.PowerManager.WakeLock kunciLayar;
     private String tanggal, pkg;
     private long sejakLangkah, aksiTerakhir, sejakDikenal, rekamTerakhir, bukaTerakhir;
 
@@ -50,7 +51,7 @@ public class LayananIsi extends AccessibilityService {
         public void run() {
             if (!jalan) return;
             try { langkahkan(); } catch (Exception e) { gagal("Galat: " + e); }
-            if (jalan) h.postDelayed(this, 650);
+            if (jalan) h.postDelayed(this, 450);
         }
     };
 
@@ -78,8 +79,13 @@ public class LayananIsi extends AccessibilityService {
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
         idx = 0; berhasil = 0; lewati = 0; ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
-        mulaiLangkah(0);
+        mulaiLangkah(0); sejakMuat = 0;
         sejakDikenal = System.currentTimeMillis();
+        try {   // layar tetap menyala selama mengisi (maks. 30 menit), supaya tidak terkunci di tengah jalan
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            kunciLayar = pm.newWakeLock(android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP, "jurnalsimpeg:isi");
+            kunciLayar.acquire(30 * 60 * 1000L);
+        } catch (Exception ex) { kunciLayar = null; }
         Catatan.tulis(this, "MULAI " + tanggal + " (" + daftar.length() + " kegiatan, " + (simpan ? "simpan" : "UJI tanpa simpan") + ")");
         h.postDelayed(detak, 2500);
         return null;
@@ -89,6 +95,8 @@ public class LayananIsi extends AccessibilityService {
         if (!jalan) return;
         jalan = false;
         h.removeCallbacks(detak);
+        try { if (kunciLayar != null && kunciLayar.isHeld()) kunciLayar.release(); } catch (Exception ex) {}
+        kunciLayar = null;
         Catatan.tulis(this, "BERHENTI: " + alasan);
     }
 
@@ -147,8 +155,25 @@ public class LayananIsi extends AccessibilityService {
         boolean form = cocok(layar, "tambah jurnal harian|pilih skp");
         if (form) { formAktif = true; mulaiLangkah(0); Catatan.tulis(this, "Form terbuka untuk kegiatan " + (idx + 1)); return; }
 
-        if (cocok(layar, "tanggal mulai") && cocok(layar, "tanggal selesai")) {          // daftar Jurnal Harian
+        if (cocok(layar, "signed in") && cocok(layar, "\\bhome\\b")) {                 // menu samping terbuka: pilih Kinerja
             sejakDikenal = now;
+            AccessibilityNodeInfo k = cari(n, "^\\s*kinerja\\s*$");
+            if (k != null) ketuk(k); else performGlobalAction(GLOBAL_ACTION_BACK);
+            tandaiAksi(); return;
+        }
+        AccessibilityNodeInfo tabJurnal = cari(n, "^\\s*jurnal harian(\\s+tab\\s+\\d+\\s+of\\s+\\d+)?\\s*$");
+        if (tabJurnal != null && cocok(layar, "\\bskp\\b")) {                         // layar Kinerja
+            sejakDikenal = now;
+            boolean daftarTampak = false;
+            for (AccessibilityNodeInfo x : n) if (cocok(teks(x), "tanggal mulai") && dalamLayar(x)) { daftarTampak = true; break; }
+            if (!tabJurnal.isSelected() && !daftarTampak) {                           // masih di tab SKP → pindah ke tab Jurnal Harian
+                if (now - tabTerakhir > 2500) { tabTerakhir = now; ketuk(tabJurnal); }
+                return;
+            }
+            if (cocok(layar, "loading")) {                                             // tunggu daftar selesai dimuat (maks. 20 detik)
+                if (sejakMuat == 0) sejakMuat = now;
+                if (now - sejakMuat < 20000) return;
+            } else sejakMuat = 0;
             JSONObject e = entri();
             if (cocok(layar, Pattern.quote(tanggalPanjang(tgl()))) && memuat(layar, e.getString("uraian"))) {
                 Catatan.tulis(this, "Sudah ada, dilewati: " + tgl() + " " + e.getString("uraian"));
@@ -157,13 +182,8 @@ public class LayananIsi extends AccessibilityService {
                 return;
             }
             AccessibilityNodeInfo fab = cariFab(n);
-            if (fab == null) { if (now - sejakLangkah > BATAS_LANGKAH) gagal("Tombol + (tambah jurnal) tidak ditemukan."); return; }
-            ketuk(fab); return;
-        }
-        if (cocok(layar, "jurnal harian") && cocok(layar, "\\bskp\\b")) {                  // layar Kinerja, tab SKP
-            sejakDikenal = now;
-            AccessibilityNodeInfo tab = cari(n, "^\\s*jurnal harian\\s*$");
-            if (tab != null) { ketuk(tab); return; }
+            if (fab == null) { if (now - sejakLangkah > 30000) gagal("Tombol + (tambah jurnal) tidak ditemukan."); return; }
+            sejakMuat = 0; ketuk(fab); return;
         }
         if (cocok(layar, "kinerja") && cocok(layar, "absensi|profil|dossier|cuti")) {     // Beranda
             sejakDikenal = now;
@@ -456,6 +476,12 @@ public class LayananIsi extends AccessibilityService {
     private static boolean memuat(String layar, String uraian) {
         return (" " + layar.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ") + " ").contains(kunci(uraian));
     }
+    /** Simpul berada di layar yang terlihat (halaman tab lain berkoordinat di luar layar). */
+    private boolean dalamLayar(AccessibilityNodeInfo n) {
+        Rect r = new Rect(); n.getBoundsInScreen(r);
+        int lebar = getResources().getDisplayMetrics().widthPixels;
+        return tampak(n) && r.left >= 0 && r.left < lebar - 10;
+    }
     private static boolean tampak(AccessibilityNodeInfo n) {
         Rect r = new Rect(); n.getBoundsInScreen(r);
         return n.isVisibleToUser() && r.width() > 0 && r.height() > 0;
@@ -500,13 +526,13 @@ public class LayananIsi extends AccessibilityService {
     }
     /** Tombol + mengambang: dicari dari labelnya, atau tombol kecil yang paling kanan-bawah. */
     private static AccessibilityNodeInfo cariFab(List<AccessibilityNodeInfo> n) {
-        AccessibilityNodeInfo x = cari(n, "^\\s*\\+\\s*$|tambah|add|create");
+        AccessibilityNodeInfo x = cari(n, "^\\s*\\+\\s*$|^\\s*(tambah|add|create)\\b");
         if (x != null) return x;
         AccessibilityNodeInfo terbaik = null; int skor = -1;
         for (AccessibilityNodeInfo y : n) {
-            if (!y.isClickable() || !tampak(y)) continue;
+            if (!y.isClickable() || !tampak(y) || teks(y).length() > 0) continue;   // FAB = ikon tanpa label
             Rect r = new Rect(); y.getBoundsInScreen(r);
-            if (r.width() > 320 || r.height() > 320) continue;
+            if (r.width() > 320 || r.height() > 320 || r.top < 1000) continue;     // bukan tombol menu di atas
             if (r.bottom + r.right > skor) { skor = r.bottom + r.right; terbaik = y; }
         }
         return terbaik;
