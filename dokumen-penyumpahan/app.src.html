@@ -522,7 +522,10 @@ const BILLING='(Mekanisme pembayaran akan dipandu melalui kode pembayaran/<i>bil
 
 const tabelJadwal=r=>`<table style="margin:0 0 10pt 36pt"><tr><td style="width:100pt">Hari / Tanggal</td><td>:</td><td>${hari(r.tglSumpah)}, ${tgl(r.tglSumpah)}</td></tr>
 <tr><td>Waktu</td><td>:</td><td>${V(r.waktu)}</td></tr><tr><td>Tempat</td><td>:</td><td>${esc(tempatSumpah(r))}</td></tr>${r.zoom?`<tr><td>Link Zoom</td><td>:</td><td>${esc(r.zoom)}</td></tr>`:''}</table>`;
-const tempatTampil=r=>{const t=tempatSumpah(r),kantor=KANTOR_BHP.test(t)&&!r.zoom;
+/* sumpah di kediaman: Tempat = ALAMAT kediaman wali/pengampu (kolom Tempat bila berisi alamat, selain itu alamat lengkap pemohon) */
+const ALAMAT_RE=/\b(jl|jln|jalan|gg|gang|lorong|lr|desa|kel|kelurahan|dusun|dsn|no|nomor|rt|rw|perum|perumahan|komp|kompleks|blok|kec|kecamatan)\b\.?/i;
+const tempatRumah=r=>{const t=String(r.tempat||'').trim(),a=ALAMAT_RE.test(t)?t:alamatLengkap(r);return a?esc(a.replace(/^Jalan\b/,'Jl.')):V('')};
+const tempatTampil=r=>{if(lokasiSumpah(r)==='rumah')return tempatRumah(r);const t=tempatSumpah(r),kantor=KANTOR_BHP.test(t)&&!r.zoom;
   return kantor?(/ruang/i.test(t)?esc(t.split(/,\s*(?=J(?:a)?l)/i)[0]):'Ruang Rapat Balai Harta Peninggalan Medan')+'<br>'+esc(SET.alamat||'Jl. Listrik No. 10 Medan').replace(/^Jalan\b/,'Jl.'):r.zoom?'Virtual (Zoom Meeting)':esc(t)};
 const tabelUndangan=r=>{const tm=tempatTampil(r);
   return `<table style="margin:0 0 10pt 36pt"><tr><td style="width:100pt">Hari/Tanggal</td><td>:</td><td>${hari(r.tglSumpah)} / ${tgl(r.tglSumpah)}</td></tr>
@@ -567,7 +570,7 @@ ${tbl([[esc(jp.replace(/\s+/g,' ')),esc(kotaPg)],['Nomor Penetapan',V(r.nomorPen
 <p>Selanjutnya, sesuai dengan perintah peraturan perundang-undangan yang tertuang dalam Pasal 362 KUHPerdata, setiap ${J.toLowerCase()} diwajibkan untuk diangkat sumpah sebelum mulai menjalankan tugas. Penyumpahan ini sangat penting dan menjadi syarat sah agar ${s} dapat bertindak secara hukum mewakili ${P} untuk berbagai keperluan administratif.</p>
 `+(tanpaJadwal(r)?konfirmasiWali(r,s):`<p>Dalam rangka mewujudkan pelayanan publik, ${kegiatanKepri(r,s)}</p>`+
     jadwal(r,kunjKepri(r)?`Untuk konfirmasi ${kw(r)} pelaksanaan sumpah, mohon untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor`:'Mohon sampaikan kesediaan waktu dengan menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor',
-      lokasiSumpah(r)==='rumah'?'Kediaman '+V(r.nama):'')+ajakKepri(r,s))+
+      '')+ajakKepri(r,s))+
 `<p>Guna kelengkapan administrasi Berita Acara Penyumpahan dan Pencatatan Harta sesuai ketentuan peraturan perundang-undangan, kami memohon kesediaan ${s} untuk mempersiapkan dokumen pendukung pada saat kegiatan untuk dipindai oleh petugas sebagai dokumen pendukung arsip, yang meliputi:</p>`+
     syarat([...(w?['Kartu Tanda Penduduk (KTP) Wali dan Anak;','Kartu Keluarga (KK);','Akta Kelahiran Anak;','Dokumen Kepemilikan Aset / Harta Kekayaan Yang Menjadi Hak Anak;']
         :['Kartu Tanda Penduduk (KTP) Pengampu dan Terampu;','Kartu Keluarga (KK);','Surat Keterangan Kondisi Medis Terampu;','Dokumen Kepemilikan Aset / Harta Kekayaan Yang Menjadi Hak Terampu;']),
@@ -585,8 +588,7 @@ ${tbl([[esc(jp.replace(/\s+/g,' ')),esc(kotaPg)],['Nomor Penetapan',V(r.nomorPen
 (tanpaJadwal(r)?`<p>Dalam rangka mewujudkan pelayanan publik, Balai Harta Peninggalan Medan akan menyelenggarakan kegiatan Pengangkatan Sumpah ${J} tersebut. Hari, tanggal, waktu, dan tempat pelaksanaan akan ditetapkan kemudian setelah ${J} menyampaikan konfirmasi kesediaannya.</p>
 <p>Besar harapan kami agar Bapak/Ibu ${pj} berkenan membantu meneruskan surat ini kepada <b>${V(r.nama)}</b> sesuai data administrasi setempat, serta menyampaikan agar yang bersangkutan mengonfirmasi kesediaan diangkat sumpah sebagai ${J} melalui WhatsApp Layanan Perwalian Pengampuan di nomor ${WA()}.</p>`:`<p>Dalam rangka mewujudkan pelayanan publik, ${kegiatanKepri(r,J)}</p>`+
     jadwal(r,`Untuk konfirmasi tanggal dan waktu pelaksanaan sumpah, mohon diinformasikan kepada ${J} untuk menghubungi Whatsapp Layanan Perwalian Pengampuan di nomor`,
-      /* surat ke Lurah: kunjungan ke kediaman tidak perlu menyebut alamat (baris Tempat dihilangkan) */
-      lokasiSumpah(r)==='rumah'?false:'')+
+      '')+
 (kp?`<p>Kunjungan ini merupakan wujud kehadiran negara melalui Balai Harta Peninggalan Medan untuk mendampingi dan memberikan konsultasi hukum kepada warga Bapak/Ibu ${pj} yang menjalankan tugas sebagai ${J}, agar hak dan harta ${P} terlindungi dengan baik. Hari dan jam pelaksanaan dalam rentang tanggal tersebut dipilih oleh ${J} dan akan kami sampaikan kepada pihak ${kt}.</p>`:'')+`<p>${lokasiSumpah(r)!=='rumah'?`Sehubungan dengan hal tersebut, kami menyampaikan pemberitahuan ini kepada pihak ${kt} sebagai informasi dan koordinasi atas warga yang bersangkutan, yaitu <b>${V(r.nama)}</b>.`:`Besar harapan kami agar Bapak/Ibu ${pj} berkenan membantu meneruskan surat ini ke alamat domisili terbaru pihak ${J} yang bersangkutan sesuai dengan data administrasi di kantor Bapak/Ibu. Perlu kami sampaikan bahwa meskipun kami telah berupaya mengirimkan surat ini langsung kepada pihak ${J}, bantuan Bapak/Ibu sangat kami harapkan guna memastikan surat ini benar-benar diterima dan diketahui oleh yang bersangkutan. Apabila terdapat hal yang ingin dikoordinasikan lebih lanjut, Bapak/Ibu dapat menghubungi WhatsApp Layanan Perwalian dan Pengampuan di nomor ${WA()}.`}</p>`)+
 `<p>Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kesediaan Bapak/Ibu, kami ucapkan terima kasih.</p>`+ttdKepala()+tembusan(r)}},
 
