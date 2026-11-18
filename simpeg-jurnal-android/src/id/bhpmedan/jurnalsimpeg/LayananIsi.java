@@ -78,7 +78,7 @@ public class LayananIsi extends AccessibilityService {
         if (jalan) return "Pengisian sedang berjalan.";
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
-        idx = 0; berhasil = 0; lewati = 0; gulirDaftar = 0; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
+        idx = 0; berhasil = 0; lewati = 0; gulirDaftar = 0; aturRentang = false; rentangDipilih = false; rentangDicoba = false; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
         mulaiLangkah(0); sejakMuat = 0;
         sejakDikenal = System.currentTimeMillis();
         try {   // layar tetap menyala selama mengisi (maks. 30 menit), supaya tidak terkunci di tengah jalan
@@ -133,6 +133,20 @@ public class LayananIsi extends AccessibilityService {
     /** Teks kartu jurnal per tanggal (iso → teks ternormalisasi), dari daftar Jurnal Harian. */
     private final java.util.Map<String, StringBuilder> teksAda = new java.util.HashMap<String, StringBuilder>();
     private int gulirDaftar;
+    private boolean aturRentang, rentangDipilih, rentangDicoba;
+    /** Tanggal paling awal di antara kegiatan yang akan diisi. */
+    private String tglAwal() {
+        String a = tanggal.split(",")[0];
+        for (int i = 0; i < daftar.length(); i++) { String t = daftar.optJSONObject(i).optString("tanggal", a); if (t.compareTo(a) < 0) a = t; }
+        return a;
+    }
+    /** "16 November 2026" → "2026-11-16"; null bila teks bukan tanggal saja. */
+    private static String isoDariTeks(String t) {
+        Matcher m = Pattern.compile("^\\s*(\\d{1,2}) (" + String.join("|", BULAN) + ") (\\d{4})\\s*$", Pattern.CASE_INSENSITIVE).matcher(t);
+        if (!m.find()) return null;
+        int b = 0; for (int i = 0; i < 12; i++) if (BULAN[i].equalsIgnoreCase(m.group(2))) b = i + 1;
+        return m.group(3) + "-" + (b < 10 ? "0" : "") + b + "-" + (m.group(1).length() < 2 ? "0" : "") + m.group(1);
+    }
     private int jumlahTeksAda() { int j = 0; for (StringBuilder b : teksAda.values()) j += b.length(); return j; }
 
     /** Kartu berisi mis. "16 November 2026", "1. Apel pagi": teks setelah sebuah tanggal dicatat untuk tanggal itu. */
@@ -204,6 +218,17 @@ public class LayananIsi extends AccessibilityService {
         boolean form = cocok(layar, "tambah jurnal harian|pilih skp");
         if (form) { formAktif = true; mulaiLangkah(0); Catatan.tulis(this, "Form terbuka untuk kegiatan " + (idx + 1)); return; }
 
+        if (aturRentang && cocok(layar, "select date|pilih tanggal")) {               // memilih Tanggal Mulai daftar
+            sejakDikenal = now;
+            AccessibilityNodeInfo ok = cari(n, "^\\s*(ok|oke)\\s*$");
+            if (rentangDipilih) { if (ok != null) ketuk(ok); aturRentang = false; rentangDipilih = false; return; }
+            AccessibilityNodeInfo hari = cariHari(n, tglAwal());
+            if (hari != null) { ketuk(hari); rentangDipilih = true; return; }
+            int arah = arahBulan(n, tglAwal());
+            AccessibilityNodeInfo g = arah != 0 ? tombolBulan(n, arah) : null;
+            if (g != null) ketuk(g); else { ketuk(ok != null ? ok : n.get(0)); aturRentang = false; }
+            return;
+        }
         if (cocok(layar, "signed in") && cocok(layar, "\\bhome\\b")) {                 // menu samping terbuka: pilih Kinerja
             sejakDikenal = now;
             AccessibilityNodeInfo k = cari(n, "^\\s*kinerja\\s*$");
@@ -223,6 +248,20 @@ public class LayananIsi extends AccessibilityService {
                 if (sejakMuat == 0) sejakMuat = now;
                 if (now - sejakMuat < 20000) return;
             } else sejakMuat = 0;
+            // Tanggal Mulai daftar dimundurkan ke tanggal kegiatan paling awal, supaya isian tgl itu ikut terlihat
+            if (!rentangDicoba) {
+                for (AccessibilityNodeInfo x : n) {
+                    if (!dalamLayar(x) || !x.isClickable()) continue;
+                    String iso = isoDariTeks(teks(x));
+                    if (iso == null) continue;
+                    rentangDicoba = true;
+                    if (iso.compareTo(tglAwal()) > 0) {
+                        Catatan.tulis(this, "Tanggal Mulai daftar diubah ke " + tglAwal() + " untuk cek isian yang sudah ada");
+                        aturRentang = true; rentangDipilih = false; ketuk(x); return;
+                    }
+                    break;
+                }
+            }
             // Baca semua kartu jurnal yang sudah ada (gulir sampai habis), lalu lewati kegiatan yang sudah terisi
             int sebelum = jumlahTeksAda();
             pindaiDaftar(n);
