@@ -128,7 +128,7 @@ public class LayananIsi extends AccessibilityService {
 
     private int lewati;
 
-    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; sejakLangkah = System.currentTimeMillis(); }
+    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; rodaJ = -1; rodaM = -1; macetRoda = 0; sejakLangkah = System.currentTimeMillis(); }
     // ---------- jurnal yang sudah ada di SIMPEG ----------
     /** Teks kartu jurnal per tanggal (iso → teks ternormalisasi), dari daftar Jurnal Harian. */
     private final java.util.Map<String, StringBuilder> teksAda = new java.util.HashMap<String, StringBuilder>();
@@ -273,7 +273,8 @@ public class LayananIsi extends AccessibilityService {
         }
         sejakHilang = 0;
         if (cocok(layar, "^\\s*loading\\s*$|\\nloading\\n|memuat")) { if (now - sejakLangkah > 30000) gagal("SIMPEG terus LOADING."); return; }
-        if (now - sejakLangkah > BATAS_LANGKAH) { gagal("Langkah " + LANGKAH[langkah] + " tidak selesai dalam " + (BATAS_LANGKAH / 1000) + " detik."); return; }
+        long batas = LANGKAH[langkah].startsWith("JAM") ? 45000 : BATAS_LANGKAH;
+        if (now - sejakLangkah > batas) { gagal("Langkah " + LANGKAH[langkah] + " tidak selesai dalam " + (batas / 1000) + " detik."); return; }
 
         switch (LANGKAH[langkah]) {
             case "SKP": {
@@ -428,9 +429,13 @@ public class LayananIsi extends AccessibilityService {
         }
         if (sj != null && sm != null) {
             int vj = angkaAkhir(teks(sj)), vm = angkaAkhir(teks(sm));
-            if (coba++ > 8 && sub != 2) {                                 // roda tidak bergerak: pindah ke mode ketik
+            // pindah ke mode ketik hanya bila roda benar-benar macet (nilai tidak berubah 4 kali berturut-turut)
+            if (vj == rodaJ && vm == rodaM) macetRoda++; else macetRoda = 0;
+            rodaJ = vj; rodaM = vm;
+            if (macetRoda >= 4) {
                 AccessibilityNodeInfo ketik = tombolTanpaLabelKiri(n);
-                if (ketik != null) { ketuk(ketik); sub = 2; return; }
+                macetRoda = 0;
+                if (ketik != null) { ketuk(ketik); return; }
             }
             if (ampm ? vj % 12 != jam % 12 : vj != jam) { geser(sj, vj, jam, ampm ? 12 : 24); tandaiAksi(); return; }
             if (vm != mn) { geser(sm, vm, mn, 60); tandaiAksi(); return; }
@@ -439,14 +444,21 @@ public class LayananIsi extends AccessibilityService {
         }
         // Mode ketik: kolom jam & menit
         List<AccessibilityNodeInfo> isian = semuaYangBisaDiisi(n);
-        if (isian.size() >= 2) {
+        if (isian.size() >= 2) {                                     // satu kolom per detak: fokus, ketik, periksa
             String h = (jam < 10 ? "0" : "") + jam, m = jm[1];
-            if (teks(isian.get(0)).startsWith(h) && teks(isian.get(1)).startsWith(m)) { sub = 6; return; }
-            isiTeks(isian.get(0), h); isiTeks(isian.get(1), m);
-            tandaiAksi(); return;
+            AccessibilityNodeInfo kj = isian.get(0), km = isian.get(1);
+            if (angkaAwal(teks(kj)) != jam) { ketukKlik(kj); isiTeks(kj, h); tandaiAksi(); return; }
+            if (angkaAwal(teks(km)) != mn) { ketukKlik(km); isiTeks(km, m); tandaiAksi(); return; }
+            sub = 6; return;
         }
     }
 
+    private int rodaJ = -1, rodaM = -1, macetRoda;
+    /** Angka pertama dalam teks, mis. "08 Hour" → 8; -1 bila tidak ada. */
+    private static int angkaAwal(String t) {
+        Matcher m = Pattern.compile("^\\s*(\\d{1,2})").matcher(t);
+        return m.find() ? Integer.parseInt(m.group(1)) : -1;
+    }
     /** Angka terakhir dalam teks, mis. "Select hours 20" → 20; -1 bila tidak ada. */
     private static int angkaAkhir(String t) {
         Matcher m = Pattern.compile("(\\d{1,2})\\D*$").matcher(t);
@@ -454,9 +466,8 @@ public class LayananIsi extends AccessibilityService {
     }
     /** Naikkan/turunkan nilai roda (jam atau menit) ke tujuan lewat jalur terpendek, maks. 15 langkah per detak. */
     private static void geser(AccessibilityNodeInfo x, int dari, int ke, int putaran) {
-        int maju = ((ke - dari) % putaran + putaran) % putaran;
-        boolean naik = maju <= putaran / 2;
-        int langkah = Math.min(naik ? maju : putaran - maju, 15);
+        boolean naik = ke > dari;                                    // jalan lurus, tidak lewat 59→00 / 23→00
+        int langkah = Math.min(Math.abs(ke - dari), 6);
         for (int i = 0; i < langkah; i++)
             x.performAction(naik ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
     }
