@@ -312,7 +312,7 @@
         uraian: isi(k1.u, r, kj && kj.kota, src), output: isi(k1.o || '', r, kj && kj.kota, src),
         satuan: (k1.s || 'kegiatan').toLowerCase(),
         volume: String(v1[0] + Math.floor(r() * (v1[1] - v1[0] + 1))),
-        keterangan: 'Selesai', skp: ''
+        keterangan: 'Selesai', skp: '', jamBebas: true   // aplikasi HP memilih 07:30–16:30 atau 08:00–16:00 (putaran paling sedikit)
       }];
     }
     var jumat = parseIso(tanggal).getDay() === 5;
