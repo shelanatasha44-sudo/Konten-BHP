@@ -283,7 +283,8 @@ async function rutin(alasan) {
   }
   var target = [];
   // tgl 18 (hari kerja pertama setelah masa tutup): susulkan hari kerja 14–17 yang masih kosong
-  if (J.tutupDari(cfg) && h === J.hariSetelahTutup(h, cfg)) J.hariKerjaTutup(h, cfg).forEach(function (t) { target.push(t); });
+  // (juga beberapa hari sesudahnya, bila SIMPEG ternyata dibuka lebih lambat dari tgl 18)
+  if (J.tutupDari(cfg) && J.masaSusulan(h, cfg)) J.hariKerjaTutup(h, cfg).forEach(function (t) { target.push(t); });
   if (cfg.isiKemarin) { var kmrn = J.addDays(h, -1); if (J.hariKerja(kmrn, cfg) && target.indexOf(kmrn) < 0) target.push(kmrn); }
   if (J.hariKerja(h, cfg) && lewatJam(cfg)) {
     target.push(h);

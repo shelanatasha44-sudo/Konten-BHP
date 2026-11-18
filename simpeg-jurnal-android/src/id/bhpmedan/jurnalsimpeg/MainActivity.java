@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
                 e.putString("jam", o.optString("jam", "08:15"));
                 e.putBoolean("pengingat", o.optBoolean("pengingat", true));
                 e.putInt("tutupDari", o.optInt("tutupDari", 14));
-                e.putInt("tutupSampai", o.optInt("tutupSampai", 18));
+                e.putInt("tutupSampai", o.optInt("tutupSampai", 17));
                 e.putString("libur", o.optString("libur", ""));
                 e.putString("teksSkp", o.optString("teksSkp", ""));
                 e.apply();
