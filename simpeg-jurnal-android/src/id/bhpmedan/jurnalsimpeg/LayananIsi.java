@@ -78,7 +78,7 @@ public class LayananIsi extends AccessibilityService {
         if (jalan) return "Pengisian sedang berjalan.";
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
-        idx = 0; berhasil = 0; lewati = 0; ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
+        idx = 0; berhasil = 0; lewati = 0; gulirDaftar = 0; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
         mulaiLangkah(0); sejakMuat = 0;
         sejakDikenal = System.currentTimeMillis();
         try {   // layar tetap menyala selama mengisi (maks. 30 menit), supaya tidak terkunci di tengah jalan
@@ -129,6 +129,55 @@ public class LayananIsi extends AccessibilityService {
     private int lewati;
 
     private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; sejakLangkah = System.currentTimeMillis(); }
+    // ---------- jurnal yang sudah ada di SIMPEG ----------
+    /** Teks kartu jurnal per tanggal (iso → teks ternormalisasi), dari daftar Jurnal Harian. */
+    private final java.util.Map<String, StringBuilder> teksAda = new java.util.HashMap<String, StringBuilder>();
+    private int gulirDaftar;
+    private int jumlahTeksAda() { int j = 0; for (StringBuilder b : teksAda.values()) j += b.length(); return j; }
+
+    /** Kartu berisi mis. "16 November 2026", "1. Apel pagi": teks setelah sebuah tanggal dicatat untuk tanggal itu. */
+    private void pindaiDaftar(List<AccessibilityNodeInfo> n) {
+        Pattern tg = Pattern.compile("(\\d{1,2}) (" + String.join("|", BULAN) + ") (\\d{4})", Pattern.CASE_INSENSITIVE);
+        String kini = null;
+        for (AccessibilityNodeInfo x : n) {
+            if (!dalamLayar(x) || x.isEditable()) continue;
+            String t = teks(x);
+            if (t.length() == 0 || cocok(t, "tanggal mulai|tanggal selesai")) continue;
+            Matcher m = tg.matcher(t);
+            int awal = 0;
+            while (m.find()) {
+                if (kini != null) tambahAda(kini, t.substring(awal, m.start()));
+                int b = 0; for (int i = 0; i < 12; i++) if (BULAN[i].equalsIgnoreCase(m.group(2))) b = i + 1;
+                kini = m.group(3) + "-" + (b < 10 ? "0" : "") + b + "-" + (m.group(1).length() < 2 ? "0" : "") + m.group(1);
+                awal = m.end();
+            }
+            if (kini != null) tambahAda(kini, t.substring(awal));
+        }
+    }
+    private void tambahAda(String iso, String t) {
+        String k = " " + t.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim() + " ";
+        if (k.trim().length() < 3) return;
+        StringBuilder b = teksAda.get(iso);
+        if (b == null) { b = new StringBuilder(); teksAda.put(iso, b); }
+        if (b.indexOf(k) < 0) b.append(k);
+    }
+    /** Tandai semua kegiatan yang uraiannya sudah tercantum pada tanggalnya, lalu maju ke yang belum ada. */
+    private void tandaiYangSudahAda() {
+        for (int i = 0; i < daftar.length(); i++) {
+            if (beres[i]) continue;
+            JSONObject e = daftar.optJSONObject(i);
+            String t = e.optString("tanggal", tanggal), u = e.optString("uraian", "");
+            StringBuilder b = teksAda.get(t);
+            String k = kunci(u); if (k.length() > 30) k = k.substring(0, 30).trim();
+            if (b != null && k.length() > 0 && b.indexOf(k) >= 0) {
+                beres[i] = true; lewati++;
+                Catatan.tulis(this, "Sudah ada di SIMPEG, dilewati: " + t + " " + u);
+            }
+        }
+        while (idx < daftar.length() && beres[idx]) idx++;
+        if (idx >= daftar.length()) selesai(ringkasan());
+    }
+
     private void lanjutLangkah() { mulaiLangkah(langkah + 1); }
     private boolean sabar() { return System.currentTimeMillis() - aksiTerakhir < JEDA_AKSI; }
     private void tandaiAksi() { aksiTerakhir = System.currentTimeMillis(); }
@@ -174,16 +223,19 @@ public class LayananIsi extends AccessibilityService {
                 if (sejakMuat == 0) sejakMuat = now;
                 if (now - sejakMuat < 20000) return;
             } else sejakMuat = 0;
-            JSONObject e = entri();
-            if (cocok(layar, Pattern.quote(tanggalPanjang(tgl()))) && memuat(layar, e.getString("uraian"))) {
-                Catatan.tulis(this, "Sudah ada, dilewati: " + tgl() + " " + e.getString("uraian"));
-                beres[idx] = true; lewati++; idx++;
-                if (idx >= daftar.length()) selesai(ringkasan());
-                return;
+            // Baca semua kartu jurnal yang sudah ada (gulir sampai habis), lalu lewati kegiatan yang sudah terisi
+            int sebelum = jumlahTeksAda();
+            pindaiDaftar(n);
+            AccessibilityNodeInfo gulir = null;
+            for (AccessibilityNodeInfo x : n) if (x.isScrollable() && dalamLayar(x)) { gulir = x; break; }
+            if (gulir != null && gulirDaftar < 10 && (gulirDaftar == 0 || jumlahTeksAda() > sebelum)) {
+                gulirDaftar++; gulir.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD); tandaiAksi(); return;
             }
+            tandaiYangSudahAda();
+            if (!jalan) return;
             AccessibilityNodeInfo fab = cariFab(n);
             if (fab == null) { if (now - sejakLangkah > 30000) gagal("Tombol + (tambah jurnal) tidak ditemukan."); return; }
-            sejakMuat = 0; ketuk(fab); return;
+            sejakMuat = 0; gulirDaftar = 0; ketuk(fab); return;
         }
         if (cocok(layar, "kinerja") && cocok(layar, "absensi|profil|dossier|cuti")) {     // Beranda
             sejakDikenal = now;
@@ -346,6 +398,7 @@ public class LayananIsi extends AccessibilityService {
                     Catatan.pref(this).edit().putString(kunci, Catatan.pref(this).getString(kunci, "") + (idx + 1) + ",").apply();
                     formAktif = dikosongkan;                                     // form masih terbuka → kegiatan berikutnya langsung diisi
                     idx++; ulangForm = 0; mulaiLangkah(0); sejakDikenal = now;
+                    while (idx < daftar.length() && beres[idx]) idx++;           // yang sudah ada di daftar SIMPEG dilewati
                     if (idx >= daftar.length()) selesai(ringkasan());
                     return;
                 }
