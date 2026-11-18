@@ -41,70 +41,74 @@ textarea{min-height:80px;font-size:.8rem;font-family:ui-monospace,monospace}
 pre{white-space:pre-wrap;word-break:break-word;font-size:.7rem;max-height:320px;overflow:auto;background:var(--chip);padding:8px;border-radius:8px}
 .libur{text-align:center;color:var(--muted);padding:26px 10px}
 .foot{font-size:.8rem;color:var(--muted);margin-top:14px;line-height:1.65}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0 4px}
+.chip{border:2px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:8px 2px;font:inherit;text-align:center;line-height:1.25}
+.chip b{display:block;font-size:.95rem}.chip small{display:block;font-size:.7rem;color:var(--muted)}
+.chip .st{font-size:.8rem;margin-top:2px}
+.chip.on{border-color:var(--merah);background:var(--merah-soft)}
+.chip:disabled{opacity:.45}
+.besar{font-size:1.05rem;padding:16px}
+.hint{font-size:.78rem;color:var(--muted);text-align:center;margin-top:6px}
+.mini{font-size:.82rem}.mini .card{padding:9px 11px}
 </style></head>
 <body><div class="wrap">
 <header>
-  <div class="brand"><span class="dot">✓</span> Jurnal SIMPEG Otomatis</div>
-  <div class="sub">Seksi Harta Peninggalan Wilayah II · BHP Medan</div>
-  <div class="tabs"><button data-d="-1">H-1</button><button data-d="0" class="on">Hari ini</button><button data-d="1">H+1</button><input type="date" id="pilihTgl" aria-label="Pilih tanggal"></div>
-  <div class="tgl"><b id="hari"></b><span id="tanggal"></span><span class="pill" id="pill"></span></div>
+  <div class="brand"><span class="dot">✓</span> Jurnal SIMPEG</div>
+  <div class="sub">Pilih tanggal, tekan tombol merah. Selesai.</div>
 </header>
 
 <div id="layanan"></div>
 <div id="info"></div>
-<div id="isi"></div>
 
-<button class="btn merah" id="mulai">▶ Isi otomatis di aplikasi SIMPEG</button>
-<div class="row"><button class="btn garis" id="uji">Uji 1 form (tanpa simpan)</button><button class="btn garis" id="tandai">Tandai sudah</button></div>
+<div class="chips" id="chips"></div>
+<button class="btn merah besar" id="mulai">▶ Isi</button>
 <button class="btn garis" id="henti" style="display:none">■ Hentikan</button>
+<div class="hint" id="hint"></div>
+
+<details id="lihat"><summary>📋 Lihat kegiatan yang akan diisi</summary><div class="mini" id="isi"></div></details>
 
 <details id="atur"><summary>⚙ Pengaturan</summary>
   <label class="cek"><input type="checkbox" id="satu"> ⚡ Mode cepat: 1 kegiatan per hari (07:30–16:30)</label>
-  <label class="cek"><input type="checkbox" id="pengingat"> Ingatkan tiap hari kerja (notifikasi, ketuk untuk mulai)</label>
+  <label class="cek"><input type="checkbox" id="pengingat"> Ingatkan tiap hari kerja (notifikasi)</label>
   <label>Jam pengingat</label><input type="time" id="jam">
-  <label>Masa tutup SIMPEG tiap bulan (tanggal dari–sampai, kosong = tidak ada)</label>
+  <label>Masa tutup SIMPEG tiap bulan (tanggal dari–sampai)</label>
   <div class="row"><input type="number" id="tutupDari" min="1" max="31"><input type="number" id="tutupSampai" min="1" max="31"></div>
+  <label>Hari libur / cuti (satu per baris, yyyy-mm-dd)</label><textarea id="liburSaya"></textarea>
+  <label>Teks pilihan SKP (kosong = pilihan nomor 1)</label><input type="text" id="teksSkp">
   <label>Nama paket aplikasi SIMPEG</label><input type="text" id="paket">
-  <label>Teks pilihan SKP untuk kegiatan kerja (kosong = pilihan nomor 1)</label><input type="text" id="teksSkp" placeholder="Membantu kepala seksi dalam penyiapan bahan…">
-  <label>Hari libur / cuti tambahan (satu per baris, yyyy-mm-dd)</label><textarea id="liburSaya"></textarea>
   <button class="btn" id="simpanAtur">Simpan pengaturan</button>
+  <div class="row"><button class="btn garis" id="uji">Uji 1 form</button><button class="btn garis" id="tandai">Tandai tgl terpilih sudah</button></div>
 </details>
 
-<details id="diag"><summary>🩺 Diagnosa & log</summary>
-  <label class="cek"><input type="checkbox" id="rekam"> Rekam isi layar SIMPEG ke log (nyalakan bila pengisian macet, lalu buka SIMPEG dan jalani langkahnya sekali secara manual)</label>
-  <div class="row"><button class="btn garis" id="lihatLog">Lihat log</button><button class="btn garis" id="bagiLog">Bagikan log</button><button class="btn garis" id="hapusLog">Hapus</button></div>
+<details id="diag"><summary>🩺 Log</summary>
+  <label class="cek"><input type="checkbox" id="rekam"> Rekam isi layar (untuk perbaikan bila macet)</label>
+  <div class="row"><button class="btn garis" id="lihatLog">Lihat</button><button class="btn garis" id="bagiLog">Bagikan</button><button class="btn garis" id="hapusLog">Hapus</button></div>
   <pre id="log" style="display:none"></pre>
 </details>
-
-<div class="foot">
-  <b>Cara kerja:</b> tekan <b>Isi otomatis</b>. Aplikasi SIMPEG terbuka dan layar diketuk sendiri:
-  Kinerja → Jurnal Harian → tombol + → pilih SKP, tanggal, kegiatan, jam, jumlah → SIMPAN, untuk tiap kegiatan.
-  Jangan sentuh layar sampai muncul notifikasi selesai. HP harus menyala, tidak terkunci, dan sudah login di aplikasi SIMPEG.
-  Daftar kegiatan sama persis dengan plugin Chrome, jadi kegiatan yang sudah diisi lewat laptop tidak diisi dua kali.
-</div>
+<div class="foot">Selama mengisi, jangan sentuh HP sampai muncul notifikasi selesai. HP harus sudah login di aplikasi SIMPEG.</div>
 </div>
 <script src="kegiatan.js"></script>
 <script>
 var J = self.JurnalBHP, A = window.Android || null;
-var HARI = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu'];
-var BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-var cfg = J.DEFAULTS, offset = 0, tglPilih = '';
+var HARI = ['Min','Sen','Sel','Rab','Kam',"Jum",'Sab'];
+var BULAN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+var GESER = [-3,-2,-1,0,1], cfg = J.DEFAULTS, pilih = null;
 function $(id){return document.getElementById(id);}
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
 function simpanan(k,b){try{return JSON.parse(localStorage.getItem(k))||b;}catch(e){return b;}}
 function taruh(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function tglSekarang(){return tglPilih || J.addDays(J.iso(new Date()), offset);}
+function hIni(){return J.iso(new Date());}
+function status(){return A ? JSON.parse(A.status()) : {};}
 
 function susunCfg(){
   var atur = simpanan('atur', {});
   var c = Object.assign({}, J.DEFAULTS);
   if ('tutupDari' in atur) c.masaTutup = (atur.tutupDari && atur.tutupSampai) ? {dari:atur.tutupDari, sampai:atur.tutupSampai} : null;
   c.libur = (c.libur||[]).concat(atur.liburSaya||[]);
-  c.satuKegiatan = atur.satu !== false;   // bawaan: mode cepat, 1 kegiatan per hari
-  var remote = simpanan('dataRemote', null);
-  cfg = J.gabungRemote(c, remote);
+  c.satuKegiatan = atur.satu !== false;
+  cfg = J.gabungRemote(c, simpanan('dataRemote', null));
   cfg.satuKegiatan = c.satuKegiatan;
-  if (cfg.masaTutup) cfg.masaTutup = J.tutupDari(cfg);   // pengaturan lama 14–18 dibaca 14–17 (tgl 18 sudah buka)
+  if (cfg.masaTutup) cfg.masaTutup = J.tutupDari(cfg);
 }
 function kirimAtur(){
   var atur = simpanan('atur', {});
@@ -121,88 +125,88 @@ function perbaruiData(){
     .catch(function(){});
 }
 
+/** Pilihan bawaan: H dan H+1 yang hari kerja dan belum lengkap (+ susulan masa tutup bila ada). */
+function pilihanBawaan(){
+  var st = status(), h = hIni(), p = {};
+  [h, J.addDays(h,1)].forEach(function(t){ if (J.hariKerja(t, cfg) && !st['lengkap:'+t]) p[t] = true; });
+  J.tanggalSusulan(h, cfg).forEach(function(t){ if (J.hariKerja(t, cfg) && !st['lengkap:'+t]) p[t] = true; });
+  var maju = J.majuOtomatis(h, cfg) && J.isiMajuTutup(h, cfg);
+  if (maju) maju.forEach(function(t){ if (!st['lengkap:'+t]) p[t] = true; });
+  return p;
+}
+function terpilih(){ return Object.keys(pilih).filter(function(t){ return pilih[t]; }).sort(); }
+
 function tampil(){
-  var t = tglSekarang(), d = new Date(t+'T00:00');
-  $('hari').textContent = HARI[d.getDay()]+',';
-  $('tanggal').textContent = d.getDate()+' '+BULAN[d.getMonth()]+' '+d.getFullYear();
-  var selisih = Math.round((new Date(t+'T00:00') - new Date(J.iso(new Date())+'T00:00')) / 864e5);
-  $('pill').textContent = selisih===0?'H':selisih<0?'H'+selisih:'H+'+selisih;
-  $('pilihTgl').value = t;
-  var st = A ? JSON.parse(A.status()) : {};
+  var st = status(), h = hIni();
   var aktif = A ? A.layananAktif() : false, jalan = A ? A.sedangJalan() : false;
   var lay = $('layanan'); lay.textContent = '';
   if (!aktif) {
-    var b = el('div','box err'); b.innerHTML = '<b>Layanan aksesibilitas belum aktif.</b> Tanpa layanan ini aplikasi tidak bisa mengetuk layar SIMPEG. ';
-    var tb = el('button','btn merah','Aktifkan: Setelan → Aksesibilitas → Jurnal SIMPEG Otomatis'); tb.onclick=function(){A&&A.bukaSetelan();};
+    var b = el('div','box err'); b.innerHTML = '<b>Izin aksesibilitas belum aktif.</b> ';
+    var tb = el('button','btn merah','Aktifkan sekarang'); tb.onclick=function(){A&&A.bukaSetelan();};
     b.appendChild(tb); lay.appendChild(b);
   }
   var info = $('info'); info.textContent = '';
-  var hIni = J.iso(new Date());
-  if (J.dalamMasaTutup(hIni, cfg)) info.appendChild(el('div','box warn','🔒 SIMPEG sedang ditutup untuk penarikan tukin (tgl '+cfg.masaTutup.dari+'–'+cfg.masaTutup.sampai+'). Tanggal yang terlewat disusulkan setelah SIMPEG dibuka lagi.'));
-  // hari kerja terakhir sebelum masa tutup (biasanya tgl 13): isi maju s.d. tgl 17
-  var maju = J.isiMajuTutup(hIni, cfg);
+  if (J.dalamMasaTutup(h, cfg)) info.appendChild(el('div','box warn','🔒 SIMPEG sedang ditutup (tgl '+cfg.masaTutup.dari+'–'+cfg.masaTutup.sampai+').'));
+  var maju = J.isiMajuTutup(h, cfg);
   if (maju && !jalan) {
-    var bm = el('div','box warn','📅 Mulai tgl '+cfg.masaTutup.dari+' SIMPEG ditutup (s.d. tgl '+cfg.masaTutup.sampai+'). '+(J.majuOtomatis(hIni, cfg)?'Isi otomatis hari ini sekaligus mengisi ':'Bisa sekalian mengisi ')+'tanggal '+maju.slice(1).map(function(x){return +x.slice(8);}).join(', ')+'. ');
-    var tbm = el('button','btn merah','▶ Isi s.d. tgl '+(+maju[maju.length-1].slice(8))+' sekarang');
-    tbm.onclick = function(){ mulai(true, hIni, maju); };
+    var bm = el('div','box warn','📅 Besok SIMPEG ditutup s.d. tgl '+cfg.masaTutup.sampai+'. ');
+    var tbm = el('button','btn merah','▶ Isi sekalian s.d. tgl '+(+maju[maju.length-1].slice(8)));
+    tbm.onclick = function(){ mulai(true, maju); };
     bm.appendChild(tbm); info.appendChild(bm);
   }
-  if (jalan) info.appendChild(el('div','box','⏳ Sedang mengisi di aplikasi SIMPEG… jangan sentuh layar.'));
-  var lengkap = st['lengkap:'+t], sebagian = st['selesai:'+t];
-  if (lengkap) info.appendChild(el('div','box ok','✅ Jurnal tanggal ini sudah lengkap'+(sebagian==='manual'?' (ditandai manual)':'')+'.'));
-  else if (sebagian) info.appendChild(el('div','box','◐ Sebagian sudah tersimpan (kegiatan ke-'+sebagian.replace(/,$/,'')+'). Tekan Isi otomatis untuk melanjutkan; yang sudah ada dilewati.'));
-  $('tandai').textContent = lengkap ? 'Tandai belum' : 'Tandai sudah';
-  $('henti').style.display = jalan ? 'block' : 'none';
+  if (jalan) info.appendChild(el('div','box','⏳ Sedang mengisi… jangan sentuh HP.'));
 
-  var susul = belumLengkap(t, st);
-  if (susul.length > 1) info.appendChild(el('div','box warn','📅 Isi otomatis juga menyusulkan tanggal masa tutup '+susul.slice(0,-1).map(function(x){return +x.slice(8);}).join(', ')+' yang belum lengkap, berurutan sampai tanggal '+(+t.slice(8))+'.'));
-  if (t === J.iso(new Date()) && J.hariKerja(J.addDays(t,1), cfg)) info.appendChild(el('div','box','➕ Sekalian mengisi besok (H+1, '+(+J.addDays(t,1).slice(8))+') bila belum lengkap.'));
+  // pilihan tanggal
+  var wadah = $('chips'); wadah.textContent = '';
+  GESER.forEach(function(g){
+    var t = J.addDays(h, g), d = new Date(t+'T00:00'), kerja = J.hariKerja(t, cfg), lengkap = st['lengkap:'+t];
+    var c = el('button','chip'+(pilih[t]?' on':''));
+    c.appendChild(el('b', null, g===0?'H':g<0?'H'+g:'H+'+g));
+    c.appendChild(el('small', null, HARI[d.getDay()]+' '+d.getDate()+' '+BULAN[d.getMonth()]));
+    c.appendChild(el('div','st', !kerja ? 'libur' : lengkap ? '✅' : pilih[t] ? '●' : '○'));
+    c.disabled = !kerja || jalan;
+    c.onclick = function(){ pilih[t] = !pilih[t]; tampil(); };
+    wadah.appendChild(c);
+  });
+  var tg = terpilih();
+  $('mulai').textContent = tg.length ? '▶ Isi ' + tg.length + ' hari (' + tg.map(function(t){return +t.slice(8);}).join(', ') + ')' : 'Pilih tanggal dulu';
+  $('mulai').disabled = !tg.length || jalan;
+  $('mulai').style.display = jalan ? 'none' : 'block';
+  $('henti').style.display = jalan ? 'block' : 'none';
+  $('hint').textContent = tg.some(function(t){ return t < J.addDays(h,-1); }) ? '⚠ SIMPEG biasanya hanya menerima H-1, H, H+1. H-2/H-3 bisa ditolak.' : (cfg.satuKegiatan ? '⚡ 1 kegiatan per hari, 07:30–16:30' : '');
+
   var isi = $('isi'); isi.textContent = '';
-  if (!J.hariKerja(t, cfg)) { isi.appendChild(el('div','libur',(d.getDay()===0||d.getDay()===6)?'🌴 Akhir pekan — tidak perlu isi jurnal.':'🌴 Hari libur — tidak perlu isi jurnal.')); return; }
-  J.susunJurnal(t, cfg).forEach(function(k,i){
-    var c = el('div','card'), top = el('div','top');
-    top.appendChild(el('span','no',String(i+1)));
-    top.appendChild(el('span','skp',k.skp==='Lain-Lain'?'SKP: Lain-lain':'SKP: no. 1'));
-    top.appendChild(el('span','jam',k.jamMulai+'–'+k.jamSelesai));
-    c.appendChild(top); c.appendChild(el('div','keg',k.uraian));
-    c.appendChild(el('div','meta','Jumlah '+k.volume+' '+k.satuan));
-    isi.appendChild(c);
+  tg.forEach(function(t){
+    isi.appendChild(el('div','meta', t));
+    J.susunJurnal(t, cfg).forEach(function(k){
+      var c = el('div','card'), top = el('div','top');
+      top.appendChild(el('span','skp',k.skp==='Lain-Lain'?'Lain-lain':'SKP no. 1'));
+      top.appendChild(el('span','jam',k.jamMulai+'–'+k.jamSelesai));
+      c.appendChild(top); c.appendChild(el('div','keg',k.uraian));
+      c.appendChild(el('div','meta','Jumlah '+k.volume+' '+k.satuan));
+      isi.appendChild(c);
+    });
   });
 }
 
-/** Hari kerja masa tutup sampai t yang belum lengkap (t sendiri selalu ikut). */
-function belumLengkap(t, st){
-  return J.tanggalSusulan(t, cfg).filter(function(d){ return d === t || !st['lengkap:'+d]; });
-}
-function mulai(simpan, tanggal, daftar){
-  var t = tanggal || tglSekarang();
-  if (!J.hariKerja(t, cfg)) { A&&A.pesan('Bukan hari kerja.'); return; }
-  var st = A ? JSON.parse(A.status()) : {};
-  // tgl 13 bukan hari kerja → pada hari kerja terakhir sebelum masa tutup, isi otomatis sekaligus s.d. tgl 17
-  if (!daftar && simpan && t === J.iso(new Date()) && J.majuOtomatis(t, cfg)) daftar = J.isiMajuTutup(t, cfg);
-  var urut = !simpan ? [t] : daftar ? daftar.filter(function(d){ return d === t || !st['lengkap:'+d]; }) : belumLengkap(t, st);
-  // H+1 ikut diisi (SIMPEG menerima H-1, H, H+1) bila besok hari kerja dan belum lengkap
-  var besok = J.addDays(t, 1);
-  if (simpan && t === J.iso(new Date()) && J.hariKerja(besok, cfg) && !st['lengkap:'+besok] && urut.indexOf(besok) < 0) urut.push(besok);
-  if (urut.length > 2 && !confirm('Akan mengisi berurutan tanggal '+urut.map(function(x){return +x.slice(8);}).join(', ')+' ('+urut.length+' hari kerja). Lanjut?')) return;
-  if (simpan && urut.length === 1 && J.dalamMasaTutup(J.iso(new Date()), cfg) && !confirm('Hari ini masa tutup SIMPEG. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
+function mulai(simpan, daftar){
+  var urut = (daftar || terpilih()).filter(function(t){ return J.hariKerja(t, cfg); });
+  if (!simpan) urut = urut.slice(0, 1);
+  if (!urut.length) { A&&A.pesan('Pilih tanggal hari kerja dulu.'); return; }
+  if (simpan && J.dalamMasaTutup(hIni(), cfg) && !confirm('SIMPEG sedang masa tutup. Penyimpanan kemungkinan ditolak. Tetap coba?')) return;
   var semua = [];
   urut.forEach(function(d){ semua = semua.concat(J.susunJurnal(d, cfg)); });
   var r = A ? A.mulai(urut.join(','), JSON.stringify(semua), simpan) : 'Buka di aplikasi Android.';
   if (r) alert(r);
   setTimeout(tampil, 600);
 }
-window.cekMulaiOtomatis = function(){ var t = A ? A.mulaiOtomatis() : ''; if (t) { offset = 0; tglPilih = ''; tampil(); mulai(true, t); } };
+window.cekMulaiOtomatis = function(){ var t = A ? A.mulaiOtomatis() : ''; if (t) { pilih = pilihanBawaan(); tampil(); mulai(true); } };
 window.segarkan = function(){ tampil(); };
 
-document.querySelectorAll('.tabs button').forEach(function(b){
-  b.onclick=function(){document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});b.classList.add('on');offset=+b.dataset.d;tglPilih='';tampil();};
-});
-$('pilihTgl').onchange = function(){ if(!this.value) return; tglPilih = this.value; document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');}); tampil(); };
 $('mulai').onclick = function(){ mulai(true); };
 $('uji').onclick = function(){ mulai(false); };
 $('henti').onclick = function(){ A&&A.hentikan(); setTimeout(tampil,300); };
-$('tandai').onclick = function(){ var t=tglSekarang(), st=JSON.parse(A.status()); A.tandai(t, !st['lengkap:'+t]); tampil(); };
+$('tandai').onclick = function(){ if (!A) return; var st = status(); terpilih().forEach(function(t){ A.tandai(t, !st['lengkap:'+t]); }); pilih = pilihanBawaan(); tampil(); };
 
 function isiAtur(){
   var a = simpanan('atur', {});
@@ -211,7 +215,7 @@ function isiAtur(){
   $('tutupDari').value = cfg.masaTutup ? cfg.masaTutup.dari : ''; $('tutupSampai').value = cfg.masaTutup ? cfg.masaTutup.sampai : '';
   $('paket').value = a.paket || 'simpeg.kemenkumham.mobile'; $('teksSkp').value = a.teksSkp || '';
   $('liburSaya').value = (a.liburSaya||[]).join('\n');
-  $('rekam').checked = A ? !!JSON.parse(A.status()).rekam : false;
+  $('rekam').checked = A ? !!status().rekam : false;
 }
 $('simpanAtur').onclick = function(){
   taruh('atur', { satu: $('satu').checked, pengingat: $('pengingat').checked, jam: $('jam').value || '08:15',
@@ -225,7 +229,7 @@ $('lihatLog').onclick = function(){ var p=$('log'); p.style.display='block'; p.t
 $('bagiLog').onclick = function(){ A&&A.bagikanLog(); };
 $('hapusLog').onclick = function(){ A&&A.hapusLog(); $('log').textContent=''; };
 
-susunCfg(); isiAtur(); kirimAtur(); tampil(); perbaruiData();
+susunCfg(); pilih = pilihanBawaan(); isiAtur(); kirimAtur(); tampil(); perbaruiData();
 setInterval(function(){ if (A && A.sedangJalan()) tampil(); }, 3000);
 setTimeout(window.cekMulaiOtomatis, 400);
 </script>
