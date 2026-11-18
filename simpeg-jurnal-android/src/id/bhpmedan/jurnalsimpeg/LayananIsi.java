@@ -22,6 +22,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -40,7 +41,8 @@ public class LayananIsi extends AccessibilityService {
     private final Handler h = new Handler(Looper.getMainLooper());
     private boolean jalan, simpan, formAktif;
     private JSONArray daftar;
-    private int idx, langkah, sub, coba, berhasil;
+    private int idx, langkah, sub, coba, berhasil, ulang, ulangForm;
+    private long sejakHilang;
     private String tanggal, pkg;
     private long sejakLangkah, aksiTerakhir, sejakDikenal, rekamTerakhir, bukaTerakhir;
 
@@ -75,7 +77,7 @@ public class LayananIsi extends AccessibilityService {
         if (jalan) return "Pengisian sedang berjalan.";
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
-        idx = 0; berhasil = 0; lewati = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
+        idx = 0; berhasil = 0; lewati = 0; ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
         mulaiLangkah(0);
         sejakDikenal = System.currentTimeMillis();
         Catatan.tulis(this, "MULAI " + tanggal + " (" + daftar.length() + " kegiatan, " + (simpan ? "simpan" : "UJI tanpa simpan") + ")");
@@ -118,7 +120,7 @@ public class LayananIsi extends AccessibilityService {
 
     private int lewati;
 
-    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; sejakLangkah = System.currentTimeMillis(); }
+    private void mulaiLangkah(int l) { langkah = l; sub = 0; coba = 0; ulang = 0; sejakLangkah = System.currentTimeMillis(); }
     private void lanjutLangkah() { mulaiLangkah(langkah + 1); }
     private boolean sabar() { return System.currentTimeMillis() - aksiTerakhir < JEDA_AKSI; }
     private void tandaiAksi() { aksiTerakhir = System.currentTimeMillis(); }
@@ -183,19 +185,40 @@ public class LayananIsi extends AccessibilityService {
     private void langkahForm(List<AccessibilityNodeInfo> n, String layar) throws Exception {
         JSONObject e = entri();
         long now = System.currentTimeMillis();
-        if (now - sejakLangkah > BATAS_LANGKAH) { gagal("Langkah " + LANGKAH[langkah] + " tidak selesai dalam " + (BATAS_LANGKAH / 1000) + " detik."); return; }
-        boolean dlgSkp = cocok(layar, "lain-?lain") && cocok(layar, "tugas tambahan") && cocok(layar, "kreati[fv]itas");
         boolean dlgTgl = cocok(layar, "select date|pilih tanggal|enter date|masukkan tanggal");
         boolean dlgJam = cocok(layar, "select time|pilih waktu|enter time|masukkan waktu|pilih jam");
+        boolean formTampak = cocok(layar, "tambah jurnal harian");
+        boolean dlgSkp = !dlgTgl && !dlgJam && ((cocok(layar, "lain-?lain") && cocok(layar, "tugas tambahan") && cocok(layar, "kreati[fv]itas"))
+                || (!formTampak && (cari(n, "^\\s*\\d+\\.\\s+\\S") != null || cari(n, "^\\s*(\\d+\\.\\s*)?lain-?lain\\s*$") != null)));
+        // Form bisa tertutup sendiri (mis. gagal memuat SKP). Bila begitu, buka ulang form untuk kegiatan yang sama.
+        if (!formTampak && !dlgSkp && !dlgTgl && !dlgJam && !"TUNGGU".equals(LANGKAH[langkah])) {
+            if (sejakHilang == 0) { sejakHilang = now; return; }
+            if (now - sejakHilang < 4000) return;
+            if (ulangForm++ >= 3) { gagal("Form Tambah Jurnal Harian tertutup sendiri berulang kali."); return; }
+            Catatan.tulis(this, "Form tertutup sebelum selesai, dibuka ulang untuk kegiatan " + (idx + 1));
+            formAktif = false; sejakHilang = 0; sejakDikenal = now; mulaiLangkah(0);
+            return;
+        }
+        sejakHilang = 0;
+        if (cocok(layar, "^\\s*loading\\s*$|\\nloading\\n|memuat")) { if (now - sejakLangkah > 30000) gagal("SIMPEG terus LOADING."); return; }
+        if (now - sejakLangkah > BATAS_LANGKAH) { gagal("Langkah " + LANGKAH[langkah] + " tidak selesai dalam " + (BATAS_LANGKAH / 1000) + " detik."); return; }
 
         switch (LANGKAH[langkah]) {
             case "SKP": {
                 if (dlgSkp) {
                     AccessibilityNodeInfo opsi = pilihSkp(n, "Lain-Lain".equalsIgnoreCase(e.optString("skp")));
-                    if (opsi == null) { gagal("Pilihan SKP tidak ditemukan di daftar."); return; }
+                    if (opsi == null) {                                          // pilihan di bawah: gulir daftar
+                        AccessibilityNodeInfo g = null;
+                        for (AccessibilityNodeInfo x : n) if (x.isScrollable() && tampak(x)) { g = x; break; }
+                        if (g != null && coba++ < 6) { g.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD); tandaiAksi(); return; }
+                        gagal("Pilihan SKP tidak ditemukan di daftar."); return;
+                    }
                     ketuk(opsi); sub = 1; return;
                 }
-                if (sub == 1) { lanjutLangkah(); return; }
+                if (sub == 1) {
+                    if (!cocok(layar, "pilih skp")) { lanjutLangkah(); return; }
+                    sub = 0;                                                     // belum terpilih: buka lagi
+                }
                 AccessibilityNodeInfo f = cari(n, "pilih skp");
                 if (f == null) f = cari(n, "\\bskp\\b");
                 if (f != null) ketuk(f);
@@ -203,30 +226,37 @@ public class LayananIsi extends AccessibilityService {
             }
             case "TANGGAL": {
                 if (dlgTgl) {
+                    AccessibilityNodeInfo ok = cari(n, "^\\s*(ok|oke|pilih|simpan|set)\\s*$");
+                    if (sub == 3) { if (ok != null) { ketuk(ok); sub = 4; } return; }  // tanggal sudah dipilih → OK
                     AccessibilityNodeInfo isian = pertamaYangBisaDiisi(n);
-                    if (sub == 3) {                                              // tanggal sudah dimasukkan → OK
-                        AccessibilityNodeInfo ok = cari(n, "^\\s*(ok|oke|pilih|simpan|set)\\s*$");
-                        if (ok != null) { ketuk(ok); sub = 4; }
-                        return;
-                    }
-                    if (isian != null) {
+                    if (isian != null) {                                         // mode ketik
                         String hint = teks(isian).toLowerCase(Locale.ROOT);
                         String fmt = (hint.contains("dd/mm") || hint.contains("hh/bb")) ? "dd/MM/yyyy" : "MM/dd/yyyy";
                         isiTeks(isian, new SimpleDateFormat(fmt, Locale.US).format(isoKeDate(tgl())));
                         tandaiAksi(); sub = 3; return;
                     }
-                    if (hariIni().equals(tgl()) && sub < 2) {                  // bawaan pemilih = hari ini → langsung OK
-                        AccessibilityNodeInfo ok = cari(n, "^\\s*(ok|oke|pilih|simpan|set)\\s*$");
-                        if (ok != null) { ketuk(ok); sub = 4; return; }
-                    }
-                    AccessibilityNodeInfo ubah = cari(n, "switch to input|beralih ke input|ke input|mode input|edit|ubah");
-                    if (ubah != null && sub < 2) { ketuk(ubah); sub = 2; return; }
-                    AccessibilityNodeInfo hari = cari(n, "^\\s*" + Integer.parseInt(tgl().substring(8)) + "\\s*$");
+                    AccessibilityNodeInfo hari = cariHari(n, tgl());           // mode kalender: "16, Monday, November 16, 2026"
                     if (hari != null) { ketuk(hari); sub = 3; return; }
+                    int arah = arahBulan(n, tgl());
+                    if (arah != 0 && coba++ < 24) {
+                        AccessibilityNodeInfo g = tombolBulan(n, arah);
+                        if (g != null) { ketuk(g); return; }
+                    }
+                    AccessibilityNodeInfo pendek = cari(n, "^\\s*" + Integer.parseInt(tgl().substring(8)) + "\\s*(,|$)");
+                    if (pendek != null) { ketuk(pendek); sub = 3; return; }
+                    if (hariIni().equals(tgl()) && ok != null) { ketuk(ok); sub = 4; return; }
+                    AccessibilityNodeInfo ubah = cari(n, "switch to input|beralih ke input|mode input|^\\s*edit\\s*$|^\\s*ubah\\s*$");
+                    if (ubah != null && sub < 2) { ketuk(ubah); sub = 2; }
                     return;
                 }
-                if (sub == 4) { lanjutLangkah(); return; }
-                AccessibilityNodeInfo f = cari(n, "^\\s*tanggal\\b");
+                AccessibilityNodeInfo f = cariIsian(n, "tanggal", false);
+                if (f == null) f = cari(n, "^\\s*tanggal\\b");
+                if (sub == 4) {                                                  // periksa tanggal di form
+                    String isi = f == null ? "" : teks(f);
+                    if (isi.contains(tgl()) || !cocok(isi, "\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/.-]\\d{1,2}[/.-]\\d{2,4}")) { lanjutLangkah(); return; }
+                    if (ulang++ >= 2) { gagal("Tanggal di form (" + isi + ") tidak sama dengan " + tgl() + "."); return; }
+                    sub = 0;
+                }
                 if (f != null) { ketuk(f); sub = 1; }
                 return;
             }
@@ -242,7 +272,7 @@ public class LayananIsi extends AccessibilityService {
             case "JAM_SELESAI": {
                 boolean mulai = "JAM_MULAI".equals(LANGKAH[langkah]);
                 String[] jm = e.getString(mulai ? "jamMulai" : "jamSelesai").split(":");
-                if (dlgJam) { isiDialogJam(n, jm); return; }
+                if (dlgJam) { isiDialogJam(n, layar, jm); return; }
                 if (sub == 9) { lanjutLangkah(); return; }
                 AccessibilityNodeInfo f = cari(n, mulai ? "jam mulai" : "jam selesai");
                 if (f != null) { ketuk(f); sub = 1; }
@@ -276,7 +306,7 @@ public class LayananIsi extends AccessibilityService {
                     Catatan.tulis(this, "✓ Tersimpan " + tgl() + " " + e.getString("jamMulai") + "–" + e.getString("jamSelesai") + " " + e.getString("uraian"));
                     String kunci = "selesai:" + tgl();
                     Catatan.pref(this).edit().putString(kunci, Catatan.pref(this).getString(kunci, "") + (idx + 1) + ",").apply();
-                    formAktif = false; idx++; mulaiLangkah(0); sejakDikenal = now;
+                    formAktif = false; idx++; ulangForm = 0; mulaiLangkah(0); sejakDikenal = now;
                     if (idx >= daftar.length()) selesai(ringkasan());
                     return;
                 }
@@ -289,32 +319,94 @@ public class LayananIsi extends AccessibilityService {
         }
     }
 
-    private void isiDialogJam(List<AccessibilityNodeInfo> n, String[] jm) {
+    private void isiDialogJam(List<AccessibilityNodeInfo> n, String layar, String[] jm) {
         List<AccessibilityNodeInfo> isian = semuaYangBisaDiisi(n);
         AccessibilityNodeInfo ok = cari(n, "^\\s*(ok|oke|pilih|simpan|set)\\s*$");
-        if (sub == 5 && ok != null) { ketuk(ok); sub = 9; return; }
+        int jam24 = Integer.parseInt(jm[0]);
+        boolean ampm = cari(n, "^\\s*AM\\s*$") != null && cari(n, "^\\s*PM\\s*$") != null;
+        int jam = ampm ? (jam24 % 12 == 0 ? 12 : jam24 % 12) : jam24;
+        if (sub == 5) {                                              // jam & menit sudah diisi
+            if (ampm) { AccessibilityNodeInfo ap = cari(n, jam24 < 12 ? "^\\s*AM\\s*$" : "^\\s*PM\\s*$"); if (ap != null) ketuk(ap); sub = 6; return; }
+            sub = 6;
+        }
+        if (sub == 6) { if (ok != null) { ketuk(ok); sub = 9; } return; }
         if (isian.size() >= 2) {                                     // mode ketik: kolom jam & menit
-            isiTeks(isian.get(0), jm[0]); isiTeks(isian.get(1), jm[1]);
+            isiTeks(isian.get(0), ampm ? String.valueOf(jam) : jm[0]); isiTeks(isian.get(1), jm[1]);
             tandaiAksi(); sub = 5; return;
         }
         if (sub <= 1) {
             AccessibilityNodeInfo ketik = cari(n, "text input|switch to input|keyboard|mode input|ketik|papan ketik|masukkan waktu");
+            if (ketik == null) ketik = tombolTanpaLabelKiri(n);      // ikon keyboard di kiri tombol Cancel
             if (ketik != null) { ketuk(ketik); sub = 2; return; }
             sub = 3;
         }
-        if (sub == 2 && System.currentTimeMillis() - aksiTerakhir < 2500) return;
+        if (sub == 2) { if (System.currentTimeMillis() - aksiTerakhir < 2500) return; sub = 3; }
         // mode jam analog: ketuk angka jam, lalu angka menit (kelipatan 15 menit selalu ada di jam)
-        if (sub <= 3) {
-            int jam = Integer.parseInt(jm[0]);
-            AccessibilityNodeInfo a = cari(n, "^\\s*0?" + jam + "\\s*$");
+        if (sub == 3) {
+            AccessibilityNodeInfo a = cari(n, "^\\s*0?" + jam + "(\\s*o'?clock)?\\s*$");
             if (jam == 0) a = cari(n, "^\\s*00\\s*$");
             if (a != null) { ketuk(a); sub = 4; }
             return;
         }
         if (sub == 4) {
-            AccessibilityNodeInfo m = cari(n, "^\\s*" + jm[1] + "\\s*$");
+            int mn = Integer.parseInt(jm[1]);
+            AccessibilityNodeInfo m = cari(n, "^\\s*0?" + mn + "(\\s*minutes?)?\\s*$");
+            if (mn == 0 && m == null) m = cari(n, "^\\s*00\\s*$");
             if (m != null) { ketuk(m); sub = 5; }
         }
+    }
+
+    /** Tombol ikon tanpa label di baris yang sama dengan Cancel/Batal, di sebelah kirinya. */
+    private static AccessibilityNodeInfo tombolTanpaLabelKiri(List<AccessibilityNodeInfo> n) {
+        AccessibilityNodeInfo batal = cari(n, "^\\s*(cancel|batal)\\s*$");
+        if (batal == null) return null;
+        Rect r = new Rect(); batal.getBoundsInScreen(r);
+        for (AccessibilityNodeInfo x : n) {
+            if (!x.isClickable() || !tampak(x) || teks(x).length() > 0) continue;
+            Rect b = new Rect(); x.getBoundsInScreen(b);
+            if (b.centerY() >= r.top && b.centerY() <= r.bottom && b.right <= r.left) return x;
+        }
+        return null;
+    }
+
+    // ---------- pemilih tanggal ----------
+    private static final String[] MONTH = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+    /** Tombol hari di kalender, berlabel mis. "16, Monday, November 16, 2026" atau "Senin, 16 November 2026". */
+    private static AccessibilityNodeInfo cariHari(List<AccessibilityNodeInfo> n, String iso) {
+        String en = new SimpleDateFormat("MMMM d, yyyy", Locale.US).format(isoKeDate(iso));
+        return cari(n, "(^|\\D)(" + Pattern.quote(en) + "|" + Pattern.quote(tanggalPanjang(iso)) + ")");
+    }
+    /** -1 bila tanggal tujuan ada di bulan sebelum bulan yang tampil, 1 bila sesudahnya, 0 bila sama/tak diketahui. */
+    private static int arahBulan(List<AccessibilityNodeInfo> n, String iso) {
+        int tujuan = Integer.parseInt(iso.substring(0, 4)) * 12 + Integer.parseInt(iso.substring(5, 7)) - 1;
+        Pattern en = Pattern.compile("(" + String.join("|", MONTH) + ") \\d{1,2}, (\\d{4})");
+        Pattern id = Pattern.compile("\\d{1,2} (" + String.join("|", BULAN) + ") (\\d{4})");
+        for (AccessibilityNodeInfo x : n) {
+            if (!tampak(x)) continue;
+            String t = teks(x);
+            Matcher m = en.matcher(t); String[] nama = MONTH;
+            if (!m.find()) { m = id.matcher(t); nama = BULAN; if (!m.find()) continue; }
+            int b = java.util.Arrays.asList(nama).indexOf(m.group(1));
+            return Integer.compare(tujuan, Integer.parseInt(m.group(2)) * 12 + b);
+        }
+        return 0;
+    }
+    /** Tombol bulan sebelumnya/berikutnya: dari labelnya, atau dua ikon tanpa label di kanan "Select year". */
+    private static AccessibilityNodeInfo tombolBulan(List<AccessibilityNodeInfo> n, int arah) {
+        AccessibilityNodeInfo lbl = cari(n, arah < 0 ? "previous month|bulan sebelumnya" : "next month|bulan berikutnya");
+        if (lbl != null) return lbl;
+        AccessibilityNodeInfo th = cari(n, "select year|pilih tahun");
+        if (th == null) return null;
+        Rect r = new Rect(); th.getBoundsInScreen(r);
+        AccessibilityNodeInfo kiri = null, kanan = null; int xk = Integer.MAX_VALUE, xn = -1;
+        for (AccessibilityNodeInfo x : n) {
+            if (!x.isClickable() || !tampak(x) || teks(x).length() > 0) continue;
+            Rect b = new Rect(); x.getBoundsInScreen(b);
+            if (b.centerY() < r.top || b.centerY() > r.bottom || b.left < r.right) continue;
+            if (b.left < xk) { xk = b.left; kiri = x; }
+            if (b.left > xn) { xn = b.left; kanan = x; }
+        }
+        return arah < 0 ? kiri : kanan;
     }
 
     private String ringkasan() {
