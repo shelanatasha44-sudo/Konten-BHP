@@ -78,7 +78,7 @@ public class LayananIsi extends AccessibilityService {
         if (jalan) return "Pengisian sedang berjalan.";
         if (daftar.length() == 0) return "Tidak ada kegiatan untuk tanggal ini.";
         this.tanggal = tanggal; this.daftar = daftar; this.simpan = simpan; this.pkg = pkg;
-        idx = 0; berhasil = 0; lewati = 0; gulirDaftar = 0; aturRentang = false; rentangDipilih = false; rentangDicoba = false; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
+        idx = 0; berhasil = 0; lewati = 0; totalUlang = 0; gagalLewat = 0; cobaKegiatan = null; gulirDaftar = 0; aturRentang = false; rentangDipilih = false; rentangDicoba = false; teksAda.clear(); ulangForm = 0; sejakHilang = 0; formAktif = false; jalan = true; beres = new boolean[daftar.length()];
         mulaiLangkah(0); sejakMuat = 0;
         sejakDikenal = System.currentTimeMillis();
         try {   // layar tetap menyala selama mengisi (maks. 30 menit), supaya tidak terkunci di tengah jalan
@@ -113,7 +113,31 @@ public class LayananIsi extends AccessibilityService {
         ed.apply();
     }
 
+    /** Satu langkah gagal: ulangi kegiatan ini (maks. 3x), lalu lewati dan lanjut ke kegiatan berikutnya. */
     private void gagal(String alasan) {
+        boolean fatal = alasan.contains("login") || daftar == null;
+        if (!fatal && jalan && totalUlang < 40) {
+            totalUlang++;
+            if (cobaKegiatan == null || cobaKegiatan.length != daftar.length()) cobaKegiatan = new int[daftar.length()];
+            int k = ++cobaKegiatan[idx];
+            Catatan.tulis(this, "ULANG (" + (idx + 1) + "/" + daftar.length() + ", percobaan " + k + ", langkah " + (formAktif ? LANGKAH[langkah] : "navigasi") + "): " + alasan + "\nIsi layar:\n" + pohon());
+            performGlobalAction(GLOBAL_ACTION_BACK);                         // tutup dialog/form yang macet
+            if (k >= 3) {
+                Catatan.tulis(this, "DILEWATI setelah 3 percobaan: " + tgl() + " " + daftar.optJSONObject(idx).optString("uraian"));
+                gagalLewat++; idx++;
+                while (idx < daftar.length() && beres[idx]) idx++;
+                if (idx >= daftar.length()) { selesai(ringkasan()); return; }
+            }
+            formAktif = false; sejakHilang = 0; sejakMuat = 0; gulirDaftar = 0;
+            mulaiLangkah(0); sejakDikenal = System.currentTimeMillis(); tandaiAksi();
+            return;
+        }
+        berhentiGagal(alasan);
+    }
+    private int[] cobaKegiatan;
+    private int totalUlang, gagalLewat;
+
+    private void berhentiGagal(String alasan) {
         tandaiLengkap();   // tanggal yang sudah tuntas sebelum gagal tetap tercatat lengkap
         Catatan.tulis(this, "GAGAL (" + (idx + 1) + "/" + daftar.length() + ", langkah " + (formAktif ? LANGKAH[langkah] : "navigasi") + "): " + alasan + "\nIsi layar saat gagal:\n" + pohon());
         hentikan(alasan);
@@ -408,10 +432,19 @@ public class LayananIsi extends AccessibilityService {
                 AccessibilityNodeInfo f = cariIsian(n, "jumlah", false);
                 if (f == null) { gagal("Kolom Jumlah Diselesaikan tidak ditemukan."); return; }
                 String v = e.optString("volume", "1");
+                try { if (Integer.parseInt(v.trim()) < 1) v = "1"; } catch (Exception ex) { v = "1"; }   // SIMPEG menolak jumlah 0
                 String isi = f.getText() == null ? "" : f.getText().toString().trim();
                 if (isi.equals(v)) { lanjutLangkah(); return; }
-                if (coba++ > 2) { gagal("Kolom Jumlah tidak mau diisi."); return; }
-                ketukKlik(f); isiTeks(f, v); tandaiAksi();
+                if (coba >= 6) {                                                 // angka lain ≥1 pun diterima SIMPEG
+                    try { if (Integer.parseInt(isi) >= 1) { lanjutLangkah(); return; } } catch (Exception ex) {}
+                    gagal("Kolom Jumlah tidak mau diisi (isi: \"" + isi + "\")."); return;
+                }
+                switch (coba++ % 3) {                                            // tiga cara bergantian
+                    case 0: ketukKlik(f); isiTeks(f, v); break;
+                    case 1: tempel(f, v); break;
+                    default: ketuk(f); isiTeks(f, ""); isiTeks(f, v); break;
+                }
+                tandaiAksi();
                 return;
             }
             case "SIMPAN": {
@@ -578,7 +611,7 @@ public class LayananIsi extends AccessibilityService {
     }
 
     private String ringkasan() {
-        return tanggal.replace(",", ", ") + ": " + berhasil + " kegiatan tersimpan" + (lewati > 0 ? ", " + lewati + " sudah ada" : "") + ".";
+        return tanggal.replace(",", ", ") + ": " + berhasil + " kegiatan tersimpan" + (lewati > 0 ? ", " + lewati + " sudah ada" : "") + (gagalLewat > 0 ? ", " + gagalLewat + " gagal (lihat log)" : "") + ".";
     }
 
     // ---------- pencarian simpul ----------
@@ -699,6 +732,20 @@ public class LayananIsi extends AccessibilityService {
     private void ketukKlik(AccessibilityNodeInfo n) {
         n.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
         n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+    }
+    /** Isi kolom lewat papan klip: fokus, pilih semua, tempel. */
+    private void tempel(AccessibilityNodeInfo n, String s) {
+        try {
+            android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            cb.setPrimaryClip(android.content.ClipData.newPlainText("jurnal", s));
+            n.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+            n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            Bundle b = new Bundle();
+            b.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0);
+            b.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, n.getText() == null ? 0 : n.getText().length());
+            n.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, b);
+            n.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+        } catch (Exception e) { isiTeks(n, s); }
     }
     private static void isiTeks(AccessibilityNodeInfo n, String s) {
         Bundle b = new Bundle();
