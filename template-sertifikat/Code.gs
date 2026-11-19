@@ -81,9 +81,10 @@ function bacaTerbit() {
   let sh = ss.getSheetByName(TAB.terbit);
   if (!sh) { sh = ss.insertSheet(TAB.terbit); sh.appendRow(KOLOM_TERBIT); sh.setFrozenRows(1); }
   const rows = sh.getDataRange().getValues().slice(1);
-  const sudah = new Set(rows.map((r) => normEmail(r[3])));
+  const sudah = new Set(rows.filter((r) => /^(Terkirim|Gagal)/.test(r[5])).map((r) => normEmail(r[3])));
+  const ditolak = new Set(rows.filter((r) => /^Ditolak/.test(r[5])).map((r) => normEmail(r[3])));
   const jumlah = rows.filter((r) => r[5] === 'Terkirim').length;
-  return { sh, rows, sudah, jumlah };
+  return { sh, rows, sudah, ditolak, jumlah };
 }
 
 // ---------- sertifikat ----------
@@ -157,7 +158,7 @@ function jalankan(manual) {
       const p = (em && byEmail.get(em)) || (hp && byHp.get(hp));
       if (!p) {
         // Hanya peserta yang terdaftar yang mendapat sertifikat.
-        if (em && !t.sudah.has(em)) { t.sh.appendRow([now, '', '', em, '', 'Ditolak: tidak terdaftar']); t.sudah.add(em); }
+        if (em && !t.ditolak.has(em)) { t.sh.appendRow([now, '', '', em, '', 'Ditolak: tidak terdaftar']); t.ditolak.add(em); }
         continue;
       }
       if (t.sudah.has(p.email)) continue;
