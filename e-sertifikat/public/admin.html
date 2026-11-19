@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin E-Sertifikat | Kanwil Kemenkum Sumatera Utara</title>
+<link rel="icon" href="/img/logo.png">
+<link rel="stylesheet" href="/css/gaya.css">
+<style>
+  .admin{max-width:1180px;margin:0 auto;padding:22px 20px 40px;display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:start}
+  .menu{position:sticky;top:16px;background:#fff;border:1px solid var(--garis);border-radius:18px;padding:10px;box-shadow:var(--bayang)}
+  .menu .judul-menu{font-size:11px;letter-spacing:.2em;color:var(--redup);font-weight:600;padding:10px 12px 6px}
+  .menu a{display:flex;gap:11px;align-items:center;padding:10px 12px;border-radius:11px;color:var(--lembut);font-weight:600;font-size:14px;text-decoration:none}
+  .menu a:hover{background:var(--latar)}
+  .menu a.aktif{background:var(--navy);color:#fff}
+  .menu a svg{width:18px;height:18px;flex:none}
+  .ikon{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .kepala{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .kepala h1{font-family:Cinzel,serif;font-size:22px;color:var(--navy);letter-spacing:.02em}
+  .kembali{display:none;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--lembut);margin-bottom:8px}
+  .aktif-kartu{background:radial-gradient(120% 140% at 0% 0%,var(--navy2),var(--navy) 55%,var(--navy3));color:#fff;border-radius:18px;padding:20px 22px;box-shadow:var(--bayang);position:relative;overflow:hidden}
+  .aktif-kartu::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;border:1px solid rgba(227,199,122,.25)}
+  .aktif-kartu .label{color:var(--emas2)}
+  .aktif-kartu h2{font-family:Cinzel,serif;font-size:19px;line-height:1.3;margin-top:6px}
+  .aktif-kartu .meta{color:#CFD6EA;font-size:13px;margin-top:4px}
+  .aktif-kartu .baris{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .angka{font-family:Cinzel,serif;font-weight:700;font-size:26px;color:var(--emas2);line-height:1}
+  .angka small{display:block;font-family:Inter,sans-serif;font-size:11.5px;font-weight:500;color:#CFD6EA;margin-top:4px;letter-spacing:.02em}
+  .saklar{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);border:1px solid rgba(227,199,122,.4);color:#fff;border-radius:999px;padding:7px 14px 7px 8px;font-weight:600;font-size:13px;cursor:pointer}
+  .saklar i{width:34px;height:20px;border-radius:999px;background:#7C86A8;position:relative;transition:background .2s}
+  .saklar i::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+  .saklar.on i{background:#3BA776}
+  .saklar.on i::after{left:17px}
+  .ubin{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  .ubin a{background:#fff;border:1px solid var(--garis);border-radius:16px;padding:16px;text-decoration:none;color:var(--teks);display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 18px rgba(31,42,90,.05);transition:transform .1s,border-color .15s}
+  .ubin a:hover{border-color:var(--emas);transform:translateY(-1px)}
+  .ubin .bulat{width:38px;height:38px;border-radius:12px;background:var(--emas-lembut);color:#8A6A1E;display:flex;align-items:center;justify-content:center}
+  .ubin .bulat svg{width:20px;height:20px}
+  .ubin b{font-size:14.5px;color:var(--navy)}
+  .ubin small{font-size:12px;color:var(--redup);line-height:1.35}
+  .tautan-kecil{display:flex;gap:8px 16px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:13px}
+  .tombol-pratinjau{display:none}
+  .dua-kolom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+  .pilih{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .pilih label{border:2px solid var(--garis);border-radius:14px;padding:7px;cursor:pointer;text-align:center;font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:6px;background:#fff}
+  .pilih input{display:none}
+  .pilih label:has(input:checked){border-color:var(--emas);box-shadow:0 0 0 3px rgba(201,161,59,.18)}
+  .pilih img,.pilih .kosong{width:100%;aspect-ratio:297/210;object-fit:cover;border-radius:8px;border:1px solid var(--garis)}
+  .pilih .kosong{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--redup);font-size:11px;background:#FCFBF7}
+  .pilih .kosong b{font-size:22px;color:var(--emas);line-height:1}
+  .panel{border:1px dashed #D3CBB8;border-radius:14px;padding:12px 14px;background:#FCFBF7;margin-top:12px}
+  .warna{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .warna label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .warna input{width:42px;height:32px;border:1px solid #DAD3C2;border-radius:8px;padding:2px;background:#fff}
+  details.lain{margin-top:12px;border-top:1px solid var(--garis);padding-top:10px}
+  details.lain summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--lembut)}
+  details.lain[open] summary{margin-bottom:10px}
+  .daftar-peserta{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .pes{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--garis);border-radius:14px;padding:11px 12px}
+  .pes .no{width:34px;height:34px;flex:none;border-radius:10px;background:var(--latar);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--navy);font-size:13px}
+  .pes .isi{flex:1;min-width:0}
+  .pes .isi b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pes .isi small{display:block;font-size:12px;color:var(--redup);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pes.dicabut{opacity:.55}
+  .pes .aksi{display:flex;gap:6px;flex:none}
+  .qr-besar{background:#fff;border:1px solid var(--garis);border-radius:16px;padding:14px;text-align:center}
+  .qr-besar canvas{width:220px;height:220px;margin:0 auto}
+  .masuk{max-width:420px;margin:34px auto}
+  .masuk .lencana{width:64px;height:64px;margin:0 auto 6px}
+  @media (max-width:860px){
+    .admin{grid-template-columns:minmax(0,1fr);padding:12px 12px 20px;gap:0}
+    .menu{display:none}
+    .kembali{display:inline-flex}
+    .kepala h1{font-size:18px}
+    .kepala{margin-bottom:10px}
+    .kartu{padding:16px 14px;border-radius:16px}
+    .ubin{grid-template-columns:repeat(2,1fr);gap:9px;margin-top:10px}
+    .ubin a{padding:12px;gap:6px;border-radius:14px}
+    .ubin .bulat{width:32px;height:32px;border-radius:10px}
+    .ubin small{display:none}
+    .aktif-kartu{padding:16px}
+    .aktif-kartu h2{font-size:16px}
+    .dua-kolom{grid-template-columns:1fr;gap:10px}
+    .kolom{gap:10px}
+    label.isian{font-size:13px;gap:5px}
+    label.isian small{display:none}
+    input[type=text],input[type=email],input[type=password],input[type=datetime-local],input[type=search],textarea{padding:10px 12px;font-size:16px}
+    .kaki{display:none}
+    .kop .isi{padding:8px 14px}
+    .kop img{width:30px}
+    .qr-besar canvas{width:180px;height:180px}
+    .pratinjau-kecil{max-width:360px;margin:0 auto}
+    .lipat-hp .pratinjau-kecil,.lipat-hp .ket-pratinjau{display:none}
+    .lipat-hp .tombol-pratinjau{display:inline-flex}
+    .qr-besar canvas{width:150px;height:150px}
+    .sembunyi-hp{display:none}
+  }
+</style>
+</head>
+<body>
+<header class="kop"><div class="isi">
+  <a href="/"><img src="/img/logo.png" alt="Logo Kementerian Hukum"></a>
+  <div class="nama"><small>KANWIL KEMENKUM SUMATERA UTARA</small><b>Admin E-Sertifikat</b></div>
+  <nav><a href="/" target="_blank" rel="noopener">Halaman Absen</a><a href="#" id="keluar" class="tersembunyi">Keluar</a></nav>
+</div></header>
+
+<div class="admin" id="kerangka">
+  <aside class="menu tersembunyi" id="menu"></aside>
+  <main id="layar"><div style="text-align:center;padding:40px;color:var(--redup)"><span class="memuat"></span></div></main>
+</div>
+
+<dialog id="dialog"><form class="kartu" method="dialog" id="formDialog"></form></dialog>
+
+<footer class="kaki"><b>Kantor Wilayah Kementerian Hukum Sumatera Utara</b><br>Admin Sertifikat Elektronik</footer>
+
+<script src="/lib/qrcode.js"></script>
+<script src="/lib/jspdf.umd.min.js"></script>
+<script src="/js/umum.js"></script>
+<script src="/js/sertifikat.js"></script>
+<script>
+const $ = (s, el) => (el || document).querySelector(s);
+const esc = Umum.esc;
+const layar = $('#layar');
+const ROMAWI = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+const IKON = {
+  ringkas: '<path d="M4 13h6V4H4zM14 20h6v-9h-6zM14 4v4h6V4zM4 20h6v-4H4z"/>',
+  kegiatan: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  desain: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-3 3 3 2-2 3 3"/><circle cx="9" cy="9" r="1.3"/>',
+  ttd: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>',
+  peserta: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6M16 11a2.6 2.6 0 1 0 0-5.2M17.5 14.6c1.6.5 2.6 1.9 3 4.4"/>',
+  bagikan: '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/>',
+  email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/>',
+  semua: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  sandi: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+};
+const ikon = (n) => `<svg viewBox="0 0 24 24" class="ikon">${IKON[n]}</svg>`;
+const MENU = [
+  ['', 'ringkas', 'Ringkasan'], ['kegiatan', 'kegiatan', 'Data Kegiatan'], ['desain', 'desain', 'Desain Sertifikat'], ['ttd', 'ttd', 'Pengesahan dan QR'],
+  ['peserta', 'peserta', 'Peserta'], ['bagikan', 'bagikan', 'Bagikan Absen'], ['email', 'email', 'Email Otomatis'], ['semua', 'semua', 'Semua Kegiatan'], ['sandi', 'sandi', 'Kata Sandi'],
+];
+let acara = null, peserta = [], aturEmail = null;
+
+function kepala(judul, aksi) {
+  return `<a class="kembali" href="#/">&larr; Menu</a><div class="kepala"><h1>${judul}</h1>${aksi || ''}</div>`;
+}
+function gambarMenu(rute) {
+  $('#menu').innerHTML = '<div class="judul-menu">MENU ADMIN</div>' + MENU.map(([r, i, t]) => `<a href="#/${r}" class="${r === rute ? 'aktif' : ''}">${ikon(i)}${t}</a>`).join('');
+}
+async function simpanAcara(ubah) {
+  const d = await Umum.api('/api/acara/' + acara.id, { method: 'PUT', body: { ...acara, ...ubah } });
+  acara = (await Umum.api('/api/acara/' + d.id)).acara;
+}
+async function muatAktif() {
+  acara = (await Umum.api('/api/aktif')).acara;
+  peserta = acara ? (await Umum.api('/api/peserta/' + acara.id)).peserta : [];
+}
+
+// ---------------- masuk ----------------
+async function layarMasuk(pesan) {
+  $('#menu').classList.add('tersembunyi'); $('#keluar').classList.add('tersembunyi');
+  const st = await Umum.api('/api/status-admin').catch(() => ({ perluDibuat: false }));
+  const buat = st.perluDibuat;
+  layar.innerHTML = `<form class="kartu masuk" id="formMasuk">
+    <div class="lencana"><svg viewBox="0 0 88 88" style="width:100%;height:100%;fill:none;stroke:var(--emas);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round"><circle cx="44" cy="44" r="40" style="fill:rgba(201,161,59,.1)"/><rect x="31" y="40" width="26" height="19" rx="3"/><path d="M36 40v-6a8 8 0 0 1 16 0v6"/></svg></div>
+    <h2 style="text-align:center">${buat ? 'Buat Kata Sandi Admin' : 'Masuk Admin'}</h2>
+    <p class="ket" style="text-align:center;margin:6px 0 16px">${buat ? 'Kata sandi ini dipakai setiap kali masuk ke halaman admin.' : 'Khusus panitia pengelola sertifikat.'}</p>
+    <div class="kolom">
+      <input type="password" id="sandi" placeholder="Kata sandi" autocomplete="${buat ? 'new-password' : 'current-password'}" required>
+      ${buat ? '<input type="password" id="sandi2" placeholder="Ulangi kata sandi" autocomplete="new-password" required>' : ''}
+      <button class="tombol emas lebar" type="submit">${buat ? 'Simpan dan Masuk' : 'Masuk'}</button>
+    </div>
+    ${pesan ? `<div class="pesan galat">${esc(pesan)}</div>` : ''}
+  </form>`;
+  $('#formMasuk').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const s = $('#sandi').value;
+    try {
+      let d;
+      if (buat) {
+        if (s !== $('#sandi2').value) return layarMasuk('Kedua kata sandi tidak sama.');
+        d = await Umum.api('/api/sandi', { method: 'POST', body: { baru: s } });
+      } else d = await Umum.api('/api/masuk', { method: 'POST', body: { sandi: s } });
+      Umum.kode.simpan(d.sesi); location.hash = '#/'; rute();
+    } catch (err) { layarMasuk(err.message); }
+  });
+}
+$('#keluar').addEventListener('click', async (e) => { e.preventDefault(); await Umum.api('/api/keluar', { method: 'POST' }).catch(() => {}); Umum.kode.hapus(); layarMasuk(); });
+
+// ---------------- ringkasan ----------------
+function layarRingkas() {
+  if (!acara) {
+    layar.innerHTML = kepala('Selamat Datang') + `<div class="kartu" style="text-align:center;padding:30px 20px">
+      <h2>Belum Ada Kegiatan</h2><p class="ket" style="margin:8px 0 18px">Mulai dengan membuat kegiatan. Halaman utama web langsung menjadi halaman absen kegiatan tersebut.</p>
+      <a class="tombol emas" href="#/kegiatan-baru">+ Buat Kegiatan</a></div>`;
+    return;
+  }
+  const sah = peserta.filter((p) => p.status !== 'dicabut').length;
+  const ub = (r, i, t, k) => `<a href="#/${r}"><span class="bulat">${ikon(i)}</span><b>${t}</b><small>${k}</small></a>`;
+  layar.innerHTML = `<div class="kepala"><h1>Ringkasan</h1><a class="tombol garis kecil" href="#/kegiatan-baru">+ Kegiatan Baru</a></div>
+    <div class="aktif-kartu">
+      <div class="label">KEGIATAN AKTIF DI HALAMAN ABSEN</div>
+      <h2>${esc(acara.judul)}</h2>
+      <div class="meta">${esc([acara.tanggal, acara.tempat].filter(Boolean).join(' · '))}</div>
+      <div class="baris">
+        <div class="angka">${sah}<small>sertifikat terbit</small></div>
+        <button class="saklar ${acara.buka ? 'on' : ''}" id="saklar" type="button"><i></i>${acara.buka ? 'Absen dibuka' : 'Absen ditutup'}</button>
+      </div>
+    </div>
+    <div class="ubin">
+      ${ub('kegiatan', 'kegiatan', 'Data Kegiatan', 'Nama, tanggal, tempat')}
+      ${ub('desain', 'desain', 'Desain', 'Pilih desain atau unggah dari Canva')}
+      ${ub('ttd', 'ttd', 'Pengesahan', 'Pejabat dan kode QR')}
+      ${ub('peserta', 'peserta', 'Peserta', sah + ' sertifikat, unduh rekap')}
+      ${ub('bagikan', 'bagikan', 'Bagikan Absen', 'QR dan tautan absen')}
+      ${ub('email', 'email', 'Email', aturEmail && aturEmail.siap ? 'Aktif' : 'Belum diatur')}
+    </div>
+    <div class="tautan-kecil"><a href="/" target="_blank" rel="noopener">Halaman absen</a><a href="#/semua">Semua kegiatan</a><a href="#/sandi">Kata sandi</a><a href="#" id="keluar2">Keluar</a></div>`;
+  $('#keluar2').onclick = (e) => { e.preventDefault(); $('#keluar').click(); };
+  $('#saklar').addEventListener('click', async () => {
+    try { await simpanAcara({ buka: !acara.buka }); Umum.toast(acara.buka ? 'Absen dibuka' : 'Absen ditutup'); layarRingkas(); }
+    catch (e) { Umum.toast(e.message); }
+  });
+}
+
+// ---------------- data kegiatan ----------------
+function layarKegiatan(baru) {
+  const d = new Date(Date.now() + 7 * 3600e3);
+  const a = baru ? { judul: '', tanggal: '', tempat: '', tema: '', buka: true, peran: 'Peserta', formatNomor: `{n}/SERT/KWSU/${ROMAWI[d.getUTCMonth()]}/${d.getUTCFullYear()}`,
+    kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', penyelenggara: 'Kantor Wilayah Kementerian Hukum Sumatera Utara',
+    pembuka: 'diberikan kepada', kalimat: 'atas partisipasinya sebagai {peran} dalam', desain: 'resmi', tampilQr: true, kirimEmail: true,
+    penandatangan: (acara && acara.penandatangan) || [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '' }] } : acara;
+  const isian = (n, l, ph, w) => `<label class="isian"><span class="${w ? 'wajib' : ''}">${l}</span><input type="text" name="${n}" value="${esc(a[n] || '')}" placeholder="${esc(ph || '')}" maxlength="200"></label>`;
+  layar.innerHTML = kepala(baru ? 'Kegiatan Baru' : 'Data Kegiatan') + `<form class="kartu" id="f">
+    <div class="kolom">
+      ${isian('judul', 'Nama kegiatan', 'Contoh: Sosialisasi Layanan Hukum', 1)}
+      <div class="kolom dua">${isian('tanggal', 'Tanggal', 'Kamis, 10 Desember 2026', 1)}${isian('tempat', 'Tempat', 'Aula Kanwil Kemenkum Sumut')}</div>
+      ${isian('tema', 'Tema (boleh kosong)', '')}
+    </div>
+    <details class="lain"><summary>Pengaturan lainnya (boleh dilewati)</summary><div class="kolom">
+      <div class="kolom dua">
+        <label class="isian">Absen dibuka mulai (WIB)<input type="datetime-local" name="mulai" value="${Umum.dariIso(a.mulai)}"></label>
+        <label class="isian">Absen ditutup pada (WIB)<input type="datetime-local" name="sampai" value="${Umum.dariIso(a.sampai)}"></label>
+      </div>
+      <div class="kolom dua">${isian('formatNomor', 'Format nomor ({n} = 001, 002, ...)', '')}${isian('peran', 'Peran peserta', 'Peserta')}</div>
+      <div class="kolom dua">${isian('kop1', 'Kop baris 1', '')}${isian('kop2', 'Kop baris 2', '')}</div>
+      <div class="kolom dua">${isian('pembuka', 'Kalimat pembuka', '')}${isian('kalimat', 'Kalimat peran ({peran})', '')}</div>
+      ${isian('penyelenggara', 'Penyelenggara (tampil di halaman cek keaslian)', '')}
+    </div></details>
+    <div id="galat" class="pesan galat tersembunyi"></div>
+    <button class="tombol emas lebar" type="submit" style="margin-top:14px">${baru ? 'Buat Kegiatan' : 'Simpan'}</button>
+  </form>`;
+  $('#f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target), o = {};
+    for (const k of ['judul', 'tanggal', 'tempat', 'tema', 'formatNomor', 'peran', 'kop1', 'kop2', 'pembuka', 'kalimat', 'penyelenggara']) o[k] = (fd.get(k) || '').toString().trim();
+    o.mulai = Umum.keIso(fd.get('mulai')); o.sampai = Umum.keIso(fd.get('sampai'));
+    if (!o.judul || !o.tanggal) { $('#galat').textContent = 'Nama kegiatan dan tanggal wajib diisi.'; $('#galat').classList.remove('tersembunyi'); return; }
+    try {
+      if (baru) { await Umum.api('/api/acara', { method: 'POST', body: { ...a, ...o } }); await muatAktif(); Umum.toast('Kegiatan dibuat dan langsung tampil di halaman absen'); location.hash = '#/'; }
+      else { await simpanAcara(o); Umum.toast('Tersimpan'); location.hash = '#/'; }
+    } catch (err) { $('#galat').textContent = err.message; $('#galat').classList.remove('tersembunyi'); }
+  });
+}
+
+// ---------------- pratinjau ----------------
+let tunda;
+function pratinjau(kanvas, a) {
+  clearTimeout(tunda);
+  tunda = setTimeout(() => Sertifikat.gambar(kanvas, a, { nama: 'Nama Peserta, S.H., M.H.', nomor: (a.formatNomor || '{n}').replace(/\{n\}/g, '001'), kode: '', peran: a.peran }, { skala: 1, contoh: true }).catch(() => {}), 150);
+}
+
+function lihatPratinjau(a) {
+  const dlg = $('#dialog'), f = $('#formDialog');
+  dlg.onclose = null;
+  f.innerHTML = '<div class="pratinjau"><canvas id="kvD"></canvas></div><button class="tombol garis lebar" value="tutup" style="margin-top:12px">Tutup</button>';
+  dlg.showModal(); pratinjau($('#kvD'), a);
+}
+
+// ---------------- desain ----------------
+function layarDesain() {
+  let latarBaru = '';
+  const a = acara;
+  layar.innerHTML = kepala('Desain Sertifikat') + `<form class="kartu" id="f"><div class="dua-kolom">
+    <div>
+      <div class="pilih">
+        <label><input type="radio" name="desain" value="resmi" ${!['gading', 'sendiri'].includes(a.desain) ? 'checked' : ''}><img src="/desain/resmi.jpg" alt="">Resmi</label>
+        <label><input type="radio" name="desain" value="gading" ${a.desain === 'gading' ? 'checked' : ''}><img src="/desain/gading.jpg" alt="">Gading</label>
+        <label><input type="radio" name="desain" value="sendiri" ${a.desain === 'sendiri' ? 'checked' : ''}>${a.latarVersi ? `<img id="gbrSendiri" src="/api/latar/${a.id}?v=${a.latarVersi}" alt="">` : '<span class="kosong" id="gbrSendiri"><b>+</b>Canva</span>'}Desain Sendiri</label>
+      </div>
+      <div class="panel ${a.desain === 'sendiri' ? '' : 'tersembunyi'}" id="panel">
+        <div class="baris-tombol" style="align-items:center"><label class="tombol garis kecil" style="cursor:pointer">Unggah dari Canva<input type="file" accept="image/png,image/jpeg,image/webp" id="unggah" hidden></label><span class="kecil" id="infoUnggah">${a.latarVersi ? 'Desain sudah diunggah' : 'PNG atau JPG, A4 mendatar'}</span></div>
+        <div class="warna" style="margin-top:10px"><label><input type="color" name="warnaTeks" value="${esc(a.warnaTeks || '#1F2A5A')}">Warna teks</label><label><input type="color" name="warnaAksen" value="${esc(a.warnaAksen || '#B8923A')}">Warna aksen</label></div>
+        <label class="centang" style="margin-top:8px"><input type="checkbox" name="tampilKop" ${a.tampilKop !== false ? 'checked' : ''}><span>Tampilkan logo dan kop</span></label>
+        <label class="centang" style="margin-top:6px"><input type="checkbox" name="tampilJudul" ${a.tampilJudul !== false ? 'checked' : ''}><span>Tampilkan tulisan SERTIFIKAT</span></label>
+        <p class="kecil" style="margin-top:8px">Di Canva, pilih ukuran A4 mendatar dan kosongkan bagian tengah serta bawah.</p>
+      </div>
+    </div>
+    <div><div class="pratinjau pratinjau-kecil"><canvas id="kv"></canvas><span class="tanda">PRATINJAU</span></div></div>
+  </div><button class="tombol emas lebar" type="submit" style="margin-top:14px">Simpan Desain</button></form>`;
+  const f = $('#f');
+  const baca = () => { const fd = new FormData(f); return { ...a, desain: fd.get('desain'), warnaTeks: fd.get('warnaTeks'), warnaAksen: fd.get('warnaAksen'), tampilKop: !!fd.get('tampilKop'), tampilJudul: !!fd.get('tampilJudul'), ...(latarBaru ? { latarData: latarBaru } : (fd.get('desain') === 'sendiri' && !a.latarVersi ? { latarData: '/desain/resmi.jpg' } : {})) }; };
+  const segar = () => { $('#panel').classList.toggle('tersembunyi', baca().desain !== 'sendiri'); pratinjau($('#kv'), baca()); };
+  f.addEventListener('change', segar); f.addEventListener('input', segar); segar();
+  $('#unggah').addEventListener('change', async (e) => {
+    const b = e.target.files[0]; if (!b) return;
+    try { latarBaru = await siapkanLatar(b); $('#infoUnggah').textContent = b.name; $('#gbrSendiri').outerHTML = `<img id="gbrSendiri" src="${latarBaru}" alt="">`; segar(); }
+    catch (err) { Umum.toast('Gambar tidak dapat dibaca'); }
+  });
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const o = baca(); delete o.latarData;
+    if (o.desain === 'sendiri' && !latarBaru && !a.latarVersi) return Umum.toast('Unggah gambar desain dari Canva dulu');
+    try {
+      await simpanAcara(o);
+      if (latarBaru) await Umum.api('/api/latar/' + a.id, { method: 'PUT', body: { data: latarBaru } });
+      acara = (await Umum.api('/api/acara/' + a.id)).acara;
+      Umum.toast('Desain tersimpan'); location.hash = '#/';
+    } catch (err) { Umum.toast(err.message); }
+  });
+}
+function siapkanLatar(berkas) {
+  return new Promise((ok, gagal) => {
+    const r = new FileReader(); r.onerror = gagal;
+    r.onload = () => {
+      const im = new Image(); im.onerror = gagal;
+      im.onload = () => {
+        const c = document.createElement('canvas'); c.width = 2339; c.height = 1654;
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        const sk = Math.max(c.width / im.width, c.height / im.height), w = im.width * sk, h = im.height * sk;
+        x.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
+        let q = 0.86, data = c.toDataURL('image/jpeg', q);
+        while (data.length > 1800000 && q > 0.5) { q -= 0.08; data = c.toDataURL('image/jpeg', q); }
+        ok(data);
+      };
+      im.src = r.result;
+    };
+    r.readAsDataURL(berkas);
+  });
+}
+
+// ---------------- pengesahan ----------------
+function layarTtd() {
+  const a = acara, p = (a.penandatangan || [])[0] || { jabatan: '', nama: '', nip: '' };
+  layar.innerHTML = kepala('Pengesahan dan QR') + `<form class="kartu lipat-hp" id="f"><div class="dua-kolom">
+    <div class="kolom">
+      <label class="isian">Tempat dan tanggal<input type="text" name="tempatTanggal" value="${esc(a.tempatTanggal || '')}" placeholder="Medan, 10 Desember 2026" maxlength="80"></label>
+      <label class="isian">Jabatan pejabat<input type="text" name="jabatan" value="${esc(p.jabatan)}" maxlength="120"></label>
+      <div class="kolom dua"><label class="isian">Nama dan gelar<input type="text" name="nama" value="${esc(p.nama)}" maxlength="90"></label><label class="isian">NIP<input type="text" name="nip" value="${esc(p.nip)}" maxlength="40"></label></div>
+      <label class="centang"><input type="checkbox" name="tampilQr" ${a.tampilQr !== false ? 'checked' : ''}><span>Pakai kode QR sebagai pengesahan</span></label>
+      <button class="tombol garis kecil tombol-pratinjau" type="button" id="lihat">Lihat Pratinjau</button>
+    </div>
+    <div><div class="pratinjau pratinjau-kecil"><canvas id="kv"></canvas><span class="tanda">PRATINJAU</span></div><p class="kecil ket-pratinjau" style="margin-top:8px">Tanpa tanda tangan basah. Kode QR mengarah ke halaman cek keaslian.</p></div>
+  </div><button class="tombol emas lebar" type="submit" style="margin-top:14px">Simpan</button></form>`;
+  const f = $('#f');
+  const baca = () => { const fd = new FormData(f); return { ...a, tempatTanggal: fd.get('tempatTanggal').trim(), tampilQr: !!fd.get('tampilQr'), penandatangan: [{ jabatan: fd.get('jabatan').trim(), nama: fd.get('nama').trim(), nip: fd.get('nip').trim() }].filter((x) => x.nama || x.jabatan) }; };
+  f.addEventListener('input', () => pratinjau($('#kv'), baca())); f.addEventListener('change', () => pratinjau($('#kv'), baca()));
+  pratinjau($('#kv'), baca());
+  $('#lihat').onclick = () => lihatPratinjau(baca());
+  f.addEventListener('submit', async (e) => { e.preventDefault(); try { await simpanAcara(baca()); Umum.toast('Tersimpan'); location.hash = '#/'; } catch (err) { Umum.toast(err.message); } });
+}
+
+// ---------------- peserta ----------------
+function layarPeserta() {
+  layar.innerHTML = kepala('Peserta', '<div class="baris-tombol"><button class="tombol garis kecil" id="tambah">+ Tambah</button><button class="tombol garis kecil" id="csv">Unduh Rekap</button></div>') +
+    `<div class="kartu"><input type="search" id="cari" placeholder="Cari nama, email, atau nomor"><div class="kecil" id="ringkas" style="margin-top:8px"></div><div class="daftar-peserta" id="dp"></div></div>`;
+  $('#cari').addEventListener('input', gambarPeserta);
+  $('#tambah').addEventListener('click', () => dialogPeserta(null));
+  $('#csv').addEventListener('click', unduhCsv);
+  $('#dp').addEventListener('click', aksiPeserta);
+  gambarPeserta();
+}
+function chipEmail(p) {
+  if (!p.email) return '';
+  return p.email_status === 'terkirim' ? '<span class="chip ok">Email terkirim</span>' : p.email_status === 'gagal' ? '<span class="chip merah">Email gagal</span>' : '<span class="chip tutup">Email belum</span>';
+}
+function gambarPeserta() {
+  const kata = ($('#cari').value || '').toLowerCase();
+  const d = peserta.filter((p) => !kata || [p.nama, p.email, p.nomor, p.instansi].join(' ').toLowerCase().includes(kata));
+  $('#ringkas').textContent = peserta.filter((p) => p.status !== 'dicabut').length + ' sertifikat sah';
+  $('#dp').innerHTML = d.length ? d.slice().reverse().map((p) => `<div class="pes ${p.status === 'dicabut' ? 'dicabut' : ''}" data-pk="${esc(p.pk)}">
+      <div class="no">${p.urut}</div>
+      <div class="isi"><b>${esc(p.nama)}</b><small>${esc(p.nomor)} · ${esc(p.peran || '')}${p.instansi ? ' · ' + esc(p.instansi) : ''}</small><div style="margin-top:4px">${chipEmail(p)}${p.status === 'dicabut' ? ' <span class="chip merah">Dibatalkan</span>' : ''}</div></div>
+      <div class="aksi"><button class="tombol garis kecil" data-aksi="menu" type="button">Kelola</button></div>
+    </div>`).join('') : `<p class="kecil" style="text-align:center;padding:20px">${peserta.length ? 'Tidak ada yang cocok.' : 'Belum ada peserta. Bagikan QR absen kepada peserta.'}</p>`;
+}
+function aksiPeserta(e) {
+  const b = e.target.closest('[data-aksi]'); if (!b) return;
+  const p = peserta.find((x) => x.pk === b.closest('[data-pk]').dataset.pk);
+  const dlg = $('#dialog'), f = $('#formDialog');
+  f.innerHTML = `<h2 style="font-size:17px">${esc(p.nama)}</h2><p class="kecil" style="margin:4px 0 14px">${esc(p.nomor)}${p.email ? ' · ' + esc(p.email) : ''}</p>
+    <div class="kolom">
+      <button class="tombol garis lebar" value="pdf" ${p.status === 'dicabut' ? 'disabled' : ''}>Unduh PDF</button>
+      <button class="tombol garis lebar" value="email" ${p.status === 'dicabut' || !p.email ? 'disabled' : ''}>Kirim Ulang ke Email</button>
+      <button class="tombol garis lebar" value="ubah">Ubah Nama atau Peran</button>
+      <button class="tombol ${p.status === 'dicabut' ? 'garis' : 'bahaya'} lebar" value="status">${p.status === 'dicabut' ? 'Pulihkan Sertifikat' : 'Batalkan Sertifikat'}</button>
+      <button class="tombol garis lebar" value="tutup">Tutup</button>
+    </div>`;
+  dlg.showModal();
+  dlg.onclose = async () => {
+    const v = dlg.returnValue;
+    if (v === 'pdf') { Umum.toast('Menyiapkan PDF...'); await Sertifikat.unduh(acara, p); }
+    if (v === 'ubah') dialogPeserta(p);
+    if (v === 'email') {
+      Umum.toast('Mengirim email...');
+      try { const pdf = (await Sertifikat.pdf(acara, p)).output('datauristring').split(',')[1]; const d = await Umum.api(`/api/kirim/${acara.id}/${p.kode}`, { method: 'POST', body: { pdf } }); if (d.lewati) Umum.toast('Email belum diatur. Buka menu Email.'); else { p.email_status = 'terkirim'; Umum.toast('Email terkirim'); } }
+      catch (err) { p.email_status = 'gagal'; Umum.toast(err.message); }
+      gambarPeserta();
+    }
+    if (v === 'status') {
+      const baru = p.status === 'dicabut' ? 'sah' : 'dicabut';
+      if (baru === 'dicabut' && !confirm('Batalkan sertifikat ' + p.nama + '?')) return;
+      try { const d = await Umum.api(`/api/peserta/${acara.id}/${p.pk}`, { method: 'PATCH', body: { status: baru } }); Object.assign(p, d.peserta); gambarPeserta(); } catch (err) { Umum.toast(err.message); }
+    }
+  };
+}
+function dialogPeserta(p) {
+  const dlg = $('#dialog'), f = $('#formDialog');
+  dlg.onclose = null;
+  f.innerHTML = `<h2 style="font-size:17px">${p ? 'Ubah Data' : 'Tambah Sertifikat'}</h2><p class="kecil" style="margin:4px 0 14px">${p ? 'Perubahan langsung berlaku saat diunduh ulang.' : 'Untuk narasumber, moderator, atau panitia.'}</p>
+    <div class="kolom">
+      <input type="text" name="nama" value="${esc(p ? p.nama : '')}" placeholder="Nama lengkap dan gelar" maxlength="120">
+      ${p ? '' : '<input type="email" name="email" placeholder="Email (boleh kosong)" maxlength="120">'}
+      <input type="text" name="peran" value="${esc(p ? p.peran : 'Narasumber')}" placeholder="Peran" maxlength="40" list="peranL">
+      <datalist id="peranL"><option>Peserta</option><option>Narasumber</option><option>Moderator</option><option>Pembawa Acara</option><option>Panitia</option></datalist>
+    </div>
+    <div class="baris-tombol" style="margin-top:14px;justify-content:flex-end"><button class="tombol garis" value="batal" formnovalidate>Batal</button><button class="tombol emas" id="okD" type="button">Simpan</button></div>`;
+  dlg.showModal();
+  $('#okD').onclick = async () => {
+    const fd = new FormData(f), body = { nama: (fd.get('nama') || '').trim(), peran: (fd.get('peran') || '').trim() };
+    if (!p) body.email = (fd.get('email') || '').trim();
+    try {
+      if (p) { const d = await Umum.api(`/api/peserta/${acara.id}/${p.pk}`, { method: 'PATCH', body }); Object.assign(p, d.peserta); }
+      else { const d = await Umum.api(`/api/peserta/${acara.id}`, { method: 'POST', body }); if (!peserta.find((x) => x.pk === d.peserta.pk)) peserta.push(d.peserta); }
+      dlg.close(); gambarPeserta(); Umum.toast('Tersimpan');
+    } catch (err) { Umum.toast(err.message); }
+  };
+}
+function unduhCsv() {
+  const kolom = ['No', 'Nama', 'Email', 'Instansi', 'Peran', 'Nomor', 'Kode Verifikasi', 'Status', 'Waktu (WIB)', 'Status Email'];
+  const sel = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const baris = peserta.map((p) => [p.urut, p.nama, p.email, p.instansi, p.peran, p.nomor, p.kode, p.status === 'dicabut' ? 'Dibatalkan' : 'Sah', Umum.waktuJam(p.waktu), p.email_status || ''].map(sel).join(','));
+  const blob = new Blob(['﻿' + [kolom.map(sel).join(','), ...baris].join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = 'Rekap Sertifikat ' + acara.judul.replace(/[\\/:*?"<>|]+/g, ' ') + '.csv'; l.click();
+}
+
+// ---------------- bagikan ----------------
+function layarBagikan() {
+  const tautan = location.origin + '/';
+  layar.innerHTML = kepala('Bagikan Absen') + `<div class="kartu"><div class="dua-kolom">
+    <div class="qr-besar"><canvas id="qr" width="600" height="600"></canvas><button class="tombol emas kecil" id="unduhQr" style="margin-top:10px">Unduh QR</button></div>
+    <div>
+      <p class="ket sembunyi-hp">Tampilkan QR ini di layar saat acara, atau bagikan tautannya di grup. Halaman ini selalu menampilkan absen <b>${esc(acara.judul)}</b>.</p>
+      <div class="cari" style="margin-top:12px"><input type="text" value="${esc(tautan)}" readonly style="text-transform:none;letter-spacing:0;font-weight:500"><button class="tombol" type="button" id="salin">Salin</button></div>
+      <div style="margin-top:12px">${acara.buka ? '<span class="chip ok">Absen sedang dibuka</span>' : '<span class="chip tutup">Absen ditutup</span>'}</div>
+    </div></div></div>`;
+  const q = qrcode(0, 'M'); q.addData(tautan); q.make();
+  const cv = $('#qr'), x = cv.getContext('2d'), n = q.getModuleCount(), pad = 36, s = (600 - pad * 2) / n;
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 600, 600); x.fillStyle = '#1F2A5A';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) x.fillRect(pad + c * s, pad + r * s, s + 0.3, s + 0.3);
+  $('#unduhQr').onclick = () => { const l = document.createElement('a'); l.download = 'QR Absen ' + acara.judul.replace(/[\\/:*?"<>|]+/g, ' ') + '.png'; l.href = cv.toDataURL('image/png'); l.click(); };
+  $('#salin').onclick = () => Umum.salin(tautan);
+}
+
+// ---------------- email ----------------
+async function layarEmail() {
+  aturEmail = (await Umum.api('/api/pengaturan')).pengaturan;
+  const d = aturEmail;
+  layar.innerHTML = kepala('Email Otomatis', d.siap ? '<span class="chip ok">Aktif</span>' : '<span class="chip tutup">Belum aktif</span>') + `<form class="kartu" id="f">
+    <p class="ket sembunyi-hp">Setelah absen, peserta otomatis menerima email berisi sertifikat PDF dan tautan cek keaslian.</p>
+    <details class="lain"><summary>${d.siap ? 'Cara menghubungkan Gmail' : 'Langkah menghubungkan Gmail (wajib, sekali saja)'}</summary>
+      <ol class="kecil" style="margin-left:18px;line-height:1.75">
+        <li>Klik <b>Salin Kode</b>.</li>
+        <li>Buka <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener"><b>script.google.com</b></a> dengan Gmail pengirim, hapus isi editor, tempel kode, lalu Simpan.</li>
+        <li>Klik <b>Terapkan</b>, <b>Deployment baru</b>, jenis <b>Aplikasi web</b>, akses <b>Siapa saja</b>, lalu <b>Terapkan</b> dan izinkan.</li>
+        <li>Tempel <b>URL Aplikasi web</b> di kolom bawah, lalu Simpan.</li>
+      </ol>
+      <button class="tombol garis kecil" type="button" id="salinKode" style="margin-top:8px">Salin Kode</button>
+    </details>
+    <div class="kolom" style="margin-top:12px">
+      <label class="isian">URL Aplikasi web<input type="text" name="mailerUrl" value="${esc(d.mailerUrl)}" placeholder="https://script.google.com/macros/s/.../exec"></label>
+      <label class="isian">Nama pengirim<input type="text" name="namaPengirim" value="${esc(d.namaPengirim)}" placeholder="Kanwil Kemenkum Sumatera Utara" maxlength="100"></label>
+    </div>
+    <details class="lain"><summary>Ubah isi email (boleh dilewati)</summary><div class="kolom">
+      <label class="isian">Subjek<input type="text" name="subjek" value="${esc(d.subjek)}" maxlength="150"></label>
+      <label class="isian">Isi email<textarea name="isi" rows="6" maxlength="3000">${esc(d.isi)}</textarea></label>
+    </div></details>
+    <button class="tombol emas lebar" type="submit" style="margin-top:12px">Simpan</button>
+    <div class="cari" style="margin-top:12px"><input type="email" id="uji" placeholder="Email untuk uji" style="text-transform:none;letter-spacing:0;font-weight:500"><button class="tombol garis" type="button" id="kirimUji">Kirim Uji</button></div>
+  </form>`;
+  $('#salinKode').onclick = async () => { Umum.salin(await (await fetch('/pengirim-email.txt')).text()); Umum.toast('Kode disalin'); };
+  $('#f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target), body = {};
+    for (const k of ['mailerUrl', 'namaPengirim', 'subjek', 'isi']) body[k] = (fd.get(k) || '').toString();
+    try { await Umum.api('/api/pengaturan', { method: 'PUT', body }); Umum.toast('Tersimpan'); layarEmail(); } catch (err) { Umum.toast(err.message); }
+  });
+  $('#kirimUji').onclick = async () => {
+    try { await Umum.api('/api/pengaturan/uji', { method: 'POST', body: { email: $('#uji').value.trim() } }); Umum.toast('Email uji terkirim'); } catch (err) { Umum.toast(err.message); }
+  };
+}
+
+// ---------------- semua kegiatan ----------------
+async function layarSemua() {
+  const d = await Umum.api('/api/acara');
+  layar.innerHTML = kepala('Semua Kegiatan', '<a class="tombol emas kecil" href="#/kegiatan-baru">+ Baru</a>') + `<div class="kartu"><div class="daftar-peserta" id="daftarSemua" style="margin-top:0">${d.acara.map((x) => `
+    <div class="pes"><div class="isi"><b>${esc(x.judul)}</b><small>${esc([x.tanggal, x.jumlah + ' sertifikat'].filter(Boolean).join(' · '))}</small></div>
+    <div class="aksi">${x.aktif ? '<span class="chip ok">Aktif</span>' : `<button class="tombol garis kecil" data-id="${x.id}">Jadikan Aktif</button>`}</div></div>`).join('') || '<p class="kecil">Belum ada kegiatan.</p>'}</div></div>`;
+  $('#daftarSemua').onclick = async (e) => {
+    const b = e.target.closest('[data-id]'); if (!b) return;
+    try { await Umum.api('/api/aktif', { method: 'PUT', body: { id: b.dataset.id } }); await muatAktif(); Umum.toast('Kegiatan aktif diganti'); location.hash = '#/'; } catch (err) { Umum.toast(err.message); }
+  };
+}
+
+// ---------------- kata sandi ----------------
+function layarSandi() {
+  layar.innerHTML = kepala('Ganti Kata Sandi') + `<form class="kartu" id="f" style="max-width:460px"><div class="kolom">
+    <input type="password" name="lama" placeholder="Kata sandi lama" autocomplete="current-password">
+    <input type="password" name="baru" placeholder="Kata sandi baru (paling sedikit 8 karakter)" autocomplete="new-password">
+    <input type="password" name="ulang" placeholder="Ulangi kata sandi baru" autocomplete="new-password">
+    <button class="tombol emas lebar" type="submit">Simpan</button></div></form>`;
+  $('#f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    if (fd.get('baru') !== fd.get('ulang')) return Umum.toast('Kata sandi baru tidak sama');
+    try { const d = await Umum.api('/api/sandi', { method: 'POST', body: { lama: fd.get('lama'), baru: fd.get('baru') } }); Umum.kode.simpan(d.sesi); Umum.toast('Kata sandi diganti'); location.hash = '#/'; }
+    catch (err) { Umum.toast(err.message); }
+  });
+}
+
+// ---------------- rute ----------------
+let sudahMuat = false;
+async function rute() {
+  if (!Umum.kode.ambil()) return layarMasuk();
+  const r = (location.hash.replace(/^#\/?/, '') || '');
+  try {
+    if (!sudahMuat) { await muatAktif(); aturEmail = (await Umum.api('/api/pengaturan')).pengaturan; sudahMuat = true; }
+    $('#menu').classList.remove('tersembunyi'); $('#keluar').classList.remove('tersembunyi');
+    gambarMenu(r);
+    const perluAcara = ['kegiatan', 'desain', 'ttd', 'peserta', 'bagikan'].includes(r);
+    if (perluAcara && !acara) return layarRingkas();
+    if (r === 'peserta') peserta = (await Umum.api('/api/peserta/' + acara.id)).peserta;
+    ({ '': layarRingkas, kegiatan: () => layarKegiatan(false), 'kegiatan-baru': () => layarKegiatan(true), desain: layarDesain, ttd: layarTtd, peserta: layarPeserta, bagikan: layarBagikan, email: layarEmail, semua: layarSemua, sandi: layarSandi }[r] || layarRingkas)();
+    window.scrollTo(0, 0);
+  } catch (e) {
+    if (e.status === 401) { Umum.kode.hapus(); sudahMuat = false; return layarMasuk('Sesi berakhir, silakan masuk lagi.'); }
+    layar.innerHTML = `<div class="kartu"><h2>Terjadi Gangguan</h2><p class="ket" style="margin-top:6px">${esc(e.message)}</p></div>`;
+  }
+}
+window.addEventListener('hashchange', rute);
+rute();
+</script>
+</body>
+</html>

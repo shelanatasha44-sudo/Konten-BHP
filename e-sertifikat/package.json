@@ -1,0 +1,12 @@
+{
+  "name": "esertifikat-kanwil-sumut",
+  "private": true,
+  "description": "Web sertifikat elektronik Kantor Wilayah Kementerian Hukum Sumatera Utara",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}
