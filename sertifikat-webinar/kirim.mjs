@@ -26,7 +26,10 @@ const CFG = {
   chrome: env.CHROME_PATH || '/usr/bin/google-chrome',
   formatNomor: (n) => `${String(n).padStart(3, '0')}/SERT/WP/BHP.MDN/XI/2026`,
 };
-const KUNCI = env.GMAIL_APP_PASSWORD || '';
+const SMTP_PASS = env.GMAIL_APP_PASSWORD || '';
+const KODE = env.SERTIFIKAT_KODE || '';
+const GAS_URL = env.GAS_URL || '';
+const KUNCI = KODE || SMTP_PASS;
 const JF_KEY = env.JOTFORM_API_KEY || '';
 const UJI = (env.UJI_EMAIL || '').trim();
 const KERING = env.KERING === '1'; // tidak mengirim email, PDF disimpan ke folder keluaran
@@ -176,19 +179,38 @@ async function kirimEmail(d, pdf) {
     log('(kering) PDF disimpan untuk', d.nomor);
     return;
   }
-  if (!KUNCI) throw new Error('Secret GMAIL_APP_PASSWORD belum diisi');
-  transport ||= nodemailer.createTransport({ service: 'gmail', auth: { user: CFG.pengirim, pass: KUNCI.replace(/\s+/g, '') } });
   const { html, text } = isiEmail(d);
-  await transport.sendMail({
-    from: { name: 'Balai Harta Peninggalan Medan', address: CFG.pengirim },
-    to: d.email,
-    subject: 'E-Sertifikat Webinar Pengampuan BHP Medan',
-    text, html,
-    attachments: [
-      { filename: namaBerkas(d.nama), content: pdf, contentType: 'application/pdf' },
-      { filename: 'logo.png', path: path.join(DIR, 'logo-email.png'), cid: 'logo' },
-    ],
+  if (SMTP_PASS) {
+    transport ||= nodemailer.createTransport({ service: 'gmail', auth: { user: CFG.pengirim, pass: SMTP_PASS.replace(/\s+/g, '') } });
+    await transport.sendMail({
+      from: { name: 'Balai Harta Peninggalan Medan', address: CFG.pengirim },
+      to: d.email,
+      subject: 'E-Sertifikat Webinar Pengampuan BHP Medan',
+      text, html,
+      attachments: [
+        { filename: namaBerkas(d.nama), content: pdf, contentType: 'application/pdf' },
+        { filename: 'logo.png', path: path.join(DIR, 'logo-email.png'), cid: 'logo' },
+      ],
+    });
+    return;
+  }
+  // Tanpa App Password: kirim lewat Apps Script milik wilayah2bhpmedan@gmail.com.
+  if (!GAS_URL || !KODE) throw new Error('Secret SERTIFIKAT_KODE atau alamat Apps Script belum diisi');
+  const r = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      kode: KODE, jenis: 'sertifikat', to: d.email,
+      subject: 'E-Sertifikat Webinar Pengampuan BHP Medan', body: text, html,
+      namaPengirim: 'Balai Harta Peninggalan Medan',
+      lampiran: [{ nama: namaBerkas(d.nama), mime: 'application/pdf', data: Buffer.from(pdf).toString('base64') }],
+      inline: [{ cid: 'logo', nama: 'logo.png', mime: 'image/png', data: fs.readFileSync(path.join(DIR, 'logo-email.png')).toString('base64') }],
+    }),
+    redirect: 'follow',
   });
+  const t = await r.text();
+  let j; try { j = JSON.parse(t); } catch { throw new Error('Apps Script tidak membalas JSON (status ' + r.status + '). Periksa akses web app.'); }
+  if (!j.ok) throw new Error('Apps Script: ' + j.error);
 }
 
 // ---------- utama ----------
@@ -243,7 +265,7 @@ async function main() {
       await new Promise((r) => setTimeout(r, 1500));
     } catch (e) {
       log('Gagal mengirim satu sertifikat:', e.message);
-      if (/limit|quota|Invalid login|auth/i.test(e.message)) break;
+      if (/limit|quota|kuota|Invalid login|auth|Kode salah|akses web app/i.test(e.message)) break;
     }
   }
   await browser.close();

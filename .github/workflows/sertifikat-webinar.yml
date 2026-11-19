@@ -5,6 +5,9 @@ name: Sertifikat Webinar Pengampuan
 on:
   schedule:
     - cron: '*/5 * 23-25 11 *'
+  push:
+    paths:
+      - 'sertifikat-webinar/uji.txt'
   workflow_dispatch:
     inputs:
       uji_email:
@@ -29,6 +32,8 @@ jobs:
     env:
       URL_VERIFIKASI: https://sertifikat-bhp-medan.cf-layar.workers.dev
       JEDA_MENIT: '15'
+      GAS_URL: https://script.google.com/macros/s/AKfycbxmeAy52VtAFQDenyAgEaUjCFa449vXUpFy-fNw_8sOIk8FuhDstCIM3qcMqCpyzsYj/exec
+      UJI_EMAIL: ${{ github.event.inputs.uji_email || (github.event_name == 'push' && 'wilayah2bhpmedan@gmail.com') || '' }}
     steps:
       - uses: actions/checkout@v4
       - name: Cek jadwal
@@ -37,7 +42,7 @@ jobs:
           now=$(date -u +%s)
           mulai=$(date -u -d '2026-11-23T17:00:00Z' +%s)
           selesai=$(date -u -d '2026-11-25T17:00:00Z' +%s)
-          if [ -n "${{ github.event.inputs.uji_email }}" ] || { [ $now -ge $mulai ] && [ $now -le $selesai ]; }; then echo "jalan=1" >> $GITHUB_OUTPUT; else echo "Di luar jadwal"; fi
+          if [ -n "$UJI_EMAIL" ] || { [ $now -ge $mulai ] && [ $now -le $selesai ]; }; then echo "jalan=1" >> $GITHUB_OUTPUT; else echo "Di luar jadwal"; fi
       - uses: actions/setup-node@v4
         if: steps.jadwal.outputs.jalan == '1'
         with:
@@ -51,8 +56,8 @@ jobs:
         if: steps.jadwal.outputs.jalan == '1'
         env:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SERTIFIKAT_KODE: ${{ secrets.SERTIFIKAT_KODE }}
           JOTFORM_API_KEY: ${{ secrets.JOTFORM_API_KEY }}
-          UJI_EMAIL: ${{ github.event.inputs.uji_email }}
         run: node kirim.mjs
       - name: Simpan status
         if: always() && steps.jadwal.outputs.jalan == '1'
