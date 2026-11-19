@@ -17,7 +17,7 @@ const CFG = {
   formHadir: env.FORM_HADIR || '263210953937057',
   sheet: '1CJq58lCnP8zScvhM3vzzYfJ5Yt_gvNHMhvMd0lR1LvY',
   gid: '555000111',
-  urlVerifikasi: (env.URL_VERIFIKASI || 'https://sertifikat-bhp-medan.pages.dev').replace(/\/$/, ''),
+  urlVerifikasi: (env.URL_VERIFIKASI || 'https://sertifikat-bhp-medan.cf-layar.workers.dev').replace(/\/$/, ''),
   jedaMenit: Number(env.JEDA_MENIT || 15),
   mulai: new Date(env.MULAI || '2026-11-24T00:00:00+07:00'),
   selesai: new Date(env.SELESAI || '2026-11-26T00:00:00+07:00'),

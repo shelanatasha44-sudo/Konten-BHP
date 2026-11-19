@@ -27,7 +27,7 @@ jobs:
       run:
         working-directory: sertifikat-webinar
     env:
-      URL_VERIFIKASI: https://sertifikat-bhp-medan.pages.dev
+      URL_VERIFIKASI: https://sertifikat-bhp-medan.cf-layar.workers.dev
       JEDA_MENIT: '15'
     steps:
       - uses: actions/checkout@v4
