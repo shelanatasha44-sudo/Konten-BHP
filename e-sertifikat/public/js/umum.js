@@ -1,6 +1,6 @@
 /* Fungsi bersama untuk semua halaman */
 const Umum = (() => {
-  const KUNCI = 'esert-kode-pengelola';
+  const KUNCI = 'esert-sesi-admin';
   const kode = {
     ambil: () => { try { return localStorage.getItem(KUNCI) || ''; } catch (e) { return ''; } },
     simpan: (k) => { try { localStorage.setItem(KUNCI, k); } catch (e) {} },
@@ -10,7 +10,7 @@ const Umum = (() => {
   async function api(jalur, opsi = {}) {
     const h = { 'content-type': 'application/json' };
     const k = kode.ambil();
-    if (k) h['x-kode-pengelola'] = k;
+    if (k) h['x-sesi'] = k;
     let r;
     try {
       r = await fetch(jalur, { method: opsi.method || 'GET', headers: h, body: opsi.body ? JSON.stringify(opsi.body) : undefined });

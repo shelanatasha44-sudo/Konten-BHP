@@ -3,57 +3,218 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>E-Sertifikat | Kantor Wilayah Kementerian Hukum Sumatera Utara</title>
-<meta name="description" content="Layanan sertifikat elektronik dan pemeriksaan keaslian sertifikat kegiatan Kantor Wilayah Kementerian Hukum Sumatera Utara.">
+<title>Daftar Hadir E-Sertifikat | Kanwil Kemenkum Sumatera Utara</title>
 <link rel="icon" href="/img/logo.png">
 <link rel="stylesheet" href="/css/gaya.css">
+<style>
+  .acara-judul{font-family:Cinzel,serif;font-weight:700;font-size:clamp(21px,4.4vw,28px);line-height:1.25;color:#fff;margin-top:10px}
+  .acara-tema{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:600;font-size:19px;color:#E3C77A;margin-top:6px}
+  .info{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+  .info .chip{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(227,199,122,.35)}
+  .tata{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start}
+  @media (max-width:860px){.tata{grid-template-columns:1fr}}
+  .selesai{text-align:center}
+  .selesai .lencana svg{stroke:var(--emas)}
+  .selesai .lencana circle.isi{fill:rgba(201,161,59,.12)}
+  .selesai .lencana circle.tipis{stroke-width:1;opacity:.55}
+  .info-hp{font-size:12.5px;color:#E3C77A;margin-top:8px;font-weight:500;letter-spacing:.02em}
+  @media (max-width:600px){
+    .pita .isi{padding-bottom:40px !important}
+    .acara-judul{font-size:18px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .sudah .pita{display:none}
+    .sudah .angkat{margin-top:0;padding-top:14px}
+    .selesai .ket{font-size:13.5px}
+    .selesai .pratinjau{margin:12px 0 !important}
+    .selesai .baris-tombol{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .selesai .baris-tombol .tombol{padding:12px 8px;font-size:13.5px}
+    #kirim{margin-top:14px !important}
+  }
+</style>
 </head>
 <body class="satu-layar">
 <header class="kop"><div class="isi">
   <a href="/"><img src="/img/logo.png" alt="Logo Kementerian Hukum"></a>
   <div class="nama"><small>KEMENTERIAN HUKUM REPUBLIK INDONESIA</small><b>Kantor Wilayah Sumatera Utara</b></div>
-  <nav><a href="/v">Cek Keaslian</a></nav>
+  <nav><a href="/v">Cek Keaslian</a><a href="/admin">Admin</a></nav>
 </div></header>
 
 <main>
-  <section class="pita"><div class="isi">
-    <div class="label">Layanan E-Sertifikat</div>
-    <h1>Sertifikat Elektronik <em>Kegiatan</em></h1>
-    <p class="hanya-lebar">Sertifikat kegiatan diterbitkan secara elektronik dan dapat diunduh langsung setelah mengisi daftar hadir. Setiap sertifikat memuat kode QR untuk memastikan keasliannya.</p>
-    <p class="hanya-hp">Unduh sertifikat setelah mengisi daftar hadir, lalu cek keasliannya lewat kode QR.</p>
+  <section class="pita"><div class="isi" id="kepala" style="padding-bottom:84px">
+    <div class="label">Daftar Hadir</div>
+    <div class="acara-judul" id="judul"><span class="memuat"></span></div>
+    <div class="acara-tema hanya-lebar" id="tema"></div>
+    <div class="info hanya-lebar" id="info"></div>
+    <div class="info-hp hanya-hp" id="infoHp"></div>
   </div></section>
 
-  <div class="wadah sempit angkat">
-    <form class="kartu" id="formCek">
-      <h2>Cek Keaslian Sertifikat</h2>
-      <p class="ket hanya-lebar" style="margin:6px 0 14px">Ketik kode verifikasi di bawah kode QR pada sertifikat.</p>
-      <div class="hanya-hp" style="height:12px"></div>
-      <div class="cari">
-        <input type="text" id="kode" placeholder="Contoh: K7Q2M-X8FJ3" autocomplete="off" required>
-        <button class="tombol" type="submit">Periksa</button>
-      </div>
-    </form>
-  </div>
+  <div class="wadah angkat" style="padding-top:0">
+    <div id="tutup" class="kartu sempit tersembunyi" style="margin:0 auto;text-align:center"></div>
 
-  <div class="wadah" style="padding-top:4px">
-    <div style="text-align:center"><div class="label" style="color:#9A7A2A">Cara Memperoleh Sertifikat</div></div>
-    <div class="langkah">
-      <div class="kartu"><div class="no">1</div><h4>Isi Daftar Hadir</h4><p>Buka tautan atau pindai kode QR daftar hadir yang dibagikan panitia saat kegiatan berlangsung.</p></div>
-      <div class="kartu"><div class="no">2</div><h4>Unduh Sertifikat</h4><p>Sertifikat PDF langsung tersedia untuk diunduh setelah daftar hadir terkirim.</p></div>
-      <div class="kartu"><div class="no">3</div><h4>Cek Keasliannya</h4><p>Pindai kode QR pada sertifikat untuk melihat bahwa sertifikat tercatat resmi.</p></div>
+    <div class="tata tersembunyi" id="tataForm">
+      <form class="kartu" id="form" novalidate>
+        <h2 class="hanya-lebar">Isi Daftar Hadir</h2>
+        <p class="ket hanya-lebar" style="margin:4px 0 18px">Sertifikat elektronik langsung dapat diunduh setelah daftar hadir terkirim.</p>
+        <div class="kolom">
+          <label class="isian"><span class="wajib">Nama lengkap dan gelar</span>
+            <input type="text" id="nama" maxlength="120" autocomplete="name" placeholder="Tulis persis seperti di sertifikat" required>
+            <small>Tulis persis seperti yang ingin tercantum di sertifikat, termasuk gelar dan huruf kapital.</small></label>
+          <label class="isian"><span class="wajib">Email</span>
+            <input type="email" id="email" maxlength="120" autocomplete="email" placeholder="nama@contoh.com" required>
+            <small>Isi email yang sama bila ingin mengunduh ulang sertifikat.</small></label>
+          <label class="isian">Instansi atau unit kerja
+            <input type="text" id="instansi" maxlength="120" autocomplete="organization" placeholder="Opsional"></label>
+          <label class="centang"><input type="checkbox" id="setuju"> <span>Nama sudah benar untuk dicetak.</span></label>
+        </div>
+        <div id="galat" class="pesan galat tersembunyi"></div>
+        <button class="tombol emas lebar" id="kirim" type="submit" style="margin-top:18px">Kirim dan Unduh Sertifikat</button>
+        <p class="hanya-hp" style="text-align:center;margin-top:12px"><a href="#" id="bukaPratinjau" class="kecil" style="font-weight:600">Lihat pratinjau sertifikat</a></p>
+      </form>
+      <div class="kartu hanya-lebar">
+        <h3>Pratinjau Sertifikat</h3>
+        <div class="pratinjau"><canvas id="pratinjau"></canvas><span class="tanda">PRATINJAU</span></div>
+        <p class="kecil" style="margin-top:10px">Nomor dan kode QR asli muncul setelah daftar hadir terkirim.</p>
+      </div>
     </div>
-    <p class="hanya-hp kecil" style="text-align:center;margin-top:14px"><a href="/kelola">Masuk pengelola</a></p>
+
+    <div class="kartu tersembunyi selesai" id="selesai" style="max-width:820px;margin:0 auto">
+      <div class="lencana"><svg viewBox="0 0 88 88"><circle class="isi" cx="44" cy="44" r="40"/><circle class="tipis" cx="44" cy="44" r="33"/><path d="M30 45l10 10 19-21"/></svg></div>
+      <div class="status" style="color:var(--navy)">KEHADIRAN TERCATAT</div>
+      <p class="ket" id="selesaiKet" style="margin-top:8px"></p>
+      <p class="kecil tersembunyi" id="statusEmail" style="margin-top:6px;font-weight:600;color:var(--navy)"></p>
+      <div class="pratinjau" style="margin:20px 0"><img id="hasilGambar" alt="Sertifikat"></div>
+      <div class="baris-tombol" style="justify-content:center">
+        <button class="tombol emas" id="unduh" type="button">Unduh PDF</button>
+        <a class="tombol garis" id="lihatV" href="#">Cek Keaslian</a>
+      </div>
+      <p class="kecil hanya-lebar" style="margin-top:14px">Simpan berkas PDF ini. Keaslian sertifikat dapat diperiksa kapan saja dengan memindai kode QR di dalamnya.</p>
+    </div>
   </div>
 </main>
 
-<footer class="kaki"><b>Kantor Wilayah Kementerian Hukum Sumatera Utara</b><br>Layanan Sertifikat Elektronik &middot; <a href="/kelola">Masuk Pengelola</a></footer>
+<dialog id="dlgPratinjau"><div class="kartu" style="padding:14px"><div class="pratinjau"><canvas id="pratinjauHp"></canvas></div><button class="tombol garis lebar" id="tutupPratinjau" style="margin-top:12px">Tutup</button></div></dialog>
 
+<footer class="kaki" id="kaki"><b>Kantor Wilayah Kementerian Hukum Sumatera Utara</b><br>Layanan Sertifikat Elektronik</footer>
+
+<script src="/lib/qrcode.js"></script>
+<script src="/lib/jspdf.umd.min.js"></script>
+<script src="/js/umum.js"></script>
+<script src="/js/sertifikat.js"></script>
 <script>
-document.getElementById('formCek').addEventListener('submit', (e) => {
+let id = (location.pathname.split('/')[2] || '').replace(/[^A-Za-z0-9]/g, '');
+const $ = (s) => document.getElementById(s);
+let acara = null, hasil = null;
+
+function chip(teks) { return teks ? `<span class="chip">${Umum.esc(teks)}</span>` : ''; }
+
+async function mulai() {
+  try {
+    const d = id ? await Umum.api('/api/acara/' + id) : await Umum.api('/api/aktif');
+    acara = d.acara;
+    if (!acara) {
+      $('judul').textContent = 'Belum Ada Kegiatan';
+      $('tutup').innerHTML = '<h2>Belum Ada Daftar Hadir</h2><p class="ket" style="margin-top:8px">Saat ini belum ada kegiatan yang membuka daftar hadir. Silakan kembali saat kegiatan berlangsung.</p><p style="margin-top:14px"><a class="tombol garis" href="/v">Cek Keaslian Sertifikat</a></p>';
+      $('tutup').classList.remove('tersembunyi');
+      return;
+    }
+    id = acara.id;
+  } catch (e) {
+    $('judul').textContent = 'Acara tidak ditemukan';
+    $('tutup').innerHTML = '<p class="ket">Tautan daftar hadir ini tidak dikenal. Pastikan tautan yang dibuka sesuai dengan yang dibagikan panitia.</p>';
+    $('tutup').classList.remove('tersembunyi');
+    return;
+  }
+  document.title = 'Daftar Hadir | ' + acara.judul;
+  $('judul').textContent = acara.judul;
+  $('tema').textContent = acara.tema || '';
+  $('info').innerHTML = chip(acara.tanggal) + chip(acara.tempat);
+  $('infoHp').textContent = [acara.tanggal, acara.tempat].filter(Boolean).join(' · ');
+  if (acara.penyelenggara) $('kaki').innerHTML = `<b>${Umum.esc(acara.penyelenggara)}</b><br>Layanan Sertifikat Elektronik`;
+
+  const now = Date.now();
+  let alasan = '';
+  if (!acara.buka) alasan = 'Daftar hadir untuk kegiatan ini sudah ditutup oleh panitia.';
+  else if (acara.mulai && now < Date.parse(acara.mulai)) alasan = 'Daftar hadir dibuka pada ' + Umum.waktuJam(acara.mulai) + '. Silakan kembali pada waktu tersebut.';
+  else if (acara.sampai && now > Date.parse(acara.sampai)) alasan = 'Daftar hadir sudah ditutup sejak ' + Umum.waktuJam(acara.sampai) + '.';
+  if (alasan) {
+    $('tutup').innerHTML = `<h2>Daftar Hadir Belum Tersedia</h2><p class="ket" style="margin-top:8px">${Umum.esc(alasan)}</p><p class="kecil" style="margin-top:14px">Sudah mengisi sebelumnya dan ingin mengunduh ulang? Hubungi panitia kegiatan.</p>`;
+    $('tutup').classList.remove('tersembunyi');
+    return;
+  }
+  $('tataForm').classList.remove('tersembunyi');
+  gambarPratinjau();
+}
+
+let tunda;
+function gambarPratinjau() {
+  clearTimeout(tunda);
+  tunda = setTimeout(() => {
+    Sertifikat.gambar($('pratinjau'), acara, { nama: $('nama').value.trim() || 'Nama Lengkap Anda', nomor: (acara.formatNomor || '{n}').replace('{n}', '...'), kode: '', peran: acara.peran }, { skala: 1, contoh: true }).catch(() => {});
+  }, 180);
+}
+$('nama').addEventListener('input', gambarPratinjau);
+$('bukaPratinjau').addEventListener('click', (e) => {
   e.preventDefault();
-  const k = document.getElementById('kode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (k) location.href = '/v/' + k;
+  $('dlgPratinjau').showModal();
+  Sertifikat.gambar($('pratinjauHp'), acara, { nama: $('nama').value.trim() || 'Nama Lengkap Anda', nomor: (acara.formatNomor || '{n}').replace('{n}', '...'), kode: '', peran: acara.peran }, { skala: 1, contoh: true }).catch(() => {});
 });
+$('tutupPratinjau').addEventListener('click', () => $('dlgPratinjau').close());
+
+function galat(teks) { $('galat').textContent = teks; $('galat').classList.toggle('tersembunyi', !teks); }
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nama = $('nama').value.replace(/\s+/g, ' ').trim(), email = $('email').value.trim(), instansi = $('instansi').value.trim();
+  if (nama.length < 3) return galat('Nama lengkap wajib diisi.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return galat('Alamat email belum benar.');
+  if (!$('setuju').checked) return galat('Centang pernyataan bahwa nama sudah benar.');
+  galat('');
+  const t = $('kirim'); t.disabled = true; t.innerHTML = '<span class="memuat"></span> Menyiapkan sertifikat...';
+  try {
+    const d = await Umum.api('/api/hadir/' + id, { method: 'POST', body: { nama, email, instansi } });
+    hasil = d.peserta;
+    const kanvas = document.createElement('canvas');
+    await Sertifikat.gambar(kanvas, acara, hasil, { skala: 1.2 });
+    $('hasilGambar').src = kanvas.toDataURL('image/jpeg', 0.88);
+    $('selesaiKet').innerHTML = (d.ulang ? 'Anda sudah mengisi daftar hadir sebelumnya. ' : 'Terima kasih atas kehadiran Anda. ') +
+      `Sertifikat nomor <b>${Umum.esc(hasil.nomor)}</b> atas nama <b>${Umum.esc(hasil.nama)}</b> siap diunduh.`;
+    dokumen = null;
+    $('lihatV').href = '/v/' + hasil.kode;
+    $('tataForm').classList.add('tersembunyi');
+    document.body.classList.add('sudah');
+    $('selesai').classList.remove('tersembunyi');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    await unduh();
+    if (d.emailAktif) kirimEmail(email);
+  } catch (err) {
+    galat(err.message);
+  } finally {
+    t.disabled = false; t.textContent = 'Kirim dan Unduh Sertifikat';
+  }
+});
+
+let dokumen = null;
+async function siapkanPdf() { if (!dokumen) dokumen = await Sertifikat.pdf(acara, hasil); return dokumen; }
+async function unduh() {
+  const t = $('unduh'); t.disabled = true; t.innerHTML = '<span class="memuat"></span> Menyiapkan PDF...';
+  try { (await siapkanPdf()).save(Sertifikat.namaBerkas(hasil.nama)); } catch (e) { Umum.toast('PDF gagal dibuat, silakan coba lagi.'); }
+  t.disabled = false; t.textContent = 'Unduh PDF';
+}
+$('unduh').addEventListener('click', unduh);
+
+async function kirimEmail(email) {
+  const el = $('statusEmail');
+  el.classList.remove('tersembunyi'); el.innerHTML = '<span class="memuat" style="width:12px;height:12px"></span> Mengirim sertifikat ke ' + Umum.esc(email) + '...';
+  try {
+    const pdf = (await siapkanPdf()).output('datauristring').split(',')[1];
+    const r = await Umum.api(`/api/kirim/${id}/${hasil.kode}`, { method: 'POST', body: { pdf } });
+    if (r.email_status === 'belum diatur') el.classList.add('tersembunyi');
+    else el.textContent = (r.lewati ? 'Sertifikat sudah pernah dikirim ke ' : 'Sertifikat juga sudah dikirim ke ') + email + '.';
+  } catch (e) {
+    el.textContent = 'Email belum dapat dikirim. Silakan simpan PDF dengan tombol Unduh PDF.';
+  }
+}
+
+mulai();
 </script>
 </body>
 </html>

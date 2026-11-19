@@ -74,7 +74,20 @@ async function periksa(kode) {
       `<p class="ket" style="text-align:center;margin-top:6px;font-size:13.5px">${sah ? 'Tercatat resmi dalam sistem e-sertifikat.' : 'Pernah diterbitkan, tetapi telah dibatalkan oleh penyelenggara.'}</p>` +
       '<div class="pemisah"></div>' +
       `<div style="text-align:center" class="kecil">Diberikan kepada</div><div class="nama-besar" style="margin-top:4px">${Umum.esc(s.nama)}</div>` +
-      '<div class="rincian">' + baris('Nomor sertifikat', s.nomor) + baris('Sebagai', s.peran) + baris('Kegiatan', a.judul) + baris('Tanggal kegiatan', a.tanggal) + baris('Tempat', a.tempat) + barisLebar('Diterbitkan', Umum.waktu(s.terbit)) + baris('Kode verifikasi', s.kode.replace(/^(.{5})(.{5})$/, '$1-$2')) + baris('Penyelenggara', a.penyelenggara) + '</div>');
+      '<div class="rincian">' + baris('Nomor sertifikat', s.nomor) + baris('Sebagai', s.peran) + baris('Kegiatan', a.judul) + baris('Tanggal kegiatan', a.tanggal) + baris('Tempat', a.tempat) + barisLebar('Diterbitkan', Umum.waktu(s.terbit)) + baris('Kode verifikasi', s.kode.replace(/^(.{5})(.{5})$/, '$1-$2')) + baris('Penyelenggara', a.penyelenggara) + '</div>' +
+      (sah && d.acaraId && new URLSearchParams(location.search).has('unduh') ? '<button class="tombol emas lebar" id="unduhPdf" style="margin-top:14px">Unduh Sertifikat (PDF)</button>' : ''));
+    const tb = document.getElementById('unduhPdf');
+    if (tb) tb.onclick = async () => {
+      tb.disabled = true; tb.textContent = 'Menyiapkan PDF...';
+      try {
+        for (const src of ['/lib/qrcode.js', '/lib/jspdf.umd.min.js', '/js/sertifikat.js']) {
+          if (!document.querySelector(`script[src="${src}"]`)) await new Promise((ok, gagal) => { const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = gagal; document.head.appendChild(sc); });
+        }
+        const acara = (await Umum.api('/api/acara/' + d.acaraId)).acara;
+        await Sertifikat.unduh(acara, { nama: s.nama, nomor: s.nomor, kode: s.kode, peran: s.peran });
+      } catch (err) { Umum.toast('PDF gagal disiapkan. Coba lagi.'); }
+      tb.disabled = false; tb.textContent = 'Unduh Sertifikat (PDF)';
+    };
   } catch (e) {
     tampil('tidak', lencana('tidak') + `<div class="status">GAGAL MEMERIKSA</div><p class="ket" style="text-align:center;margin-top:8px">${Umum.esc(e.message)}</p>`);
   }

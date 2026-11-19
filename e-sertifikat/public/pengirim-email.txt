@@ -37,3 +37,9 @@ function jawab(o) {
 function beriIzin() {
   Logger.log('Sisa kuota email hari ini: ' + MailApp.getRemainingDailyQuota());
 }
+
+// Jalankan fungsi ini hanya bila web menampilkan pesan "kode pengaman berbeda".
+function aturUlang() {
+  PropertiesService.getScriptProperties().deleteProperty('KUNCI');
+  Logger.log('Kode pengaman dihapus. Kirim uji dari halaman admin untuk menyambungkan ulang.');
+}

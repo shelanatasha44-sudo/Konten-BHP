@@ -1,9 +1,6 @@
 // E-Sertifikat Kantor Wilayah Kementerian Hukum Sumatera Utara
 // Cloudflare Worker + D1. Halaman statis ada di folder public.
 
-// Kode pengelola tidak disimpan di sini, hanya sidik SHA-256 dari "esert:" + kode.
-const SIDIK_PENGELOLA = '125db3503526cc34d21bdf46f2722de5f1759a32ebedc4d33013080ca1f5cab7';
-
 const HURUF = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const BAWAAN = {
   desain: 'resmi',
@@ -38,13 +35,50 @@ const emailSah = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 const hexSah = (w, c) => (/^#[0-9a-fA-F]{6}$/.test(w || '') ? w : c);
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-async function pengelola(req) {
-  const kode = String(req.headers.get('x-kode-pengelola') || '').trim().toUpperCase();
-  if (!kode) return false;
-  const h = await sha('esert:' + kode);
+// ---------- kata sandi admin dan sesi masuk ----------
+// Kata sandi tidak pernah ditulis di kode. Sumbernya: secret ADMIN_PASSWORD saat pemasangan,
+// atau dibuat sendiri pada kunjungan pertama ke halaman admin, lalu disimpan sebagai hash PBKDF2.
+const b64 = (u) => btoa(String.fromCharCode(...u));
+const dariB64 = (t) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0));
+function samaWaktu(a, b) {
+  if (a.length !== b.length) return false;
   let beda = 0;
-  for (let i = 0; i < h.length; i++) beda |= h.charCodeAt(i) ^ SIDIK_PENGELOLA.charCodeAt(i);
-  return beda === 0 && h.length === SIDIK_PENGELOLA.length;
+  for (let i = 0; i < a.length; i++) beda |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return beda === 0;
+}
+async function turunan(sandi, garam, iter) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(sandi), 'PBKDF2', false, ['deriveBits']);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: garam, iterations: iter }, k, 256));
+}
+async function hashSandi(sandi) {
+  const g = crypto.getRandomValues(new Uint8Array(16));
+  return 'pbkdf2$100000$' + b64(g) + '$' + b64(await turunan(sandi, g, 100000));
+}
+async function cocokSandi(sandi, simpan) {
+  const [, it, g, h] = String(simpan).split('$');
+  return samaWaktu(b64(await turunan(sandi, dariB64(g), Number(it))), h);
+}
+async function ambilSandi(env) {
+  const r = await env.DB.prepare("SELECT v FROM pengaturan WHERE k = 'sandiHash'").first();
+  return r && r.v ? r.v : '';
+}
+async function periksaSandi(env, sandi) {
+  const simpan = await ambilSandi(env);
+  if (simpan) return cocokSandi(sandi, simpan);
+  if (env.ADMIN_PASSWORD) return samaWaktu(await sha('s:' + sandi), await sha('s:' + env.ADMIN_PASSWORD));
+  return false;
+}
+async function buatSesi(env) {
+  const token = acak(40);
+  const habis = new Date(Date.now() + 30 * 864e5).toISOString();
+  await env.DB.prepare('INSERT INTO sesi (token, kadaluarsa) VALUES (?, ?)').bind(await sha('sesi:' + token), habis).run();
+  return token;
+}
+async function pengelola(req, env) {
+  const t = String(req.headers.get('x-sesi') || '').trim();
+  if (!t) return false;
+  const r = await env.DB.prepare('SELECT kadaluarsa FROM sesi WHERE token = ?').bind(await sha('sesi:' + t)).first();
+  return !!(r && Date.parse(r.kadaluarsa) > Date.now());
 }
 
 const waktuSah = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? '' : d.toISOString(); };
@@ -94,6 +128,7 @@ const SKEMA = [
   'CREATE INDEX IF NOT EXISTS idx_peserta_urut ON peserta (acara, urut)',
   'CREATE TABLE IF NOT EXISTS latar (acara TEXT PRIMARY KEY, data TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS pengaturan (k TEXT PRIMARY KEY, v TEXT)',
+  'CREATE TABLE IF NOT EXISTS sesi (token TEXT PRIMARY KEY, kadaluarsa TEXT NOT NULL)',
 ];
 let dbSiap = null;
 function siapkanDb(env) {
@@ -140,12 +175,16 @@ async function terbitkan(env, acara, d) {
 }
 
 // ---------- email lewat Google Apps Script milik panitia ----------
-function isiEmail(atur, acara, rec, asal) {
-  const tautan = asal + '/v/' + rec.kode;
-  const pengirim = atur.namaPengirim || acara.penyelenggara || 'Panitia';
+const NAMA_KANWIL = 'Kantor Wilayah Kementerian Hukum Sumatera Utara';
+function isiEmail(atur, acara, rec, asal, susulan) {
+  const tautan = asal + '/v/' + rec.kode + (susulan ? '?unduh=1' : '');
+  const pengirim = atur.namaPengirim || acara.penyelenggara || NAMA_KANWIL;
   const ganti = (s) => String(s || '').replace(/\{nama\}/g, rec.nama).replace(/\{acara\}/g, acara.judul).replace(/\{nomor\}/g, rec.nomor)
     .replace(/\{tautan\}/g, tautan).replace(/\{pengirim\}/g, pengirim);
-  const teks = ganti(atur.isi || ISI_EMAIL);
+  let teks = ganti(atur.isi || ISI_EMAIL);
+  // tautan cek keaslian selalu ikut, walaupun isi email diubah panitia
+  if (!teks.includes(tautan)) teks += '\n\nCek keaslian sertifikat: ' + tautan;
+  if (susulan) teks += '\n\nBerkas PDF sertifikat dapat diunduh melalui tautan di atas.';
   const subjek = ganti(atur.subjek || 'E-Sertifikat {acara}');
   const html = `<div style="background:#F4F1EA;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #E7E1D3">
@@ -155,7 +194,7 @@ function isiEmail(atur, acara, rec, asal) {
       <div style="color:#ffffff;font-size:16px;font-weight:bold;margin-top:6px;line-height:1.35">${esc(acara.judul)}</div>
     </div>
     <div style="padding:24px 26px;color:#1F2A44;font-size:15px;line-height:1.7">${esc(teks).replace(/\n/g, '<br>')}
-      <div style="text-align:center;margin:22px 0 6px"><a href="${tautan}" style="display:inline-block;background:#C9A13B;color:#1F2A44;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:10px">Cek Keaslian Sertifikat</a></div>
+      <div style="text-align:center;margin:22px 0 6px"><a href="${tautan}" style="display:inline-block;background:#C9A13B;color:#1F2A44;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:10px">${susulan ? 'Unduh dan Cek Keaslian Sertifikat' : 'Cek Keaslian Sertifikat'}</a></div>
     </div>
     <div style="border-top:1px solid #E7E1D3;padding:14px 26px;color:#6B7490;font-size:12px;text-align:center">${esc(pengirim)}</div>
   </div></div>`;
@@ -167,7 +206,7 @@ async function kirimLewatMailer(atur, data) {
   const r = await fetch(atur.mailerUrl, { method: 'POST', headers: { 'content-type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ kunci: atur.mailerKunci, ...data }) });
   let d = {};
   try { d = JSON.parse(await r.text()); } catch (e) { throw new Error('Layanan email tidak menjawab dengan benar. Periksa tautan Apps Script.'); }
-  if (!d.ok) throw new Error('Email gagal dikirim: ' + (d.pesan || 'tanpa keterangan'));
+  if (!d.ok) throw new Error(d.pesan === 'kunci tidak sesuai' ? 'Apps Script menolak karena kode pengaman berbeda. Buka Apps Script, jalankan fungsi aturUlang, lalu kirim uji lagi.' : 'Email gagal dikirim: ' + (d.pesan || 'tanpa keterangan'));
   return d;
 }
 
@@ -175,27 +214,82 @@ async function api(req, env, url) {
   await siapkanDb(env);
   const p = url.pathname.replace(/\/+$/, '').split('/').slice(2); // ['acara', id, ...]
   const m = req.method;
-  const admin = await pengelola(req);
+  const admin = await pengelola(req, env);
   const badan = async () => { try { return await req.json(); } catch (e) { return {}; } };
+
+  const simpanAtur = (k, v) => env.DB.prepare('INSERT INTO pengaturan (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v').bind(k, v);
+
+  // ---- masuk admin ----
+  if (p[0] === 'status-admin' && m === 'GET') {
+    const perluDibuat = !(await ambilSandi(env)) && !env.ADMIN_PASSWORD;
+    return json({ ok: true, perluDibuat, masuk: admin });
+  }
+  if (p[0] === 'masuk' && m === 'POST') {
+    const b = await badan();
+    const sandi = String(b.sandi || '');
+    if (!sandi) return salah('Kata sandi wajib diisi.');
+    if (!(await periksaSandi(env, sandi))) { await new Promise((r) => setTimeout(r, 600)); return salah('Kata sandi salah.', 401); }
+    return json({ ok: true, sesi: await buatSesi(env) });
+  }
+  if (p[0] === 'keluar' && m === 'POST') {
+    const t = String(req.headers.get('x-sesi') || '');
+    if (t) await env.DB.prepare('DELETE FROM sesi WHERE token = ?').bind(await sha('sesi:' + t)).run();
+    return json({ ok: true });
+  }
+  if (p[0] === 'sandi' && m === 'POST') {
+    const b = await badan();
+    const baru = String(b.baru || '');
+    if (baru.length < 8) return salah('Kata sandi baru paling sedikit 8 karakter.');
+    const belumAda = !(await ambilSandi(env)) && !env.ADMIN_PASSWORD;
+    if (!belumAda) {
+      if (!admin) return salah('Silakan masuk sebagai admin.', 401);
+      if (!(await periksaSandi(env, String(b.lama || '')))) return salah('Kata sandi lama salah.', 401);
+    }
+    await simpanAtur('sandiHash', await hashSandi(baru)).run();
+    await env.DB.prepare('DELETE FROM sesi').run();
+    return json({ ok: true, sesi: await buatSesi(env) });
+  }
+
+  // ---- kegiatan aktif (ditampilkan di halaman utama) ----
+  if (p[0] === 'aktif') {
+    if (m === 'GET') {
+      const atur = await ambilPengaturan(env);
+      let a = atur.acaraAktif ? await ambilAcara(env, atur.acaraAktif) : null;
+      if (!a) {
+        const r = await env.DB.prepare('SELECT id FROM acara ORDER BY dibuat DESC LIMIT 1').first();
+        a = r ? await ambilAcara(env, r.id) : null;
+      }
+      return json({ ok: true, acara: a });
+    }
+    if (m === 'PUT') {
+      if (!admin) return salah('Silakan masuk sebagai admin.', 401);
+      const b = await badan();
+      if (!(await ambilAcara(env, String(b.id || '')))) return salah('Kegiatan tidak ditemukan.', 404);
+      await simpanAtur('acaraAktif', String(b.id)).run();
+      return json({ ok: true });
+    }
+  }
 
   // ---- acara ----
   if (p[0] === 'acara') {
     if (!p[1] && m === 'GET') {
-      if (!admin) return salah('Kode pengelola tidak sesuai.', 401);
+      if (!admin) return salah('Silakan masuk sebagai admin.', 401);
       const { results } = await env.DB.prepare(
         `SELECT a.id, a.data, a.dibuat, (SELECT COUNT(*) FROM peserta p WHERE p.acara = a.id) AS jumlah
          FROM acara a ORDER BY a.dibuat DESC`).all();
-      return json({ ok: true, acara: results.map((r) => { const d = JSON.parse(r.data); return { id: r.id, judul: d.judul, tanggal: d.tanggal, tempat: d.tempat, buka: d.buka, desain: d.desain, dibuat: r.dibuat, jumlah: r.jumlah }; }) });
+      const atur = await ambilPengaturan(env);
+      const aktif = atur.acaraAktif || (results[0] && results[0].id);
+      return json({ ok: true, acara: results.map((r) => { const d = JSON.parse(r.data); return { id: r.id, judul: d.judul, tanggal: d.tanggal, tempat: d.tempat, buka: d.buka, desain: d.desain, dibuat: r.dibuat, jumlah: r.jumlah, aktif: r.id === aktif }; }) });
     }
     if (!p[1] && m === 'POST') {
-      if (!admin) return salah('Kode pengelola tidak sesuai.', 401);
+      if (!admin) return salah('Silakan masuk sebagai admin.', 401);
       const data = rapikanAcara(await badan());
       if (!data.judul || !data.tanggal) return salah('Nama kegiatan dan tanggal wajib diisi.');
       const now = new Date().toISOString();
       for (let i = 0; i < 5; i++) {
         const id = acak(6);
         const r = await env.DB.prepare('INSERT OR IGNORE INTO acara (id, data, dibuat, diubah) VALUES (?, ?, ?, ?)').bind(id, JSON.stringify(data), now, now).run();
-        if (r.meta.changes) return json({ ok: true, id });
+        if (r.meta.changes) { await simpanAtur('acaraAktif', id).run(); return json({ ok: true, id }); }
       }
       return salah('Gagal membuat acara.', 500);
     }
@@ -204,7 +298,7 @@ async function api(req, env, url) {
       return a ? json({ ok: true, acara: a }) : salah('Acara tidak ditemukan.', 404);
     }
     if (p[1] && m === 'PUT') {
-      if (!admin) return salah('Kode pengelola tidak sesuai.', 401);
+      if (!admin) return salah('Silakan masuk sebagai admin.', 401);
       const lama = await ambilAcara(env, p[1]);
       if (!lama) return salah('Acara tidak ditemukan.', 404);
       const data = rapikanAcara(await badan(), lama);
@@ -225,7 +319,7 @@ async function api(req, env, url) {
       return new Response(bin, { headers: { 'content-type': tipe, 'cache-control': 'public, max-age=31536000, immutable' } });
     }
     if (m === 'PUT') {
-      if (!admin) return salah('Kode pengelola tidak sesuai.', 401);
+      if (!admin) return salah('Silakan masuk sebagai admin.', 401);
       const lama = await ambilAcara(env, p[1]);
       if (!lama) return salah('Acara tidak ditemukan.', 404);
       const b = await badan();
@@ -239,7 +333,7 @@ async function api(req, env, url) {
 
   // ---- pengaturan email (pengelola) ----
   if (p[0] === 'pengaturan') {
-    if (!admin) return salah('Kode pengelola tidak sesuai.', 401);
+    if (!admin) return salah('Silakan masuk sebagai admin.', 401);
     const atur = await ambilPengaturan(env);
     if (!p[1] && m === 'GET') {
       return json({ ok: true, pengaturan: { mailerUrl: atur.mailerUrl || '', namaPengirim: atur.namaPengirim || '', subjek: atur.subjek || 'E-Sertifikat {acara}', isi: atur.isi || ISI_EMAIL, siap: !!(atur.mailerUrl && atur.mailerKunci) } });
@@ -249,7 +343,9 @@ async function api(req, env, url) {
       const mailerUrl = bersih(b.mailerUrl, 300);
       if (mailerUrl && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(mailerUrl)) return salah('Tautan harus berupa alamat Aplikasi web Apps Script yang berakhiran /exec.');
       const baru = { mailerUrl, namaPengirim: bersih(b.namaPengirim, 100), subjek: bersih(b.subjek, 150), isi: bersihTeks(b.isi, 3000) };
-      if (mailerUrl && (!atur.mailerKunci || mailerUrl !== atur.mailerUrl)) baru.mailerKunci = acak(32);
+      // kunci dibuat sekali dan tidak pernah diganti, agar Apps Script lama maupun baru tetap menerima
+      if (mailerUrl && !atur.mailerKunci) baru.mailerKunci = acak(32);
+      baru.asal = url.origin;
       await env.DB.batch(Object.entries(baru).map(([k, v]) => env.DB.prepare('INSERT INTO pengaturan (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v').bind(k, v)));
       return json({ ok: true });
     }
@@ -308,12 +404,13 @@ async function api(req, env, url) {
     const { rec, ulang } = await terbitkan(env, acara, { pk, nama, email, instansi, sumber: 'hadir' });
     if (rec.status === 'dicabut') return salah('Sertifikat untuk email ini telah dibatalkan oleh panitia.', 403);
     const atur = await ambilPengaturan(env);
+    if (atur.asal !== url.origin) await simpanAtur('asal', url.origin).run();
     return json({ ok: true, ulang, emailAktif: !!(atur.mailerUrl && atur.mailerKunci) && acara.kirimEmail !== false, peserta: untukPeserta(rec) });
   }
 
   // ---- kelola peserta (pengelola) ----
   if (p[0] === 'peserta' && p[1]) {
-    if (!admin) return salah('Kode pengelola tidak sesuai.', 401);
+    if (!admin) return salah('Silakan masuk sebagai admin.', 401);
     const acara = await ambilAcara(env, p[1]);
     if (!acara) return salah('Acara tidak ditemukan.', 404);
     if (!p[2] && m === 'GET') {
@@ -352,6 +449,7 @@ async function api(req, env, url) {
     return json({
       ok: true,
       status: rec.status === 'dicabut' ? 'dicabut' : 'sah',
+      acaraId: rec.acara,
       sertifikat: { nama: rec.nama, nomor: rec.nomor, peran: rec.peran, instansi: rec.instansi, kode: rec.kode, terbit: rec.waktu },
       acara: acara ? { judul: acara.judul, tema: acara.tema, tanggal: acara.tanggal, tempat: acara.tempat, penyelenggara: acara.penyelenggara } : null,
     });
@@ -360,13 +458,45 @@ async function api(req, env, url) {
   return salah('Alamat tidak dikenal.', 404);
 }
 
+// ---------- pengiriman susulan: email yang belum terkirim dari halaman peserta ----------
+async function emailSusulan(env) {
+  await siapkanDb(env);
+  const atur = await ambilPengaturan(env);
+  if (!atur.mailerUrl || !atur.mailerKunci || !atur.asal) return;
+  const kini = Date.now(), iso = (ms) => new Date(kini - ms).toISOString();
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM peserta WHERE sumber = 'hadir' AND status = 'sah' AND email <> '' AND waktu > ?
+       AND ((email_status IS NULL AND waktu < ?) OR (email_status = 'dikirim' AND email_waktu < ?))
+     ORDER BY waktu LIMIT 15`).bind(iso(864e5), iso(75e3), iso(18e4)).all();
+  const daftarAcara = {};
+  for (const rec of results) {
+    const acara = daftarAcara[rec.acara] || (daftarAcara[rec.acara] = await ambilAcara(env, rec.acara));
+    if (!acara || acara.kirimEmail === false) continue;
+    const klaim = await env.DB.prepare(
+      `UPDATE peserta SET email_status = 'dikirim', email_waktu = ? WHERE acara = ? AND pk = ?
+         AND (email_status IS NULL OR (email_status = 'dikirim' AND email_waktu < ?))`).bind(new Date().toISOString(), rec.acara, rec.pk, iso(18e4)).run();
+    if (!klaim.meta.changes) continue;
+    try {
+      const e = isiEmail(atur, acara, rec, atur.asal, true);
+      await kirimLewatMailer(atur, { to: rec.email, subject: e.subjek, html: e.html, text: e.teks, nama: e.pengirim });
+      await env.DB.prepare("UPDATE peserta SET email_status = 'terkirim', email_waktu = ? WHERE acara = ? AND pk = ?").bind(new Date().toISOString(), rec.acara, rec.pk).run();
+    } catch (err) {
+      await env.DB.prepare("UPDATE peserta SET email_status = 'gagal', email_waktu = ? WHERE acara = ? AND pk = ?").bind(new Date().toISOString(), rec.acara, rec.pk).run();
+    }
+  }
+}
+
 export default {
+  async scheduled(ev, env, ctx) {
+    ctx.waitUntil(emailSusulan(env));
+  },
   async fetch(req, env) {
     const url = new URL(req.url);
     try {
       if (url.pathname.startsWith('/api/')) return await api(req, env, url);
       // halaman dengan alamat dinamis memakai berkas HTML yang sama
-      if (/^\/hadir\/[A-Za-z0-9]+\/?$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/hadir', url), req));
+      if (/^\/hadir\/[A-Za-z0-9]+\/?$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/', url), req));
+      if (/^\/kelola\/?$/.test(url.pathname)) return Response.redirect(new URL('/admin', url), 302);
       if (/^\/v\/[A-Za-z0-9-]+\/?$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/v', url), req));
       return env.ASSETS.fetch(req);
     } catch (e) {
