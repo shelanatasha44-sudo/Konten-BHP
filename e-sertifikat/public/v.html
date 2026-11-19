@@ -12,11 +12,11 @@
   .dicabut .lencana svg{stroke:#9A7A2A} .dicabut .status{color:#9A7A2A}
   .netral .lencana svg{stroke:var(--navy)} .netral .status{color:var(--navy)}
   .lencana circle.tipis{stroke-width:1;opacity:.55}
-  .penerbit{margin-top:16px;text-align:center;font-size:13px;color:var(--redup)}
+  .penerbit{margin-top:12px;text-align:center;font-size:12.5px;color:var(--redup)}
   .penerbit b{display:block;color:var(--navy);font-size:14px;margin-top:2px}
 </style>
 </head>
-<body>
+<body class="satu-layar">
 <header class="kop"><div class="isi">
   <a href="/"><img src="/img/logo.png" alt="Logo Kementerian Hukum"></a>
   <div class="nama"><small>KEMENTERIAN HUKUM REPUBLIK INDONESIA</small><b>Kantor Wilayah Sumatera Utara</b></div>
@@ -24,9 +24,9 @@
 </div></header>
 
 <main><div class="wadah sempit">
-  <div style="text-align:center;margin-bottom:16px"><div class="label" style="color:#9A7A2A">Verifikasi Sertifikat</div></div>
+  <div class="hanya-lebar" style="text-align:center;margin-bottom:16px"><div class="label" style="color:#9A7A2A">Verifikasi Sertifikat</div></div>
   <div class="kartu" id="hasil"><div style="text-align:center;padding:30px 0;color:var(--redup)"><span class="memuat"></span></div></div>
-  <form class="kartu" id="formCek">
+  <form class="kartu hanya-lebar" id="formCek">
     <h2 style="font-size:16px">Periksa Kode Lain</h2>
     <p class="ket" style="margin:4px 0 14px">Kode verifikasi tertera di bawah kode QR pada sertifikat.</p>
     <div class="cari"><input type="text" id="kode" placeholder="Contoh: K7Q2M-X8FJ3" autocomplete="off" required><button class="tombol" type="submit">Periksa</button></div>
@@ -46,7 +46,12 @@ const ikon = {
 };
 const lencana = (j) => `<div class="lencana"><svg viewBox="0 0 88 88"><circle class="isi" cx="44" cy="44" r="40"/><circle class="tipis" cx="44" cy="44" r="33"/>${ikon[j]}</svg></div>`;
 
-function tampil(jenis, isi) { el.className = 'kartu ' + jenis; el.innerHTML = isi; }
+function tampil(jenis, isi) {
+  el.className = 'kartu ' + jenis;
+  el.innerHTML = isi + '<p class="hanya-hp" style="text-align:center;margin-top:12px"><a href="#" id="kodeLain" class="kecil" style="font-weight:600">Periksa kode lain</a></p>';
+  const l = document.getElementById('kodeLain');
+  if (l) l.addEventListener('click', (e) => { e.preventDefault(); const f = document.getElementById('formCek'); f.classList.remove('hanya-lebar'); f.scrollIntoView({ behavior: 'smooth' }); document.getElementById('kode').focus(); });
+}
 
 async function periksa(kode) {
   if (!kode) {
@@ -60,16 +65,16 @@ async function periksa(kode) {
       return;
     }
     const s = d.sertifikat, a = d.acara || {};
+    const barisLebar = (l, v) => (v ? `<div class="hanya-lebar"><span>${l}</span><b>${Umum.esc(v)}</b></div>` : '');
     const baris = (l, v) => (v ? `<div><span>${l}</span><b>${Umum.esc(v).replace(/\//g, '/&#8203;')}</b></div>` : '');
     const sah = d.status === 'sah';
     tampil(sah ? 'sah' : 'dicabut',
       lencana(sah ? 'sah' : 'dicabut') +
       `<div class="status">${sah ? 'SERTIFIKAT SAH' : 'SERTIFIKAT DIBATALKAN'}</div>` +
-      `<p class="ket" style="text-align:center;margin-top:8px">${sah ? 'Sertifikat ini tercatat resmi dalam sistem e-sertifikat.' : 'Sertifikat ini pernah diterbitkan, tetapi telah dibatalkan oleh penyelenggara.'}</p>` +
+      `<p class="ket" style="text-align:center;margin-top:6px;font-size:13.5px">${sah ? 'Tercatat resmi dalam sistem e-sertifikat.' : 'Pernah diterbitkan, tetapi telah dibatalkan oleh penyelenggara.'}</p>` +
       '<div class="pemisah"></div>' +
       `<div style="text-align:center" class="kecil">Diberikan kepada</div><div class="nama-besar" style="margin-top:4px">${Umum.esc(s.nama)}</div>` +
-      '<div class="rincian">' + baris('Nomor sertifikat', s.nomor) + baris('Sebagai', s.peran) + baris('Kegiatan', a.judul) + baris('Tanggal kegiatan', a.tanggal) + baris('Tempat', a.tempat) + baris('Diterbitkan', Umum.waktu(s.terbit)) + baris('Kode verifikasi', s.kode.replace(/^(.{5})(.{5})$/, '$1-$2')) + '</div>' +
-      (a.penyelenggara ? `<div class="penerbit">Penyelenggara<b>${Umum.esc(a.penyelenggara)}</b></div>` : ''));
+      '<div class="rincian">' + baris('Nomor sertifikat', s.nomor) + baris('Sebagai', s.peran) + baris('Kegiatan', a.judul) + baris('Tanggal kegiatan', a.tanggal) + baris('Tempat', a.tempat) + barisLebar('Diterbitkan', Umum.waktu(s.terbit)) + baris('Kode verifikasi', s.kode.replace(/^(.{5})(.{5})$/, '$1-$2')) + baris('Penyelenggara', a.penyelenggara) + '</div>');
   } catch (e) {
     tampil('tidak', lencana('tidak') + `<div class="status">GAGAL MEMERIKSA</div><p class="ket" style="text-align:center;margin-top:8px">${Umum.esc(e.message)}</p>`);
   }

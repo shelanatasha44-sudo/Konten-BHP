@@ -2,6 +2,11 @@
 (function () {
   const W = 1122, H = 794, CX = W / 2;
   const TEMA = {
+    elegan: {
+      model: 'panel', latar: '/desain/elegan.jpg',
+      judul: '#1F2A5A', teks: '#1F2A44', lembut: '#4A5578', redup: '#6B7490', acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#9A7A2A',
+      aksen: '#C9A13B', bingkaiQr: '#D4AF5A', panel1: '#C9D1EC', panel2: '#E3C77A',
+    },
     gading: {
       latar: '/desain/gading.jpg',
       foil: ['#E9D3A2', '#C9A465', '#A8823F', '#CFAE70', '#9A7535'],
@@ -78,6 +83,18 @@
     if (b) baris.push(b);
     return baris;
   }
+  // membagi teks menjadi 2 baris yang panjangnya seimbang (bila perlu)
+  function bungkusSeimbang(ctx, teks, maks) {
+    if (ctx.measureText(teks).width <= maks) return [teks];
+    const k = teks.split(' ');
+    let terbaik = null, nilai = Infinity;
+    for (let i = 1; i < k.length; i++) {
+      const a = k.slice(0, i).join(' '), b = k.slice(i).join(' ');
+      const w = Math.max(ctx.measureText(a).width, ctx.measureText(b).width);
+      if (w < nilai) { nilai = w; terbaik = [a, b]; }
+    }
+    return terbaik && nilai <= maks ? terbaik : bungkus(ctx, teks, maks);
+  }
   function belahKetupat(ctx, x, y, r, warna) {
     ctx.save(); ctx.fillStyle = warna; ctx.beginPath();
     ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.fill(); ctx.restore();
@@ -98,82 +115,45 @@
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(x + c * s, y + r * s, s + 0.15, s + 0.15);
   }
 
-  // ---------- sertifikat ----------
-  async function gambar(kanvas, acara, peserta, opsi) {
-    opsi = opsi || {};
-    const S = opsi.skala || 2.5;
-    const t = TEMA[acara.desain] || TEMA.gading;
-    await siapkanHuruf();
-    const [latar, logo] = await Promise.all([muatGambar(t.latar), muatGambar('/img/logo.png')]);
-    const ttd = await Promise.all((acara.penandatangan || []).map((p) => (p.ttd ? muatGambar(p.ttd).catch(() => null) : null)));
-
-    kanvas.width = Math.round(W * S); kanvas.height = Math.round(H * S);
-    const ctx = kanvas.getContext('2d');
-    ctx.setTransform(S, 0, 0, S, 0, 0);
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(latar, 0, 0, W, H);
-
-    // kop
-    ctx.drawImage(logo, CX - 29, 44, 58, 65.4);
-    tulis(ctx, (acara.kop1 || '').toUpperCase(), CX, 132, { keluarga: 'Cinzel', tebal: 600, ukuran: 12, jarak: 2.4, warna: t.kop1, maks: 760 });
-    tulis(ctx, (acara.kop2 || '').toUpperCase(), CX, 152, { keluarga: 'Cinzel', tebal: 700, ukuran: 15, jarak: 1.5, warna: t.kop2, maks: 760 });
-    pemisah(ctx, 169, 300, t.aksen);
-
-    // judul dan nomor
-    tulis(ctx, (acara.judulSertifikat || 'SERTIFIKAT').toUpperCase(), CX, 226, { keluarga: 'Cinzel', tebal: 700, ukuran: 50, jarak: 12, warna: t.judul || t.teks, foil: t.foil, maks: 700 });
-    if (peserta.nomor) tulis(ctx, 'Nomor: ' + peserta.nomor, CX, 252, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 0.6, warna: t.nomor, maks: 600 });
-
-    // penerima
-    tulis(ctx, acara.pembuka || 'diberikan kepada', CX, 294, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 500, ukuran: 21, warna: t.lembut, maks: 700 });
-    tulis(ctx, peserta.nama || 'Nama Peserta', CX, 350, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, maks: 880, min: 26 });
-    pemisah(ctx, 372, 520, t.aksen);
-
-    // kalimat dengan peran
+  // ---------- bagian bersama ----------
+  function kalimatPeran(ctx, acara, peserta, t, x, y, rata) {
     const peran = (peserta.peran || acara.peran || 'Peserta').toUpperCase();
-    const [awal, akhir] = (acara.kalimat || 'atas partisipasinya sebagai {peran} dalam').split('{peran}').concat('');
-    const fA = 'italic 500 19.5px "Cormorant Garamond"', fP = '700 14.5px Cinzel';
+    const pola = acara.kalimat || 'atas partisipasinya sebagai {peran} dalam';
+    const [awal, akhir] = pola.split('{peran}').concat('');
+    const ada = /\{peran\}/.test(pola);
+    const fA = 'italic 500 19.5px "Cormorant Garamond"';
     ctx.font = fA; const wA = ctx.measureText(awal).width, wC = ctx.measureText(akhir || '').width;
-    ctx.font = fP; const wP = lebar(ctx, peran, 1.2);
-    const adaPeran = /\{peran\}/.test(acara.kalimat || '{peran}');
-    let x = CX - (wA + (adaPeran ? wP : 0) + wC) / 2;
-    ctx.font = fA; ctx.fillStyle = t.lembut; ctx.fillText(awal, x, 404); x += wA;
-    if (adaPeran) { ctx.font = fP; tulis(ctx, peran, x, 404, { keluarga: 'Cinzel', tebal: 700, ukuran: 14.5, jarak: 1.2, warna: t.peran, rata: 'kiri' }); x += wP; }
-    ctx.font = fA; ctx.fillStyle = t.lembut; ctx.fillText(akhir || '', x, 404);
-
-    // nama acara (paling banyak 2 baris)
+    ctx.font = '700 14.5px Cinzel'; const wP = lebar(ctx, peran, 1.2);
+    let xi = rata === 'kiri' ? x : x - (wA + (ada ? wP : 0) + wC) / 2;
+    ctx.font = fA; ctx.fillStyle = t.lembut; ctx.fillText(awal, xi, y); xi += wA;
+    if (ada) { tulis(ctx, peran, xi, y, { keluarga: 'Cinzel', tebal: 700, ukuran: 14.5, jarak: 1.2, warna: t.peran, rata: 'kiri' }); xi += wP; }
+    ctx.font = fA; ctx.fillStyle = t.lembut; ctx.fillText(akhir || '', xi, y);
+  }
+  function judulAcara(ctx, acara, t, x, y, maks, rata) {
     let uk = 22, baris;
-    for (; uk >= 15; uk -= 1) { ctx.font = `700 ${uk}px Cinzel`; baris = bungkus(ctx, (acara.judul || 'Nama Acara').toUpperCase(), 900); if (baris.length <= 2) break; }
-    let y = 440;
-    baris.slice(0, 2).forEach((b) => { tulis(ctx, b, CX, y, { keluarga: 'Cinzel', tebal: 700, ukuran: uk, jarak: 0.8, warna: t.acara, maks: 940 }); y += uk + 8; });
-    y -= uk + 8;
-    if (acara.tema) { y += 27; tulis(ctx, acara.tema, CX, y, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 18, warna: t.lembut, maks: 900 }); }
+    for (; uk >= 15; uk -= 1) { ctx.font = `700 ${uk}px Cinzel`; baris = bungkusSeimbang(ctx, (acara.judul || 'Nama Acara').toUpperCase(), maks); if (baris.length <= 2) break; }
+    baris.slice(0, 2).forEach((b, i) => tulis(ctx, b, x, y + i * (uk + 8), { keluarga: 'Cinzel', tebal: 700, ukuran: uk, jarak: 0.8, warna: t.acara, maks: maks + 40, rata }));
+    y += (Math.min(baris.length, 2) - 1) * (uk + 8);
+    if (acara.tema) { y += 27; tulis(ctx, acara.tema, x, y, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 18, warna: t.lembut, maks, rata }); }
     const info = [acara.tanggal, acara.tempat].filter(Boolean).map((s) => s.toUpperCase());
     if (info.length) {
       y += 26;
       ctx.font = '500 11.5px Inter';
       const lb = info.map((s) => lebar(ctx, s, 1.3)), sela = 26;
-      let xi = CX - (lb.reduce((a, b) => a + b, 0) + sela * (info.length - 1)) / 2;
+      let xi = rata === 'kiri' ? x : x - (lb.reduce((a, b) => a + b, 0) + sela * (info.length - 1)) / 2;
       info.forEach((s, i) => {
         tulis(ctx, s, xi, y, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 1.3, warna: t.redup, rata: 'kiri' });
         xi += lb[i];
         if (i < info.length - 1) { belahKetupat(ctx, xi + sela / 2, y - 4, 3.2, t.aksen); xi += sela; }
       });
     }
-
-    // tanda tangan dan QR
-    const ttdList = (acara.penandatangan || []).slice(0, 2);
-    const pakaiQr = acara.tampilQr !== false && (peserta.kode || opsi.contoh);
-    let posTtd, posQr;
-    if (ttdList.length >= 2) { posTtd = [282, 840]; posQr = CX; }
-    else if (ttdList.length === 1) { posTtd = pakaiQr ? [800] : [CX]; posQr = 322; }
-    else { posTtd = []; posQr = CX; }
-    ttdList.forEach((p, i) => {
-      const cx = posTtd[i];
-      const terakhir = i === ttdList.length - 1;
+  }
+  function tandaTangan(ctx, acara, t, posisi, ttd) {
+    (acara.penandatangan || []).slice(0, 2).forEach((p, i) => {
+      const cx = posisi[i], terakhir = i === Math.min(2, acara.penandatangan.length) - 1;
       if (terakhir && acara.tempatTanggal) tulis(ctx, acara.tempatTanggal, cx, 556, { keluarga: 'Inter', tebal: 500, ukuran: 12, warna: t.lembut, maks: 270 });
       ctx.font = '600 12.5px Inter';
-      const bj = bungkus(ctx, p.jabatan || '', 270).slice(0, 2);
-      bj.forEach((b, k) => tulis(ctx, b, cx, 576 + k * 16, { keluarga: 'Inter', tebal: 600, ukuran: 12.5, warna: t.teks, maks: 280 }));
+      bungkusSeimbang(ctx, p.jabatan || '', 270).slice(0, 2).forEach((b, k) => tulis(ctx, b, cx, 576 + k * 16, { keluarga: 'Inter', tebal: 600, ukuran: 12.5, warna: t.teks, maks: 280 }));
       if (ttd[i]) {
         const im = ttd[i], mh = 66, mw = 200, r = Math.min(mw / im.width, mh / im.height);
         ctx.drawImage(im, cx - im.width * r / 2, 602 + (mh - im.height * r) / 2, im.width * r, im.height * r);
@@ -182,14 +162,82 @@
       ctx.strokeStyle = t.teks; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(cx - n.lebar / 2, 694); ctx.lineTo(cx + n.lebar / 2, 694); ctx.stroke();
       if (p.nip) tulis(ctx, 'NIP. ' + p.nip, cx, 709, { keluarga: 'Inter', tebal: 400, ukuran: 11, warna: t.redup, maks: 280 });
     });
-    if (pakaiQr) {
-      const sisi = 92, qx = posQr - sisi / 2, qy = 590;
-      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(qx, qy, sisi, sisi);
-      ctx.strokeStyle = t.bingkaiQr; ctx.lineWidth = 1; ctx.strokeRect(qx, qy, sisi, sisi);
-      gambarQr(ctx, opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH')), qx + 6, qy + 6, sisi - 12, '#1B1B1F');
-      tulis(ctx, 'Pindai untuk cek keaslian', posQr, 698, { keluarga: 'Inter', tebal: 500, ukuran: 9.5, warna: t.redup });
-      tulis(ctx, peserta.kode ? kodeTampil(peserta.kode) : 'KODE-CONTOH', posQr, 712, { keluarga: 'Inter', tebal: 600, ukuran: 10, jarak: 1, warna: t.nomor });
-    }
+  }
+  function kotakQr(ctx, peserta, opsi, t, cx, qy, sisi, warnaLabel, warnaKode) {
+    const qx = cx - sisi / 2;
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(qx, qy, sisi, sisi);
+    ctx.strokeStyle = t.bingkaiQr; ctx.lineWidth = 1; ctx.strokeRect(qx, qy, sisi, sisi);
+    gambarQr(ctx, opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH')), qx + 6, qy + 6, sisi - 12, '#1B1B1F');
+    tulis(ctx, 'Pindai untuk cek keaslian', cx, qy + sisi + 16, { keluarga: 'Inter', tebal: 500, ukuran: 9.5, warna: warnaLabel || t.redup });
+    tulis(ctx, peserta.kode ? kodeTampil(peserta.kode) : 'KODE-CONTOH', cx, qy + sisi + 30, { keluarga: 'Inter', tebal: 600, ukuran: 10, jarak: 1, warna: warnaKode || t.nomor });
+    return { x: qx, y: qy, s: sisi };
+  }
+
+  // ---------- model tengah (Gading Emas, Biru Resmi) ----------
+  function modelTengah(ctx, acara, peserta, opsi, t, logo, ttd) {
+    ctx.drawImage(logo, CX - 29, 44, 58, 65.4);
+    tulis(ctx, (acara.kop1 || '').toUpperCase(), CX, 132, { keluarga: 'Cinzel', tebal: 600, ukuran: 12, jarak: 2.4, warna: t.kop1, maks: 760 });
+    tulis(ctx, (acara.kop2 || '').toUpperCase(), CX, 152, { keluarga: 'Cinzel', tebal: 700, ukuran: 15, jarak: 1.5, warna: t.kop2, maks: 760 });
+    pemisah(ctx, 169, 300, t.aksen);
+    tulis(ctx, (acara.judulSertifikat || 'SERTIFIKAT').toUpperCase(), CX, 226, { keluarga: 'Cinzel', tebal: 700, ukuran: 50, jarak: 12, warna: t.judul || t.teks, foil: t.foil, maks: 700 });
+    if (peserta.nomor) tulis(ctx, 'Nomor: ' + peserta.nomor, CX, 252, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 0.6, warna: t.nomor, maks: 600 });
+    tulis(ctx, acara.pembuka || 'diberikan kepada', CX, 294, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 500, ukuran: 21, warna: t.lembut, maks: 700 });
+    tulis(ctx, peserta.nama || 'Nama Peserta', CX, 350, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, maks: 880, min: 26 });
+    pemisah(ctx, 372, 520, t.aksen);
+    kalimatPeran(ctx, acara, peserta, t, CX, 404, 'tengah');
+    judulAcara(ctx, acara, t, CX, 440, 900, 'tengah');
+    const n = Math.min(2, (acara.penandatangan || []).length);
+    const pakaiQr = acara.tampilQr !== false && (peserta.kode || opsi.contoh);
+    const posTtd = n >= 2 ? [282, 840] : n === 1 ? [pakaiQr ? 800 : CX] : [];
+    tandaTangan(ctx, acara, t, posTtd, ttd);
+    return pakaiQr ? kotakQr(ctx, peserta, opsi, t, n === 1 ? 322 : CX, 590, 92) : null;
+  }
+
+  // ---------- model panel (Elegan Navy) ----------
+  function modelPanel(ctx, acara, peserta, opsi, t, logo, ttd) {
+    const PX = 165, X0 = 396, MAKS = 650;
+    ctx.drawImage(logo, PX - 35, 62, 70, 79);
+    let y = 176;
+    ctx.font = '600 11.5px Cinzel';
+    bungkusSeimbang(ctx, (acara.kop1 || '').toUpperCase(), 230).slice(0, 3).forEach((b) => { tulis(ctx, b, PX, y, { keluarga: 'Cinzel', tebal: 600, ukuran: 11.5, jarak: 1.8, warna: t.panel1, maks: 250 }); y += 17; });
+    ctx.strokeStyle = t.panel2; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(PX - 34, y - 2); ctx.lineTo(PX - 7, y - 2); ctx.moveTo(PX + 7, y - 2); ctx.lineTo(PX + 34, y - 2); ctx.stroke();
+    belahKetupat(ctx, PX, y - 2, 3.5, t.panel2);
+    y += 24;
+    ctx.font = '700 15px Cinzel';
+    bungkusSeimbang(ctx, (acara.kop2 || '').toUpperCase(), 240).slice(0, 3).forEach((b) => { tulis(ctx, b, PX, y, { keluarga: 'Cinzel', tebal: 700, ukuran: 15, jarak: 1.4, warna: t.panel2, maks: 255 }); y += 21; });
+
+    tulis(ctx, (acara.judulSertifikat || 'SERTIFIKAT').toUpperCase(), X0 - 3, 128, { keluarga: 'Cinzel', tebal: 700, ukuran: 54, jarak: 10, warna: t.judul, rata: 'kiri', maks: MAKS });
+    const g = ctx.createLinearGradient(X0, 0, X0 + 150, 0); g.addColorStop(0, t.aksen); g.addColorStop(1, t.aksen + '00');
+    ctx.fillStyle = g; ctx.fillRect(X0, 146, 150, 2);
+    belahKetupat(ctx, X0, 147, 4, t.aksen);
+    if (peserta.nomor) tulis(ctx, 'Nomor: ' + peserta.nomor, X0, 174, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 0.6, warna: t.nomor, rata: 'kiri', maks: MAKS });
+    tulis(ctx, acara.pembuka || 'diberikan kepada', X0, 232, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 500, ukuran: 21, warna: t.lembut, rata: 'kiri', maks: MAKS });
+    tulis(ctx, peserta.nama || 'Nama Peserta', X0, 292, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, rata: 'kiri', maks: MAKS, min: 26 });
+    const g2 = ctx.createLinearGradient(X0, 0, X0 + MAKS, 0); g2.addColorStop(0, t.aksen); g2.addColorStop(0.7, t.aksen + '66'); g2.addColorStop(1, t.aksen + '00');
+    ctx.fillStyle = g2; ctx.fillRect(X0, 312, MAKS, 1.2);
+    kalimatPeran(ctx, acara, peserta, t, X0, 350, 'kiri');
+    judulAcara(ctx, acara, t, X0, 388, MAKS, 'kiri');
+    const n = Math.min(2, (acara.penandatangan || []).length);
+    tandaTangan(ctx, acara, t, n >= 2 ? [560, 905] : [905], ttd);
+    const pakaiQr = acara.tampilQr !== false && (peserta.kode || opsi.contoh);
+    return pakaiQr ? kotakQr(ctx, peserta, opsi, t, PX, 586, 100, t.panel1, t.panel2) : null;
+  }
+
+  // ---------- sertifikat ----------
+  async function gambar(kanvas, acara, peserta, opsi) {
+    opsi = opsi || {};
+    const S = opsi.skala || 2.5;
+    const t = TEMA[acara.desain] || TEMA.elegan;
+    await siapkanHuruf();
+    const [latar, logo] = await Promise.all([muatGambar(t.latar), muatGambar('/img/logo.png')]);
+    const ttd = await Promise.all((acara.penandatangan || []).map((p) => (p.ttd ? muatGambar(p.ttd).catch(() => null) : null)));
+    kanvas.width = Math.round(W * S); kanvas.height = Math.round(H * S);
+    const ctx = kanvas.getContext('2d');
+    ctx.setTransform(S, 0, 0, S, 0, 0);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(latar, 0, 0, W, H);
+    const qr = (t.model === 'panel' ? modelPanel : modelTengah)(ctx, acara, peserta, opsi, t, logo, ttd);
+    kanvas._qr = qr;
     return kanvas;
   }
 
@@ -202,11 +250,8 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     doc.addImage(kanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
-    if (acara.tampilQr !== false && peserta.kode) {
-      const n = (acara.penandatangan || []).length;
-      const pusat = n === 1 ? 322 : CX;
-      doc.link((pusat - 46) * 297 / W, 590 * 210 / H, 92 * 297 / W, 92 * 210 / H, { url: tautan });
-    }
+    const q = kanvas._qr;
+    if (q && peserta.kode) doc.link(q.x * 297 / W, q.y * 210 / H, q.s * 297 / W, q.s * 210 / H, { url: tautan });
     doc.setProperties({ title: 'Sertifikat ' + (peserta.nama || ''), subject: acara.judul || '', creator: acara.penyelenggara || '' });
     return doc;
   }

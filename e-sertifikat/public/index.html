@@ -8,7 +8,7 @@
 <link rel="icon" href="/img/logo.png">
 <link rel="stylesheet" href="/css/gaya.css">
 </head>
-<body>
+<body class="satu-layar">
 <header class="kop"><div class="isi">
   <a href="/"><img src="/img/logo.png" alt="Logo Kementerian Hukum"></a>
   <div class="nama"><small>KEMENTERIAN HUKUM REPUBLIK INDONESIA</small><b>Kantor Wilayah Sumatera Utara</b></div>
@@ -19,13 +19,15 @@
   <section class="pita"><div class="isi">
     <div class="label">Layanan E-Sertifikat</div>
     <h1>Sertifikat Elektronik <em>Kegiatan</em></h1>
-    <p>Sertifikat kegiatan diterbitkan secara elektronik dan dapat diunduh langsung setelah mengisi daftar hadir. Setiap sertifikat memuat kode QR untuk memastikan keasliannya.</p>
+    <p class="hanya-lebar">Sertifikat kegiatan diterbitkan secara elektronik dan dapat diunduh langsung setelah mengisi daftar hadir. Setiap sertifikat memuat kode QR untuk memastikan keasliannya.</p>
+    <p class="hanya-hp">Unduh sertifikat setelah mengisi daftar hadir, lalu cek keasliannya lewat kode QR.</p>
   </div></section>
 
   <div class="wadah sempit angkat">
     <form class="kartu" id="formCek">
       <h2>Cek Keaslian Sertifikat</h2>
-      <p class="ket" style="margin:6px 0 16px">Masukkan kode verifikasi yang tertera di bawah kode QR pada sertifikat.</p>
+      <p class="ket hanya-lebar" style="margin:6px 0 14px">Ketik kode verifikasi di bawah kode QR pada sertifikat.</p>
+      <div class="hanya-hp" style="height:12px"></div>
       <div class="cari">
         <input type="text" id="kode" placeholder="Contoh: K7Q2M-X8FJ3" autocomplete="off" required>
         <button class="tombol" type="submit">Periksa</button>
@@ -33,13 +35,14 @@
     </form>
   </div>
 
-  <div class="wadah" style="padding-top:8px">
+  <div class="wadah" style="padding-top:4px">
     <div style="text-align:center"><div class="label" style="color:#9A7A2A">Cara Memperoleh Sertifikat</div></div>
     <div class="langkah">
       <div class="kartu"><div class="no">1</div><h4>Isi Daftar Hadir</h4><p>Buka tautan atau pindai kode QR daftar hadir yang dibagikan panitia saat kegiatan berlangsung.</p></div>
       <div class="kartu"><div class="no">2</div><h4>Unduh Sertifikat</h4><p>Sertifikat PDF langsung tersedia untuk diunduh setelah daftar hadir terkirim.</p></div>
       <div class="kartu"><div class="no">3</div><h4>Cek Keasliannya</h4><p>Pindai kode QR pada sertifikat untuk melihat bahwa sertifikat tercatat resmi.</p></div>
     </div>
+    <p class="hanya-hp kecil" style="text-align:center;margin-top:14px"><a href="/kelola">Masuk pengelola</a></p>
   </div>
 </main>
 

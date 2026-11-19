@@ -6,7 +6,7 @@ const SIDIK_PENGELOLA = '125db3503526cc34d21bdf46f2722de5f1759a32ebedc4d33013080
 
 const HURUF = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const BAWAAN = {
-  desain: 'gading',
+  desain: 'elegan',
   kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA',
   kop2: 'KANTOR WILAYAH SUMATERA UTARA',
   judulSertifikat: 'SERTIFIKAT',
@@ -58,7 +58,7 @@ function rapikanAcara(masuk, lama = {}) {
     tanggal: bersih(m.tanggal, 80),
     tempat: bersih(m.tempat, 120),
     penyelenggara: bersih(m.penyelenggara, 120),
-    desain: ['gading', 'biru'].includes(m.desain) ? m.desain : 'gading',
+    desain: ['elegan', 'gading', 'biru'].includes(m.desain) ? m.desain : 'elegan',
     kop1: bersih(m.kop1, 80),
     kop2: bersih(m.kop2, 80),
     judulSertifikat: bersih(m.judulSertifikat, 30) || 'SERTIFIKAT',
@@ -106,7 +106,20 @@ async function terbitkan(env, acara, d) {
   return { rec, ulang: false };
 }
 
+// Tabel database dibuat otomatis saat pertama kali dipakai.
+const SKEMA = [
+  'CREATE TABLE IF NOT EXISTS acara (id TEXT PRIMARY KEY, data TEXT NOT NULL, dibuat TEXT NOT NULL, diubah TEXT NOT NULL)',
+  `CREATE TABLE IF NOT EXISTS peserta (acara TEXT NOT NULL, pk TEXT NOT NULL, urut INTEGER NOT NULL, nomor TEXT NOT NULL, kode TEXT NOT NULL UNIQUE, nama TEXT NOT NULL, email TEXT, instansi TEXT, peran TEXT, status TEXT NOT NULL DEFAULT 'sah', sumber TEXT, waktu TEXT NOT NULL, PRIMARY KEY (acara, pk), UNIQUE (acara, urut))`,
+  'CREATE INDEX IF NOT EXISTS idx_peserta_urut ON peserta (acara, urut)',
+];
+let dbSiap = null;
+function siapkanDb(env) {
+  if (!dbSiap) dbSiap = env.DB.batch(SKEMA.map((q) => env.DB.prepare(q))).catch((e) => { dbSiap = null; throw e; });
+  return dbSiap;
+}
+
 async function api(req, env, url) {
+  await siapkanDb(env);
   const p = url.pathname.replace(/\/+$/, '').split('/').slice(2); // ['acara', id, ...]
   const m = req.method;
   const admin = await pengelola(req);

@@ -1,10 +1,6 @@
 name: E-Sertifikat Kanwil Sumut
 
 on:
-  push:
-    paths:
-      - 'e-sertifikat/**'
-      - '.github/workflows/esertifikat.yml'
   workflow_dispatch:
 
 concurrency:
@@ -40,7 +36,7 @@ jobs:
             ID=$(wrangler d1 list --json | jq -r '.[] | select(.name=="esertifikat") | .uuid')
           fi
           if [ -z "$ID" ]; then catat "GAGAL: database D1 tidak dapat dibuat."; cat /tmp/galat.txt >> /tmp/catatan.txt; exit 1; fi
-          sed -i "s/DATABASE_ID_PLACEHOLDER/$ID/" wrangler.toml
+          sed -i "s/^database_name = \"esertifikat\"/database_name = \"esertifikat\"\ndatabase_id = \"$ID\"/" wrangler.toml
           wrangler d1 execute esertifikat --remote --file schema.sql 2>&1 | tail -3
           wrangler deploy 2>&1 | tee /tmp/deploy.txt
           URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' /tmp/deploy.txt | head -1)

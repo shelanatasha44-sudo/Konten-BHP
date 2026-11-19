@@ -19,7 +19,7 @@
   .tata-ubah{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:20px;align-items:start}
   .lengket{position:sticky;top:16px}
   @media (max-width:960px){.tata-ubah{grid-template-columns:1fr}.lengket{position:static}}
-  .pilih-desain{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pilih-desain{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .pilih-desain label{border:2px solid var(--garis);border-radius:14px;padding:8px;cursor:pointer;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;text-align:center}
   .pilih-desain input{display:none}
   .pilih-desain label:has(input:checked){border-color:var(--emas);box-shadow:0 0 0 3px rgba(201,161,59,.18)}
@@ -103,7 +103,7 @@ const nilaiAwal = () => {
   const d = new Date(Date.now() + 7 * 3600e3);
   return {
     judul: '', tema: '', tanggal: '', tempat: '', penyelenggara: 'Kantor Wilayah Kementerian Hukum Sumatera Utara',
-    desain: 'gading', kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', judulSertifikat: 'SERTIFIKAT',
+    desain: 'elegan', kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', judulSertifikat: 'SERTIFIKAT',
     pembuka: 'diberikan kepada', kalimat: 'atas partisipasinya sebagai {peran} dalam', peran: 'Peserta',
     formatNomor: `{n}/SERT/KWSU/${ROMAWI[d.getUTCMonth()]}/${d.getUTCFullYear()}`, tempatTanggal: '', tampilQr: true, buka: true, mulai: '', sampai: '',
     penandatangan: [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '', ttd: '' }],
@@ -151,7 +151,8 @@ async function layarUbah(id) {
 
       <h3>Desain dan Isi Sertifikat</h3>
       <div class="pilih-desain">
-        <label><input type="radio" name="desain" value="gading" ${a.desain !== 'biru' ? 'checked' : ''}><img src="/desain/gading.jpg" alt="">Gading Emas</label>
+        <label><input type="radio" name="desain" value="elegan" ${!['gading', 'biru'].includes(a.desain) ? 'checked' : ''}><img src="/desain/elegan.jpg" alt="">Elegan Navy</label>
+        <label><input type="radio" name="desain" value="gading" ${a.desain === 'gading' ? 'checked' : ''}><img src="/desain/gading.jpg" alt="">Gading Emas</label>
         <label><input type="radio" name="desain" value="biru" ${a.desain === 'biru' ? 'checked' : ''}><img src="/desain/biru.jpg" alt="">Biru Resmi</label>
       </div>
       <div class="kolom" style="margin-top:14px">
@@ -196,7 +197,7 @@ async function layarUbah(id) {
   const baca = () => {
     const fd = new FormData(f), o = {};
     for (const k of ['judul', 'tema', 'tanggal', 'tempat', 'penyelenggara', 'kop1', 'kop2', 'formatNomor', 'peran', 'pembuka', 'kalimat', 'tempatTanggal']) o[k] = (fd.get(k) || '').toString().trim();
-    o.desain = fd.get('desain') || 'gading';
+    o.desain = fd.get('desain') || 'elegan';
     o.tampilQr = !!fd.get('tampilQr');
     o.buka = !!fd.get('buka');
     o.mulai = Umum.keIso(fd.get('mulai')); o.sampai = Umum.keIso(fd.get('sampai'));

@@ -90,8 +90,66 @@ const biru = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="htt
   ${siku(W - 46, 46, -1, 1)}${siku(46, H - 46, 1, -1)}
 </svg>`;
 
+
+// ---------- ELEGAN NAVY (panel samping) ----------
+const PANEL = 330;
+function rosetBesar(cx, cy) {
+  let d = '';
+  const n = 60;
+  for (let i = 0; i <= n * 2; i++) {
+    const a = (i / (n * 2)) * Math.PI * 2, r = i % 2 ? 36 : 39.5;
+    d += (i ? 'L' : 'M') + f(cx + r * Math.cos(a)) + ' ' + f(cy + r * Math.sin(a));
+  }
+  let sinar = '';
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2, r1 = 8, r2 = i % 2 ? 15 : 20;
+    sinar += `<line x1="${f(cx + r1 * Math.cos(a))}" y1="${f(cy + r1 * Math.sin(a))}" x2="${f(cx + r2 * Math.cos(a))}" y2="${f(cy + r2 * Math.sin(a))}" stroke="url(#emasE)" stroke-width="${i % 2 ? .8 : 1.3}"/>`;
+  }
+  return `<g filter="url(#bayangan)"><path d="${d}Z" fill="url(#emasE)"/></g>
+    <circle cx="${cx}" cy="${cy}" r="31" fill="none" stroke="#7A5A1E" stroke-width=".6" opacity=".7"/>
+    <circle cx="${cx}" cy="${cy}" r="27.5" fill="url(#navyE)"/>
+    <circle cx="${cx}" cy="${cy}" r="24.5" fill="none" stroke="url(#emasE)" stroke-width=".9"/>
+    ${sinar}
+    <path d="M${cx} ${cy - 6} L${cx + 6} ${cy} L${cx} ${cy + 6} L${cx - 6} ${cy} Z" fill="url(#emasE)"/>`;
+}
+function gelombangTegak(n) {
+  let g = '';
+  for (let k = 0; k < n; k++) {
+    let d = '';
+    for (let y = 0; y <= H; y += 5) {
+      const x = 40 + k * 20 + 10 * Math.sin(y / 34 + k * 0.7) * Math.cos(y / 150 + k * 0.3);
+      d += (y === 0 ? 'M' : 'L') + f(x) + ' ' + y;
+    }
+    g += `<path d="${d}" fill="none" stroke="#E3C77A" stroke-width=".5"/>`;
+  }
+  return g;
+}
+const elegan = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="kertas" cx="62%" cy="45%" r="70%"><stop offset="0" stop-color="#FFFEFB"/><stop offset=".7" stop-color="#FAF6EE"/><stop offset="1" stop-color="#F2EBDD"/></radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#27346F"/><stop offset=".55" stop-color="#1D275A"/><stop offset="1" stop-color="#121A43"/></linearGradient>
+    <linearGradient id="navyE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B3878"/><stop offset="1" stop-color="#151E4A"/></linearGradient>
+    <linearGradient id="emasE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E3A8"/><stop offset=".35" stop-color="#D4AF5A"/><stop offset=".6" stop-color="#F1D892"/><stop offset="1" stop-color="#A9822F"/></linearGradient>
+    <linearGradient id="garisTegak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D4AF5A" stop-opacity=".2"/><stop offset=".5" stop-color="#E9CF8A"/><stop offset="1" stop-color="#D4AF5A" stop-opacity=".2"/></linearGradient>
+    <pattern id="garisHalus" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" stroke="#C9A13B" stroke-width=".35"/></pattern>
+    <filter id="bayangan" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#kertas)"/>
+  <rect x="${PANEL}" width="${W - PANEL}" height="${H}" fill="url(#garisHalus)" opacity=".05"/>
+  <g transform="translate(${(PANEL + W) / 2 - CX} 0)">${tandaAir('#B8925A', .045, 330, 400)}</g>
+  <rect width="${PANEL}" height="${H}" fill="url(#panel)"/>
+  <g opacity=".1">${gelombangTegak(14)}</g>
+  <rect x="${PANEL}" y="0" width="2.4" height="${H}" fill="url(#garisTegak)"/>
+  <rect x="${PANEL + 7}" y="0" width=".8" height="${H}" fill="url(#garisTegak)"/>
+  <rect x="${PANEL + 26}" y="24" width="${W - PANEL - 50}" height="${H - 48}" fill="none" stroke="#D4AF5A" stroke-width="1.1"/>
+  <rect x="${PANEL + 32}" y="30" width="${W - PANEL - 62}" height="${H - 60}" fill="none" stroke="#D4AF5A" stroke-width=".5" opacity=".8"/>
+  ${[[W - 24, 24, -1, 1], [W - 24, H - 24, -1, -1]].map(([x, y, sx, sy]) => `<path d="M${x + sx * 0} ${y + sy * 30} L${x} ${y} L${x + sx * 30} ${y}" fill="none" stroke="#D4AF5A" stroke-width="2.2"/><rect x="-3" y="-3" width="6" height="6" fill="#D4AF5A" transform="translate(${x + sx * 10} ${y + sy * 10}) rotate(45)"/>`).join('')}
+  <rect x="22" y="22" width="${PANEL - 44}" height="${H - 44}" fill="none" stroke="#D4AF5A" stroke-width=".6" opacity=".55"/>
+  ${rosetBesar(PANEL + 1, 452)}
+</svg>`;
+
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
-for (const [nama, svg] of [['gading', gading], ['biru', biru]]) {
+for (const [nama, svg] of [['gading', gading], ['biru', biru], ['elegan', elegan]]) {
   const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: S });
   await p.setContent(`<html><body style="margin:0">${svg}</body></html>`);
   await p.screenshot({ path: `/tmp/${nama}.png` });
