@@ -104,10 +104,11 @@ async function ambilHadir() {
 }
 
 function cocokkan(h, p) {
-  const daftar = (h.email && p.byEmail.get(h.email)) || (h.hp && p.byHp.get(h.hp)) || (h.nama && p.byNama.get(normNama(h.nama))) || null;
-  const email = emailSah(h.email) ? h.email : daftar && emailSah(daftar.email) ? daftar.email : '';
-  const nama = (daftar && daftar.nama) || h.nama;
-  return { email, nama, terdaftar: !!daftar };
+  // Hanya peserta yang terdaftar (email atau nomor WA ada di data pendaftar) yang mendapat sertifikat.
+  const daftar = (h.email && p.byEmail.get(h.email)) || (h.hp && p.byHp.get(h.hp)) || null;
+  if (!daftar) return { email: '', nama: '', terdaftar: false };
+  const email = emailSah(daftar.email) ? daftar.email : emailSah(h.email) ? h.email : '';
+  return { email, nama: daftar.nama, terdaftar: true };
 }
 
 // ---------- sertifikat ----------
@@ -237,8 +238,8 @@ async function main() {
   const siap = [], dilihat = new Set();
   for (const h of hadir) {
     const o = cocokkan(h, pendaftar);
-    if (!o.email) { log('Lewati 1 isian daftar hadir tanpa email yang cocok'); continue; }
-    if (!o.nama) { log('Lewati 1 isian daftar hadir yang tidak cocok dengan data pendaftar (nama tidak diketahui)'); continue; }
+    if (!o.terdaftar) { log('Lewati 1 isian daftar hadir: tidak terdaftar sebagai peserta'); continue; }
+    if (!o.email || !o.nama) { log('Lewati 1 isian daftar hadir: data pendaftar tanpa email atau nama'); continue; }
     const k = kunciOrang(o.email);
     if (dilihat.has(k) || st.terkirim[k]) continue;
     dilihat.add(k);
