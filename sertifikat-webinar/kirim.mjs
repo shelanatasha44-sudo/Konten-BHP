@@ -238,6 +238,7 @@ async function main() {
   for (const h of hadir) {
     const o = cocokkan(h, pendaftar);
     if (!o.email) { log('Lewati 1 isian daftar hadir tanpa email yang cocok'); continue; }
+    if (!o.nama) { log('Lewati 1 isian daftar hadir yang tidak cocok dengan data pendaftar (nama tidak diketahui)'); continue; }
     const k = kunciOrang(o.email);
     if (dilihat.has(k) || st.terkirim[k]) continue;
     dilihat.add(k);
