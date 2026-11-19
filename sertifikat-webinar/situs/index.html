@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Verifikasi E-Sertifikat Webinar Pengampuan BHP Medan</title>
+<style>
+@font-face { font-family: 'Cinzel'; font-weight: 700; src: url(fonts/cinzel-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 600; src: url(fonts/playfair-display-latin-600-italic.woff2) format('woff2'); }
+@font-face { font-family: 'Cormorant Garamond'; font-weight: 500; src: url(fonts/cormorant-garamond-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 400; src: url(fonts/inter-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; src: url(fonts/inter-latin-600-normal.woff2) format('woff2'); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { min-height: 100vh; background: radial-gradient(120% 90% at 50% 0%, #1C3766 0%, #0B1A3A 60%, #081430 100%); font-family: 'Inter', sans-serif; color: #22314F; display: flex; align-items: center; justify-content: center; padding: 28px 16px; }
+.kartu { width: 100%; max-width: 520px; background: linear-gradient(180deg, #FFFDF7, #F7EFDB); border-radius: 16px; padding: 30px 26px 26px; box-shadow: 0 20px 50px rgba(0,0,0,.35); border: 1px solid #C9A45C; position: relative; text-align: center; }
+.kartu::before { content: ''; position: absolute; inset: 8px; border: 1px solid rgba(201,164,92,.55); border-radius: 11px; pointer-events: none; }
+.kop { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
+.kop img { width: 44px; height: auto; }
+.kop div { font-size: 9.5px; letter-spacing: .16em; font-weight: 600; color: #13284F; line-height: 1.5; }
+.kop b { color: #0B1A3A; }
+h1 { font-family: 'Cinzel'; font-weight: 700; font-size: 22px; letter-spacing: .18em; margin: 22px 0 4px; background: linear-gradient(100deg, #7E5F22, #C9A45C 30%, #F1DDA6 50%, #B88E3E 70%, #7E5F22); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sub { font-size: 11px; letter-spacing: .3em; color: #9C7A2E; }
+.status { margin: 22px auto 0; display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: 13px; letter-spacing: .06em; }
+.sah { background: #E7F4EA; color: #1E6B35; border: 1px solid #A9D7B4; }
+.gagal { background: #FBEAEA; color: #8A2323; border: 1px solid #E6B3B3; }
+.tunggu { background: #F2EEE3; color: #6B5A2E; border: 1px solid #E3D3A8; }
+.nama { font-family: 'Playfair Display'; font-style: italic; font-weight: 600; font-size: 25px; color: #0B1A3A; margin: 18px 0 6px; line-height: 1.25; }
+.baris { margin-top: 16px; border-top: 1px solid rgba(201,164,92,.6); }
+.baris div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 2px; border-bottom: 1px solid rgba(201,164,92,.35); font-size: 13px; text-align: right; }
+.baris span { color: #8A6A2A; letter-spacing: .08em; font-size: 11px; font-weight: 600; text-align: left; padding-top: 2px; }
+.ket { margin-top: 16px; font-family: 'Cormorant Garamond'; font-size: 16px; color: #3B4A68; line-height: 1.5; }
+.kaki { margin-top: 18px; font-size: 11px; color: #6B7487; }
+</style>
+</head>
+<body>
+<main class="kartu">
+  <div class="kop"><img src="logo.svg" alt="Logo Pengayoman"><div>KEMENTERIAN HUKUM REPUBLIK INDONESIA<br>KANTOR WILAYAH SUMATERA UTARA<br><b>BALAI HARTA PENINGGALAN MEDAN</b></div></div>
+  <h1>VERIFIKASI</h1>
+  <div class="sub">E-SERTIFIKAT WEBINAR PENGAMPUAN</div>
+  <div id="hasil"><div class="status tunggu">Memeriksa sertifikat...</div></div>
+  <div class="kaki">Webinar Pengampuan, Selasa 24 November 2026, Balai Harta Peninggalan Medan</div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+function tampil(html) { $('hasil').innerHTML = html; }
+async function periksa() {
+  const token = decodeURIComponent(location.hash.slice(1)).trim();
+  if (!token) { tampil('<p class="ket">Pindai kode QR pada e-sertifikat untuk memeriksa keasliannya.</p>'); return; }
+  try {
+    const enc = new TextEncoder();
+    const id = hex(await crypto.subtle.digest('SHA-256', enc.encode(token))).slice(0, 24);
+    const r = await fetch('v/' + id + '.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('tidak ada');
+    const berkas = await r.json();
+    const kunci = await crypto.subtle.importKey('raw', await crypto.subtle.digest('SHA-256', enc.encode('kunci:' + token)), 'AES-GCM', false, ['decrypt']);
+    const isi = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(berkas.iv) }, kunci, b64(berkas.data))));
+    const tgl = new Date(isi.terbit).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
+    tampil(`<div class="status sah">&#10003; SERTIFIKAT SAH</div>
+      <div class="nama">${esc(isi.nama)}</div>
+      <div class="baris">
+        <div><span>NOMOR</span>${esc(isi.nomor)}</div>
+        <div><span>PERAN</span>${esc(isi.peran)}</div>
+        <div><span>KEGIATAN</span>Webinar Pengampuan</div>
+        <div><span>DITERBITKAN</span>${esc(tgl)} WIB</div>
+      </div>
+      <p class="ket">Sertifikat ini tercatat resmi dan diterbitkan oleh Balai Harta Peninggalan Medan.</p>`);
+  } catch (e) {
+    tampil('<div class="status gagal">Sertifikat tidak ditemukan</div><p class="ket">Kode pada QR tidak cocok dengan data kami. Silakan hubungi panitia di Instagram @bhpmedan_kemenkum.</p>');
+  }
+}
+periksa();
+window.addEventListener('hashchange', periksa);
+</script>
+</body>
+</html>

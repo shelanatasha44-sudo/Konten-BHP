@@ -1,0 +1,12 @@
+{
+  "name": "sertifikat-webinar-pengampuan",
+  "private": true,
+  "type": "module",
+  "description": "E-sertifikat otomatis Webinar Pengampuan BHP Medan",
+  "scripts": { "kirim": "node kirim.mjs" },
+  "dependencies": {
+    "nodemailer": "^6.10.0",
+    "playwright-core": "^1.48.0",
+    "qrcode": "^1.5.4"
+  }
+}

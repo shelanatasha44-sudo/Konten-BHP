@@ -1,0 +1,66 @@
+name: Sertifikat Webinar Pengampuan
+
+# Berjalan setiap 5 menit pada 23 s.d. 25 November (UTC), mencakup seluruh hari acara 24 November 2026 WIB.
+# Sertifikat dikirim sekitar 15 menit setelah peserta mengisi daftar hadir.
+on:
+  schedule:
+    - cron: '*/5 * 23-25 11 *'
+  workflow_dispatch:
+    inputs:
+      uji_email:
+        description: 'Kirim contoh sertifikat ke email ini (kosongkan untuk proses biasa)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sertifikat-webinar
+  cancel-in-progress: false
+
+jobs:
+  kirim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: sertifikat-webinar
+    env:
+      URL_VERIFIKASI: https://sertifikat-bhp-medan.pages.dev
+      JEDA_MENIT: '15'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cek jadwal
+        id: jadwal
+        run: |
+          now=$(date -u +%s)
+          mulai=$(date -u -d '2026-11-23T17:00:00Z' +%s)
+          selesai=$(date -u -d '2026-11-25T17:00:00Z' +%s)
+          if [ -n "${{ github.event.inputs.uji_email }}" ] || { [ $now -ge $mulai ] && [ $now -le $selesai ]; }; then echo "jalan=1" >> $GITHUB_OUTPUT; else echo "Di luar jadwal"; fi
+      - uses: actions/setup-node@v4
+        if: steps.jadwal.outputs.jalan == '1'
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sertifikat-webinar/package-lock.json
+      - name: Pasang paket
+        if: steps.jadwal.outputs.jalan == '1'
+        run: npm ci --no-audit --no-fund
+      - name: Kirim sertifikat
+        if: steps.jadwal.outputs.jalan == '1'
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          JOTFORM_API_KEY: ${{ secrets.JOTFORM_API_KEY }}
+          UJI_EMAIL: ${{ github.event.inputs.uji_email }}
+        run: node kirim.mjs
+      - name: Simpan status
+        if: always() && steps.jadwal.outputs.jalan == '1'
+        run: |
+          git config user.name "sertifikat-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data situs
+          if ! git diff --cached --quiet; then
+            git commit -m "Sertifikat webinar: perbarui status pengiriman"
+            for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done
+          fi
