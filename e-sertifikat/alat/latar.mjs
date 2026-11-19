@@ -148,8 +148,65 @@ const elegan = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="h
   ${rosetBesar(PANEL + 1, 452)}
 </svg>`;
 
+
+// ---------- RESMI (navy emas, bingkai meander) ----------
+function meanderDatar(x0, x1, y) {
+  // deretan kunci Yunani di pita mendatar (tinggi 12)
+  let d = '';
+  for (let x = x0; x + 11 <= x1; x += 13) d += `M${f(x + 1)} ${f(y + 10.5)} V${f(y + 1.5)} H${f(x + 10)} V${f(y + 8.5)} H${f(x + 4)} V${f(y + 4.5)} H${f(x + 7)} V${f(y + 6.5)} `;
+  return d;
+}
+function meanderTegak(y0, y1, x) {
+  let d = '';
+  for (let y = y0; y + 11 <= y1; y += 13) d += `M${f(x + 10.5)} ${f(y + 1)} H${f(x + 1.5)} V${f(y + 10)} H${f(x + 8.5)} V${f(y + 4)} H${f(x + 4.5)} V${f(y + 7)} H${f(x + 6.5)} `;
+  return d;
+}
+function rosetHalus(cx, cy) {
+  let g = '';
+  for (let k = 0; k < 3; k++) {
+    let d = '';
+    const R = 150 - k * 22, r = 9 + k * 1.5, dd = 70 - k * 14;
+    for (let i = 0; i <= 2400; i++) {
+      const t = (i / 2400) * Math.PI * 2 * 5;
+      const x = cx + (R - r) * Math.cos(t) + dd * Math.cos(((R - r) / r) * t);
+      const y = cy + (R - r) * Math.sin(t) - dd * Math.sin(((R - r) / r) * t);
+      d += (i ? 'L' : 'M') + f(x) + ' ' + f(y);
+    }
+    g += `<path d="${d}"/>`;
+  }
+  return g;
+}
+const pitaX0 = 26, pitaY0 = 26, pitaX1 = W - 26, pitaY1 = H - 26; // tepi luar pita meander
+const resmi = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="kertasR" cx="50%" cy="44%" r="75%"><stop offset="0" stop-color="#FFFFFD"/><stop offset=".65" stop-color="#FBF8F0"/><stop offset="1" stop-color="#F3EEE1"/></radialGradient>
+    <linearGradient id="emasR" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${W}" y2="${H}"><stop offset="0" stop-color="#D8B970"/><stop offset=".25" stop-color="#B8923A"/><stop offset=".5" stop-color="#E4CB8C"/><stop offset=".75" stop-color="#A9842F"/><stop offset="1" stop-color="#D2B068"/></linearGradient>
+    <pattern id="pengaman" width="44" height="16" patternUnits="userSpaceOnUse">
+      <g fill="none" stroke="#9AA9CC" stroke-width=".35">
+        <path d="M0 8 C11 0 22 0 33 8 S 44 16 55 8"/><path d="M-11 8 C0 16 11 16 22 8 S 33 0 44 8"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#kertasR)"/>
+  <rect x="58" y="58" width="${W - 116}" height="${H - 116}" fill="url(#pengaman)" opacity=".16"/>
+  <g fill="none" stroke="#B8923A" stroke-width=".35" opacity=".13">${rosetHalus(CX, 395)}</g>
+  ${tandaAir('#1F2A5A', .035, 310, 400)}
+  <rect x="14" y="14" width="${W - 28}" height="${H - 28}" fill="none" stroke="#1F2A5A" stroke-width="2.2"/>
+  <rect x="19" y="19" width="${W - 38}" height="${H - 38}" fill="none" stroke="url(#emasR)" stroke-width=".8"/>
+  <rect x="${pitaX0}" y="${pitaY0}" width="${pitaX1 - pitaX0}" height="${pitaY1 - pitaY0}" fill="none" stroke="url(#emasR)" stroke-width="1.1"/>
+  <rect x="${pitaX0 + 14}" y="${pitaY0 + 14}" width="${pitaX1 - pitaX0 - 28}" height="${pitaY1 - pitaY0 - 28}" fill="none" stroke="url(#emasR)" stroke-width="1.1"/>
+  <g fill="none" stroke="url(#emasR)" stroke-width="1" stroke-linecap="square">
+    <path d="${meanderDatar(pitaX0 + 18, pitaX1 - 18, pitaY0 + 1)}"/>
+    <path d="${meanderDatar(pitaX0 + 18, pitaX1 - 18, pitaY1 - 13)}"/>
+    <path d="${meanderTegak(pitaY0 + 18, pitaY1 - 18, pitaX0 + 1)}"/>
+    <path d="${meanderTegak(pitaY0 + 18, pitaY1 - 18, pitaX1 - 13)}"/>
+  </g>
+  ${[[pitaX0, pitaY0], [pitaX1 - 14, pitaY0], [pitaX0, pitaY1 - 14], [pitaX1 - 14, pitaY1 - 14]].map(([x, y]) => `<rect x="${x}" y="${y}" width="14" height="14" fill="#1F2A5A" stroke="url(#emasR)" stroke-width="1"/><rect x="-3" y="-3" width="6" height="6" fill="url(#emasR)" transform="translate(${x + 7} ${y + 7}) rotate(45)"/>`).join('')}
+  <rect x="${pitaX0 + 20}" y="${pitaY0 + 20}" width="${pitaX1 - pitaX0 - 40}" height="${pitaY1 - pitaY0 - 40}" fill="none" stroke="#1F2A5A" stroke-width=".5" opacity=".55"/>
+</svg>`;
+
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
-for (const [nama, svg] of [['gading', gading], ['biru', biru], ['elegan', elegan]]) {
+for (const [nama, svg] of [['resmi', resmi], ['gading', gading]]) {
   const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: S });
   await p.setContent(`<html><body style="margin:0">${svg}</body></html>`);
   await p.screenshot({ path: `/tmp/${nama}.png` });

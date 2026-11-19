@@ -2,24 +2,24 @@
 (function () {
   const W = 1122, H = 794, CX = W / 2;
   const TEMA = {
-    elegan: {
-      model: 'panel', latar: '/desain/elegan.jpg',
-      judul: '#1F2A5A', teks: '#1F2A44', lembut: '#4A5578', redup: '#6B7490', acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#9A7A2A',
-      aksen: '#C9A13B', bingkaiQr: '#D4AF5A', panel1: '#C9D1EC', panel2: '#E3C77A',
+    resmi: {
+      latar: '/desain/resmi.jpg', judul: '#1F2A5A',
+      kop1: '#3F4A6E', kop2: '#1F2A5A', aksen: '#B8923A', teks: '#1A2340', lembut: '#4A5578', redup: '#6B7490',
+      acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
     },
     gading: {
-      latar: '/desain/gading.jpg',
-      foil: ['#E9D3A2', '#C9A465', '#A8823F', '#CFAE70', '#9A7535'],
+      latar: '/desain/gading.jpg', foil: ['#E9D3A2', '#C9A465', '#A8823F', '#CFAE70', '#9A7535'],
       kop1: '#8A786B', kop2: '#3A2E2A', aksen: '#C7A465', teks: '#3A2E2A', lembut: '#6B5D57', redup: '#857A73',
       acara: '#9C7A45', peran: '#A6766A', nomor: '#9C7A45', bingkaiQr: '#C7A465',
     },
-    biru: {
-      latar: '/desain/biru.jpg',
-      judul: '#1F2A5A',
-      kop1: '#55607F', kop2: '#1F2A5A', aksen: '#C9A13B', teks: '#1F2A44', lembut: '#4A5578', redup: '#6B7490',
-      acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#9A7A2A', bingkaiQr: '#1F2A5A',
-    },
   };
+  const hex = (w, cadangan) => (/^#[0-9a-fA-F]{6}$/.test(w || '') ? w : cadangan);
+  // tema untuk desain unggahan sendiri (misalnya dari Canva)
+  function temaSendiri(acara) {
+    const k = hex(acara.warnaTeks, '#1F2A5A'), a = hex(acara.warnaAksen, '#B8923A');
+    return { latar: acara.latarData || ('/api/latar/' + acara.id + '?v=' + (acara.latarVersi || 0)), judul: k, kop1: k, kop2: k, aksen: a, teks: k,
+      lembut: k + 'D9', redup: k + 'B3', acara: k, peran: a, nomor: a, bingkaiQr: a };
+  }
 
   const muatGambar = (() => {
     const cache = {};
@@ -148,95 +148,73 @@
       });
     }
   }
-  function tandaTangan(ctx, acara, t, posisi, ttd) {
-    (acara.penandatangan || []).slice(0, 2).forEach((p, i) => {
-      const cx = posisi[i], terakhir = i === Math.min(2, acara.penandatangan.length) - 1;
-      if (terakhir && acara.tempatTanggal) tulis(ctx, acara.tempatTanggal, cx, 556, { keluarga: 'Inter', tebal: 500, ukuran: 12, warna: t.lembut, maks: 270 });
-      ctx.font = '600 12.5px Inter';
-      bungkusSeimbang(ctx, p.jabatan || '', 270).slice(0, 2).forEach((b, k) => tulis(ctx, b, cx, 576 + k * 16, { keluarga: 'Inter', tebal: 600, ukuran: 12.5, warna: t.teks, maks: 280 }));
-      if (ttd[i]) {
-        const im = ttd[i], mh = 66, mw = 200, r = Math.min(mw / im.width, mh / im.height);
-        ctx.drawImage(im, cx - im.width * r / 2, 602 + (mh - im.height * r) / 2, im.width * r, im.height * r);
-      }
-      const n = tulis(ctx, p.nama || '', cx, 690, { keluarga: 'Inter', tebal: 600, ukuran: 13.5, warna: t.teks, maks: 280 });
-      ctx.strokeStyle = t.teks; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(cx - n.lebar / 2, 694); ctx.lineTo(cx + n.lebar / 2, 694); ctx.stroke();
-      if (p.nip) tulis(ctx, 'NIP. ' + p.nip, cx, 709, { keluarga: 'Inter', tebal: 400, ukuran: 11, warna: t.redup, maks: 280 });
-    });
-  }
-  function kotakQr(ctx, peserta, opsi, t, cx, qy, sisi, warnaLabel, warnaKode) {
+  function kotakQr(ctx, peserta, opsi, t, cx, qy, sisi) {
     const qx = cx - sisi / 2;
-    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(qx, qy, sisi, sisi);
-    ctx.strokeStyle = t.bingkaiQr; ctx.lineWidth = 1; ctx.strokeRect(qx, qy, sisi, sisi);
-    gambarQr(ctx, opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH')), qx + 6, qy + 6, sisi - 12, '#1B1B1F');
-    tulis(ctx, 'Pindai untuk cek keaslian', cx, qy + sisi + 16, { keluarga: 'Inter', tebal: 500, ukuran: 9.5, warna: warnaLabel || t.redup });
-    tulis(ctx, peserta.kode ? kodeTampil(peserta.kode) : 'KODE-CONTOH', cx, qy + sisi + 30, { keluarga: 'Inter', tebal: 600, ukuran: 10, jarak: 1, warna: warnaKode || t.nomor });
-    return { x: qx, y: qy, s: sisi };
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(qx - 4, qy - 4, sisi + 8, sisi + 8);
+    ctx.strokeStyle = t.bingkaiQr; ctx.lineWidth = 1; ctx.strokeRect(qx - 4, qy - 4, sisi + 8, sisi + 8);
+    gambarQr(ctx, opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH')), qx, qy, sisi, '#141A33');
+    return { x: qx - 4, y: qy - 4, s: sisi + 8 };
   }
 
-  // ---------- model tengah (Gading Emas, Biru Resmi) ----------
-  function modelTengah(ctx, acara, peserta, opsi, t, logo, ttd) {
-    ctx.drawImage(logo, CX - 29, 44, 58, 65.4);
-    tulis(ctx, (acara.kop1 || '').toUpperCase(), CX, 132, { keluarga: 'Cinzel', tebal: 600, ukuran: 12, jarak: 2.4, warna: t.kop1, maks: 760 });
-    tulis(ctx, (acara.kop2 || '').toUpperCase(), CX, 152, { keluarga: 'Cinzel', tebal: 700, ukuran: 15, jarak: 1.5, warna: t.kop2, maks: 760 });
-    pemisah(ctx, 169, 300, t.aksen);
-    tulis(ctx, (acara.judulSertifikat || 'SERTIFIKAT').toUpperCase(), CX, 226, { keluarga: 'Cinzel', tebal: 700, ukuran: 50, jarak: 12, warna: t.judul || t.teks, foil: t.foil, maks: 700 });
-    if (peserta.nomor) tulis(ctx, 'Nomor: ' + peserta.nomor, CX, 252, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 0.6, warna: t.nomor, maks: 600 });
-    tulis(ctx, acara.pembuka || 'diberikan kepada', CX, 294, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 500, ukuran: 21, warna: t.lembut, maks: 700 });
-    tulis(ctx, peserta.nama || 'Nama Peserta', CX, 350, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, maks: 880, min: 26 });
-    pemisah(ctx, 372, 520, t.aksen);
-    kalimatPeran(ctx, acara, peserta, t, CX, 404, 'tengah');
-    judulAcara(ctx, acara, t, CX, 440, 900, 'tengah');
-    const n = Math.min(2, (acara.penandatangan || []).length);
-    const pakaiQr = acara.tampilQr !== false && (peserta.kode || opsi.contoh);
-    const posTtd = n >= 2 ? [282, 840] : n === 1 ? [pakaiQr ? 800 : CX] : [];
-    tandaTangan(ctx, acara, t, posTtd, ttd);
-    return pakaiQr ? kotakQr(ctx, peserta, opsi, t, n === 1 ? 322 : CX, 590, 92) : null;
-  }
+  // ---------- satu tata letak resmi untuk semua desain ----------
+  function modelResmi(ctx, acara, peserta, opsi, t, logo) {
+    if (acara.tampilKop !== false) {
+      ctx.drawImage(logo, CX - 31, 48, 62, 70);
+      tulis(ctx, (acara.kop1 || '').toUpperCase(), CX, 142, { keluarga: 'Cinzel', tebal: 600, ukuran: 12.5, jarak: 2.6, warna: t.kop1, maks: 760 });
+      tulis(ctx, (acara.kop2 || '').toUpperCase(), CX, 162, { keluarga: 'Cinzel', tebal: 700, ukuran: 15.5, jarak: 1.6, warna: t.kop2, maks: 760 });
+      pemisah(ctx, 178, 320, t.aksen);
+    }
+    if (acara.tampilJudul !== false) tulis(ctx, (acara.judulSertifikat || 'SERTIFIKAT').toUpperCase(), CX, 236, { keluarga: 'Cinzel', tebal: 700, ukuran: 52, jarak: 14, warna: t.judul || t.teks, foil: t.foil, maks: 720 });
+    if (peserta.nomor) tulis(ctx, 'Nomor: ' + peserta.nomor, CX, 262, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 0.8, warna: t.nomor, maks: 600 });
+    tulis(ctx, acara.pembuka || 'diberikan kepada', CX, 304, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 500, ukuran: 21, warna: t.lembut, maks: 700 });
+    tulis(ctx, peserta.nama || 'Nama Peserta', CX, 358, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, maks: 860, min: 26 });
+    pemisah(ctx, 380, 560, t.aksen);
+    kalimatPeran(ctx, acara, peserta, t, CX, 414, 'tengah');
+    judulAcara(ctx, acara, t, CX, 450, 880, 'tengah');
 
-  // ---------- model panel (Elegan Navy) ----------
-  function modelPanel(ctx, acara, peserta, opsi, t, logo, ttd) {
-    const PX = 165, X0 = 396, MAKS = 650;
-    ctx.drawImage(logo, PX - 35, 62, 70, 79);
-    let y = 176;
-    ctx.font = '600 11.5px Cinzel';
-    bungkusSeimbang(ctx, (acara.kop1 || '').toUpperCase(), 230).slice(0, 3).forEach((b) => { tulis(ctx, b, PX, y, { keluarga: 'Cinzel', tebal: 600, ukuran: 11.5, jarak: 1.8, warna: t.panel1, maks: 250 }); y += 17; });
-    ctx.strokeStyle = t.panel2; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(PX - 34, y - 2); ctx.lineTo(PX - 7, y - 2); ctx.moveTo(PX + 7, y - 2); ctx.lineTo(PX + 34, y - 2); ctx.stroke();
-    belahKetupat(ctx, PX, y - 2, 3.5, t.panel2);
-    y += 24;
-    ctx.font = '700 15px Cinzel';
-    bungkusSeimbang(ctx, (acara.kop2 || '').toUpperCase(), 240).slice(0, 3).forEach((b) => { tulis(ctx, b, PX, y, { keluarga: 'Cinzel', tebal: 700, ukuran: 15, jarak: 1.4, warna: t.panel2, maks: 255 }); y += 21; });
-
-    tulis(ctx, (acara.judulSertifikat || 'SERTIFIKAT').toUpperCase(), X0 - 3, 128, { keluarga: 'Cinzel', tebal: 700, ukuran: 54, jarak: 10, warna: t.judul, rata: 'kiri', maks: MAKS });
-    const g = ctx.createLinearGradient(X0, 0, X0 + 150, 0); g.addColorStop(0, t.aksen); g.addColorStop(1, t.aksen + '00');
-    ctx.fillStyle = g; ctx.fillRect(X0, 146, 150, 2);
-    belahKetupat(ctx, X0, 147, 4, t.aksen);
-    if (peserta.nomor) tulis(ctx, 'Nomor: ' + peserta.nomor, X0, 174, { keluarga: 'Inter', tebal: 500, ukuran: 11.5, jarak: 0.6, warna: t.nomor, rata: 'kiri', maks: MAKS });
-    tulis(ctx, acara.pembuka || 'diberikan kepada', X0, 232, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 500, ukuran: 21, warna: t.lembut, rata: 'kiri', maks: MAKS });
-    tulis(ctx, peserta.nama || 'Nama Peserta', X0, 292, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, rata: 'kiri', maks: MAKS, min: 26 });
-    const g2 = ctx.createLinearGradient(X0, 0, X0 + MAKS, 0); g2.addColorStop(0, t.aksen); g2.addColorStop(0.7, t.aksen + '66'); g2.addColorStop(1, t.aksen + '00');
-    ctx.fillStyle = g2; ctx.fillRect(X0, 312, MAKS, 1.2);
-    kalimatPeran(ctx, acara, peserta, t, X0, 350, 'kiri');
-    judulAcara(ctx, acara, t, X0, 388, MAKS, 'kiri');
-    const n = Math.min(2, (acara.penandatangan || []).length);
-    tandaTangan(ctx, acara, t, n >= 2 ? [560, 905] : [905], ttd);
+    // blok pengesahan di kanan: jabatan, QR, nama (tanpa tanda tangan basah)
+    const KX = 828;
+    const p = (acara.penandatangan || [])[0];
     const pakaiQr = acara.tampilQr !== false && (peserta.kode || opsi.contoh);
-    return pakaiQr ? kotakQr(ctx, peserta, opsi, t, PX, 586, 100, t.panel1, t.panel2) : null;
+    let qr = null;
+    if (p && (p.nama || p.jabatan)) {
+      if (acara.tempatTanggal) tulis(ctx, acara.tempatTanggal, KX, 548, { keluarga: 'Inter', tebal: 500, ukuran: 12.5, warna: t.lembut, maks: 290 });
+      ctx.font = '600 12.5px Inter';
+      bungkusSeimbang(ctx, p.jabatan || '', 290).slice(0, 2).forEach((b, k) => tulis(ctx, b, KX, 567 + k * 16, { keluarga: 'Inter', tebal: 600, ukuran: 12.5, warna: t.teks, maks: 300 }));
+      if (pakaiQr) qr = kotakQr(ctx, peserta, opsi, t, KX, 600, 78);
+      const n = tulis(ctx, p.nama || '', KX, 706, { keluarga: 'Inter', tebal: 600, ukuran: 13.5, warna: t.teks, maks: 300 });
+      ctx.strokeStyle = t.teks; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(KX - n.lebar / 2, 710); ctx.lineTo(KX + n.lebar / 2, 710); ctx.stroke();
+      if (p.nip) tulis(ctx, 'NIP. ' + p.nip, KX, 725, { keluarga: 'Inter', tebal: 400, ukuran: 11, warna: t.redup, maks: 300 });
+    } else if (pakaiQr) {
+      qr = kotakQr(ctx, peserta, opsi, t, KX, 604, 92);
+    }
+
+    // keterangan sertifikat elektronik di kiri bawah
+    if (pakaiQr) {
+      const X = 100, tautan = (opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH'))).replace(/^https?:\/\//, '');
+      const g = ctx.createLinearGradient(0, 652, 0, 724); g.addColorStop(0, t.aksen); g.addColorStop(1, t.aksen + '33');
+      ctx.fillStyle = g; ctx.fillRect(X, 652, 2, 72);
+      tulis(ctx, 'SERTIFIKAT ELEKTRONIK', X + 12, 665, { keluarga: 'Cinzel', tebal: 700, ukuran: 10.5, jarak: 1.6, warna: t.kop2, rata: 'kiri' });
+      tulis(ctx, 'Keaslian sertifikat dapat diperiksa dengan memindai', X + 12, 682, { keluarga: 'Inter', tebal: 400, ukuran: 10.5, warna: t.redup, rata: 'kiri' });
+      tulis(ctx, 'kode QR atau membuka ' + tautan, X + 12, 697, { keluarga: 'Inter', tebal: 400, ukuran: 10.5, warna: t.redup, rata: 'kiri', maks: 420 });
+      tulis(ctx, 'Kode verifikasi: ' + (peserta.kode ? kodeTampil(peserta.kode) : 'KODE-CONTOH'), X + 12, 714, { keluarga: 'Inter', tebal: 600, ukuran: 10.5, jarak: 0.4, warna: t.nomor, rata: 'kiri' });
+    }
+    return qr;
   }
 
   // ---------- sertifikat ----------
   async function gambar(kanvas, acara, peserta, opsi) {
     opsi = opsi || {};
     const S = opsi.skala || 2.5;
-    const t = TEMA[acara.desain] || TEMA.elegan;
+    const t = acara.desain === 'sendiri' ? temaSendiri(acara) : (TEMA[acara.desain] || TEMA.resmi);
     await siapkanHuruf();
     const [latar, logo] = await Promise.all([muatGambar(t.latar), muatGambar('/img/logo.png')]);
-    const ttd = await Promise.all((acara.penandatangan || []).map((p) => (p.ttd ? muatGambar(p.ttd).catch(() => null) : null)));
     kanvas.width = Math.round(W * S); kanvas.height = Math.round(H * S);
     const ctx = kanvas.getContext('2d');
     ctx.setTransform(S, 0, 0, S, 0, 0);
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(latar, 0, 0, W, H);
-    const qr = (t.model === 'panel' ? modelPanel : modelTengah)(ctx, acara, peserta, opsi, t, logo, ttd);
+    const qr = modelResmi(ctx, acara, peserta, opsi, t, logo);
     kanvas._qr = qr;
     return kanvas;
   }

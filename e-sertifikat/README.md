@@ -6,4 +6,5 @@ Web sertifikat elektronik: pengelola membuat acara, peserta mengisi daftar hadir
 
 - `public/` halaman web (beranda, daftar hadir, verifikasi, kelola)
 - `src/index.js` Cloudflare Worker (API); tabel database D1 dibuat otomatis saat pertama dipakai
-- Model sertifikat: Elegan Navy, Gading Emas, Biru Resmi
+- Desain sertifikat: Resmi Navy Emas, Gading Lembut, atau desain sendiri (misalnya dari Canva)
+- Email otomatis lewat Google Apps Script milik panitia (menu Pengaturan Email)

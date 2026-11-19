@@ -1,0 +1,39 @@
+/**
+ * PENGIRIM EMAIL E-SERTIFIKAT
+ * Tempel seluruh kode ini di script.google.com, lalu terapkan sebagai Aplikasi web.
+ * Email sertifikat akan dikirim dari akun Gmail pemilik skrip ini.
+ */
+function doPost(e) {
+  try {
+    const o = JSON.parse(e.postData.contents);
+    const p = PropertiesService.getScriptProperties();
+    const kunci = p.getProperty('KUNCI');
+    if (!kunci) {
+      if (!o.kunci || String(o.kunci).length < 16) return jawab({ ok: false, pesan: 'kunci belum ada' });
+      p.setProperty('KUNCI', String(o.kunci));
+    } else if (o.kunci !== kunci) {
+      return jawab({ ok: false, pesan: 'kunci tidak sesuai' });
+    }
+    if (!o.to || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(o.to)) return jawab({ ok: false, pesan: 'alamat email tidak sah' });
+    if (MailApp.getRemainingDailyQuota() < 1) return jawab({ ok: false, pesan: 'kuota email harian Gmail sudah habis' });
+    const opsi = { to: o.to, subject: o.subject || 'E-Sertifikat', htmlBody: o.html || '', body: o.text || '', name: o.nama || 'Panitia' };
+    if (o.pdf) opsi.attachments = [Utilities.newBlob(Utilities.base64Decode(o.pdf), 'application/pdf', o.namaBerkas || 'Sertifikat.pdf')];
+    MailApp.sendEmail(opsi);
+    return jawab({ ok: true, sisa: MailApp.getRemainingDailyQuota() });
+  } catch (err) {
+    return jawab({ ok: false, pesan: String(err && err.message || err) });
+  }
+}
+
+function doGet() {
+  return jawab({ ok: true, layanan: 'pengirim e-sertifikat', sisaKuota: MailApp.getRemainingDailyQuota() });
+}
+
+function jawab(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Jalankan fungsi ini sekali dari editor untuk memberi izin mengirim email.
+function beriIzin() {
+  Logger.log('Sisa kuota email hari ini: ' + MailApp.getRemainingDailyQuota());
+}

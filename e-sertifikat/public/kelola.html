@@ -23,7 +23,10 @@
   .pilih-desain label{border:2px solid var(--garis);border-radius:14px;padding:8px;cursor:pointer;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;text-align:center}
   .pilih-desain input{display:none}
   .pilih-desain label:has(input:checked){border-color:var(--emas);box-shadow:0 0 0 3px rgba(201,161,59,.18)}
-  .pilih-desain img{border-radius:8px;border:1px solid var(--garis)}
+  .pilih-desain img{border-radius:8px;border:1px solid var(--garis);aspect-ratio:297/210;object-fit:cover;width:100%}
+  .kotak-canva{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:297/210;border:1px dashed #CFC6B0;border-radius:8px;background:#FCFBF7;color:var(--redup);font-weight:500}
+  .kotak-canva b{font-size:24px;color:var(--emas);line-height:1}
+  .kotak-canva small{font-size:11px}
   .ttd-kotak{border:1px dashed #D3CBB8;border-radius:14px;padding:14px;background:#FCFBF7}
   .ttd-gambar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .ttd-gambar img{max-height:56px;background:repeating-conic-gradient(#f3f0e8 0 25%,#fff 0 50%) 0 0/14px 14px;border-radius:6px;padding:4px;border:1px solid var(--garis)}
@@ -41,7 +44,7 @@
 <header class="kop"><div class="isi">
   <a href="/"><img src="/img/logo.png" alt="Logo Kementerian Hukum"></a>
   <div class="nama"><small>KEMENTERIAN HUKUM REPUBLIK INDONESIA</small><b>Kantor Wilayah Sumatera Utara</b></div>
-  <nav><a href="#/" id="navBeranda">Daftar Acara</a><a href="#" id="keluar" class="tersembunyi">Keluar</a></nav>
+  <nav><a href="#/" id="navBeranda">Daftar Acara</a><a href="#/email" id="navEmail" class="tersembunyi">Pengaturan Email</a><a href="#" id="keluar" class="tersembunyi">Keluar</a></nav>
 </div></header>
 
 <main><div class="wadah" id="layar"></div></main>
@@ -78,7 +81,7 @@ function layarMasuk(pesan) {
     catch (err) { Umum.kode.hapus(); layarMasuk(err.status === 401 ? 'Kode pengelola tidak sesuai.' : err.message); }
   });
 }
-$('#keluar').addEventListener('click', (e) => { e.preventDefault(); Umum.kode.hapus(); layarMasuk(); });
+$('#keluar').addEventListener('click', (e) => { e.preventDefault(); Umum.kode.hapus(); $('#navEmail').classList.add('tersembunyi'); layarMasuk(); });
 
 // ---------------- daftar acara ----------------
 async function layarDaftar() {
@@ -103,10 +106,11 @@ const nilaiAwal = () => {
   const d = new Date(Date.now() + 7 * 3600e3);
   return {
     judul: '', tema: '', tanggal: '', tempat: '', penyelenggara: 'Kantor Wilayah Kementerian Hukum Sumatera Utara',
-    desain: 'elegan', kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', judulSertifikat: 'SERTIFIKAT',
+    desain: 'resmi', kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', judulSertifikat: 'SERTIFIKAT',
     pembuka: 'diberikan kepada', kalimat: 'atas partisipasinya sebagai {peran} dalam', peran: 'Peserta',
     formatNomor: `{n}/SERT/KWSU/${ROMAWI[d.getUTCMonth()]}/${d.getUTCFullYear()}`, tempatTanggal: '', tampilQr: true, buka: true, mulai: '', sampai: '',
-    penandatangan: [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '', ttd: '' }],
+    penandatangan: [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '' }],
+    warnaTeks: '#1F2A5A', warnaAksen: '#B8923A', tampilKop: true, tampilJudul: true, kirimEmail: true, latarVersi: 0,
   };
 };
 
@@ -114,27 +118,22 @@ function isian(nama, label, nilai, o = {}) {
   return `<label class="isian"><span class="${o.wajib ? 'wajib' : ''}">${label}</span><input type="${o.tipe || 'text'}" name="${nama}" value="${esc(nilai)}" ${o.ph ? `placeholder="${esc(o.ph)}"` : ''} maxlength="${o.maks || 160}">${o.ket ? `<small>${o.ket}</small>` : ''}</label>`;
 }
 
-function kotakTtd(i, p) {
-  return `<div class="ttd-kotak" data-ttd="${i}">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:14px;color:var(--navy)">Penandatangan ${i + 1}</b>${i === 1 ? '<button type="button" class="tombol bahaya kecil" data-hapus-ttd>Hapus</button>' : ''}</div>
+function kotakTtd(p) {
+  return `<div class="ttd-kotak">
     <div class="kolom">
-      <label class="isian">Jabatan<input type="text" data-k="jabatan" value="${esc(p.jabatan)}" maxlength="120" placeholder="Contoh: Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara"></label>
+      <label class="isian">Jabatan<input type="text" name="ttdJabatan" value="${esc(p.jabatan)}" maxlength="120" placeholder="Contoh: Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara"></label>
       <div class="kolom dua">
-        <label class="isian">Nama dan gelar<input type="text" data-k="nama" value="${esc(p.nama)}" maxlength="90"></label>
-        <label class="isian">NIP<input type="text" data-k="nip" value="${esc(p.nip)}" maxlength="40" placeholder="Opsional"></label>
+        <label class="isian">Nama dan gelar<input type="text" name="ttdNama" value="${esc(p.nama)}" maxlength="90"></label>
+        <label class="isian">NIP<input type="text" name="ttdNip" value="${esc(p.nip)}" maxlength="40" placeholder="Opsional"></label>
       </div>
-      <div class="isian" style="gap:8px"><span style="font-size:13.5px;font-weight:600">Gambar tanda tangan</span>
-        <div class="ttd-gambar">${p.ttd ? `<img src="${p.ttd}" alt="Tanda tangan">` : ''}
-          <label class="tombol garis kecil" style="cursor:pointer">${p.ttd ? 'Ganti' : 'Unggah'} gambar<input type="file" accept="image/png,image/jpeg,image/webp" data-unggah hidden></label>
-          ${p.ttd ? '<button type="button" class="tombol bahaya kecil" data-hapus-gambar>Hapus gambar</button>' : ''}</div>
-        <small style="font-weight:400;color:var(--redup);font-size:12.5px">Gunakan PNG tanpa latar (transparan) agar menyatu dengan desain. Bila dikosongkan, sertifikat tetap sah dengan kode QR.</small></div>
+      <small style="color:var(--redup);font-size:12.5px">Tanpa tanda tangan basah. Kode QR pada blok ini menjadi tanda pengesahan dan mengarah ke halaman cek keaslian.</small>
     </div></div>`;
 }
 
 async function layarUbah(id) {
   let a = nilaiAwal();
   if (id) { a = (await Umum.api('/api/acara/' + id)).acara; }
-  const ttd = (a.penandatangan || []).map((p) => ({ ...p }));
+  let latarBaru = '';
   layar.innerHTML = `<div class="judul-hal"><h1>${id ? 'Ubah Acara' : 'Buat Acara Baru'}</h1><a class="tombol garis" href="${id ? '#/acara/' + id : '#/'}">Batal</a></div>
   <div class="tata-ubah">
     <form class="kartu" id="formAcara" novalidate>
@@ -149,11 +148,28 @@ async function layarUbah(id) {
         ${isian('penyelenggara', 'Penyelenggara', a.penyelenggara, { ket: 'Tampil di halaman verifikasi sertifikat.', maks: 120 })}
       </div>
 
-      <h3>Desain dan Isi Sertifikat</h3>
+      <h3>Pengaturan Desain Sertifikat</h3>
       <div class="pilih-desain">
-        <label><input type="radio" name="desain" value="elegan" ${!['gading', 'biru'].includes(a.desain) ? 'checked' : ''}><img src="/desain/elegan.jpg" alt="">Elegan Navy</label>
-        <label><input type="radio" name="desain" value="gading" ${a.desain === 'gading' ? 'checked' : ''}><img src="/desain/gading.jpg" alt="">Gading Emas</label>
-        <label><input type="radio" name="desain" value="biru" ${a.desain === 'biru' ? 'checked' : ''}><img src="/desain/biru.jpg" alt="">Biru Resmi</label>
+        <label><input type="radio" name="desain" value="resmi" ${!['gading', 'sendiri'].includes(a.desain) ? 'checked' : ''}><img src="/desain/resmi.jpg" alt="">Resmi Navy Emas</label>
+        <label><input type="radio" name="desain" value="gading" ${a.desain === 'gading' ? 'checked' : ''}><img src="/desain/gading.jpg" alt="">Gading Lembut</label>
+        <label><input type="radio" name="desain" value="sendiri" ${a.desain === 'sendiri' ? 'checked' : ''}><span class="kotak-canva">${a.desain === 'sendiri' && a.latarVersi ? `<img src="/api/latar/${id}?v=${a.latarVersi}" alt="">` : '<b>+</b><small>Canva atau desain lain</small>'}</span>Desain Sendiri</label>
+      </div>
+      <div class="ttd-kotak${a.desain === 'sendiri' ? '' : ' tersembunyi'}" id="panelSendiri" style="margin-top:12px">
+        <b style="font-size:14px;color:var(--navy)">Desain sendiri (Canva, PowerPoint, dan lainnya)</b>
+        <ol class="kecil" style="margin:8px 0 12px 18px;line-height:1.7">
+          <li>Buat desain di Canva ukuran <b>A4 mendatar (297 x 210 mm)</b>. Template sertifikat Canva boleh dipakai.</li>
+          <li>Hapus tulisan nama, nomor, dan nama kegiatan pada template. Biarkan bagian tengah dan bagian bawah kosong untuk nama, kode QR, dan keterangan.</li>
+          <li>Unduh sebagai <b>PNG</b> atau <b>JPG</b>, lalu unggah di sini.</li>
+        </ol>
+        <div class="kolom">
+          <div class="ttd-gambar"><label class="tombol garis kecil" style="cursor:pointer">Unggah gambar desain<input type="file" accept="image/png,image/jpeg,image/webp" id="unggahLatar" hidden></label><span class="kecil" id="infoLatar">${a.latarVersi ? 'Desain sudah diunggah.' : 'Belum ada gambar.'}</span></div>
+          <div class="kolom dua">
+            <label class="isian">Warna teks utama<input type="color" name="warnaTeks" value="${esc(a.warnaTeks || '#1F2A5A')}" style="height:44px;padding:4px"></label>
+            <label class="isian">Warna aksen (garis, peran, nomor)<input type="color" name="warnaAksen" value="${esc(a.warnaAksen || '#B8923A')}" style="height:44px;padding:4px"></label>
+          </div>
+          <label class="centang"><input type="checkbox" name="tampilKop" ${a.tampilKop !== false ? 'checked' : ''}> <span>Tampilkan logo dan kop (matikan bila sudah ada di desain)</span></label>
+          <label class="centang"><input type="checkbox" name="tampilJudul" ${a.tampilJudul !== false ? 'checked' : ''}> <span>Tampilkan tulisan judul sertifikat (matikan bila sudah ada di desain)</span></label>
+        </div>
       </div>
       <div class="kolom" style="margin-top:14px">
         <div class="kolom dua">${isian('kop1', 'Kop baris 1', a.kop1, { maks: 80 })}${isian('kop2', 'Kop baris 2', a.kop2, { maks: 80 })}</div>
@@ -169,13 +185,13 @@ async function layarUbah(id) {
         <label class="centang"><input type="checkbox" name="tampilQr" ${a.tampilQr !== false ? 'checked' : ''}> <span>Tampilkan kode QR verifikasi pada sertifikat</span></label>
       </div>
 
-      <h3>Penandatangan</h3>
-      <div class="kolom" id="daftarTtd"></div>
-      <button type="button" class="tombol garis kecil" id="tambahTtd" style="margin-top:12px">+ Tambah penandatangan kedua</button>
+      <h3>Pengesahan</h3>
+      ${kotakTtd((a.penandatangan || [])[0] || { jabatan: '', nama: '', nip: '' })}
 
       <h3>Daftar Hadir</h3>
       <div class="kolom">
         <label class="centang"><input type="checkbox" name="buka" ${a.buka !== false ? 'checked' : ''}> <span>Daftar hadir dibuka</span></label>
+        <label class="centang"><input type="checkbox" name="kirimEmail" ${a.kirimEmail !== false ? 'checked' : ''}> <span>Kirim sertifikat ke email peserta secara otomatis (atur di menu Pengaturan Email)</span></label>
         <div class="kolom dua">
           <label class="isian">Mulai (WIB)<input type="datetime-local" name="mulai" value="${Umum.dariIso(a.mulai)}"><small>Kosongkan bila langsung dibuka.</small></label>
           <label class="isian">Sampai (WIB)<input type="datetime-local" name="sampai" value="${Umum.dariIso(a.sampai)}"><small>Kosongkan bila tanpa batas waktu.</small></label>
@@ -197,41 +213,32 @@ async function layarUbah(id) {
   const baca = () => {
     const fd = new FormData(f), o = {};
     for (const k of ['judul', 'tema', 'tanggal', 'tempat', 'penyelenggara', 'kop1', 'kop2', 'formatNomor', 'peran', 'pembuka', 'kalimat', 'tempatTanggal']) o[k] = (fd.get(k) || '').toString().trim();
-    o.desain = fd.get('desain') || 'elegan';
+    o.desain = fd.get('desain') || 'resmi';
     o.tampilQr = !!fd.get('tampilQr');
     o.buka = !!fd.get('buka');
     o.mulai = Umum.keIso(fd.get('mulai')); o.sampai = Umum.keIso(fd.get('sampai'));
-    o.penandatangan = ttd.filter((p) => p.nama || p.jabatan);
+    o.penandatangan = [{ jabatan: (fd.get('ttdJabatan') || '').trim(), nama: (fd.get('ttdNama') || '').trim(), nip: (fd.get('ttdNip') || '').trim() }].filter((p) => p.nama || p.jabatan);
+    o.warnaTeks = fd.get('warnaTeks') || '#1F2A5A'; o.warnaAksen = fd.get('warnaAksen') || '#B8923A';
+    o.tampilKop = !!fd.get('tampilKop'); o.tampilJudul = !!fd.get('tampilJudul'); o.kirimEmail = !!fd.get('kirimEmail');
+    o.id = id || 'baru'; o.latarVersi = a.latarVersi || 0; if (latarBaru) o.latarData = latarBaru;
+    if (o.desain === 'sendiri' && !latarBaru && !a.latarVersi) o.latarData = '/desain/resmi.jpg';
     return o;
   };
   const contohPeserta = () => ({ nama: 'Nama Peserta, S.H., M.H.', nomor: (f.formatNomor.value || '{n}').replace(/\{n\}/g, '001'), kode: '', peran: f.peran.value || 'Peserta' });
   let tunda;
   const segarkan = () => { clearTimeout(tunda); tunda = setTimeout(() => Sertifikat.gambar($('#pratinjau'), baca(), contohPeserta(), { skala: 1, contoh: true }).catch(() => {}), 200); };
 
-  function gambarTtd() {
-    $('#daftarTtd').innerHTML = ttd.map((p, i) => kotakTtd(i, p)).join('') || '<p class="kecil">Belum ada penandatangan.</p>';
-    $('#tambahTtd').classList.toggle('tersembunyi', ttd.length >= 2);
-    segarkan();
-  }
-  $('#daftarTtd').addEventListener('input', (e) => {
-    const kotak = e.target.closest('[data-ttd]'); if (!kotak || !e.target.dataset.k) return;
-    ttd[+kotak.dataset.ttd][e.target.dataset.k] = e.target.value; segarkan();
+  f.addEventListener('change', (e) => { if (e.target.name === 'desain') $('#panelSendiri').classList.toggle('tersembunyi', e.target.value !== 'sendiri'); });
+  $('#unggahLatar').addEventListener('change', async (e) => {
+    const berkas = e.target.files[0]; if (!berkas) return;
+    try {
+      latarBaru = await siapkanLatar(berkas);
+      $('#infoLatar').textContent = 'Gambar siap: ' + berkas.name;
+      f.querySelector('.kotak-canva').innerHTML = `<img src="${latarBaru}" alt="">`;
+      segarkan();
+    } catch (err) { Umum.toast('Gambar tidak dapat dibaca'); }
   });
-  $('#daftarTtd').addEventListener('click', (e) => {
-    const kotak = e.target.closest('[data-ttd]'); if (!kotak) return;
-    const i = +kotak.dataset.ttd;
-    if (e.target.matches('[data-hapus-ttd]')) { ttd.splice(i, 1); gambarTtd(); }
-    if (e.target.matches('[data-hapus-gambar]')) { ttd[i].ttd = ''; gambarTtd(); }
-  });
-  $('#daftarTtd').addEventListener('change', async (e) => {
-    if (!e.target.matches('[data-unggah]') || !e.target.files[0]) return;
-    const i = +e.target.closest('[data-ttd]').dataset.ttd;
-    try { ttd[i].ttd = await kecilkanGambar(e.target.files[0]); gambarTtd(); }
-    catch (err) { Umum.toast('Gambar tidak dapat dibaca'); }
-  });
-  $('#tambahTtd').addEventListener('click', () => { if (ttd.length < 2) { ttd.push({ jabatan: '', nama: '', nip: '', ttd: '' }); gambarTtd(); } });
-  if (!ttd.length) ttd.push({ jabatan: '', nama: '', nip: '', ttd: '' });
-  gambarTtd();
+  segarkan();
   f.addEventListener('input', segarkan);
   f.addEventListener('change', segarkan);
   $('#contohPdf').addEventListener('click', async () => {
@@ -247,15 +254,17 @@ async function layarUbah(id) {
     g.classList.add('tersembunyi');
     const t = $('#simpanAcara'); t.disabled = true; t.innerHTML = '<span class="memuat"></span> Menyimpan...';
     try {
+      delete o.latarData;
       const d = id ? await Umum.api('/api/acara/' + id, { method: 'PUT', body: o }) : await Umum.api('/api/acara', { method: 'POST', body: o });
+      if (latarBaru) await Umum.api('/api/latar/' + d.id, { method: 'PUT', body: { data: latarBaru } });
       Umum.toast('Acara tersimpan');
       location.hash = '#/acara/' + d.id;
     } catch (err) { g.textContent = err.message; g.classList.remove('tersembunyi'); t.disabled = false; t.textContent = 'Simpan Acara'; }
   });
 }
 
-// mengecilkan gambar tanda tangan agar ringan (lebar paling besar 600 px)
-function kecilkanGambar(berkas) {
+// gambar desain sendiri disesuaikan ke A4 mendatar (2339 x 1654 px) dan dikompres
+function siapkanLatar(berkas) {
   return new Promise((ok, gagal) => {
     const r = new FileReader();
     r.onerror = gagal;
@@ -263,11 +272,13 @@ function kecilkanGambar(berkas) {
       const im = new Image();
       im.onerror = gagal;
       im.onload = () => {
-        const sk = Math.min(1, 600 / im.width, 240 / im.height);
-        const c = document.createElement('canvas');
-        c.width = Math.round(im.width * sk); c.height = Math.round(im.height * sk);
-        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-        ok(c.toDataURL('image/png'));
+        const c = document.createElement('canvas'); c.width = 2339; c.height = 1654;
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        const sk = Math.max(c.width / im.width, c.height / im.height), w = im.width * sk, h = im.height * sk;
+        x.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
+        let q = 0.86, data = c.toDataURL('image/jpeg', q);
+        while (data.length > 1800000 && q > 0.5) { q -= 0.08; data = c.toDataURL('image/jpeg', q); }
+        ok(data);
       };
       im.src = r.result;
     };
@@ -306,7 +317,7 @@ async function layarAcara(id) {
       <div class="judul-hal" style="margin-bottom:12px"><div><h2>Sertifikat Terbit</h2><div class="kecil" id="ringkasPeserta"></div></div>
         <div class="baris-tombol"><button class="tombol garis kecil" id="tambahManual">+ Tambah Manual</button><button class="tombol garis kecil" id="unduhCsv">Unduh Rekap (CSV)</button></div></div>
       <div class="alat"><input type="search" id="cariPeserta" placeholder="Cari nama, email, atau nomor"></div>
-      <div class="tabel-wadah"><table><thead><tr><th>No</th><th>Nama</th><th>Instansi</th><th>Peran</th><th>Nomor</th><th>Waktu</th><th>Aksi</th></tr></thead><tbody id="tbPeserta"></tbody></table></div>
+      <div class="tabel-wadah"><table><thead><tr><th>No</th><th>Nama</th><th>Instansi</th><th>Peran</th><th>Nomor</th><th>Waktu</th><th>Email</th><th>Aksi</th></tr></thead><tbody id="tbPeserta"></tbody></table></div>
     </div>`;
 
   // QR daftar hadir
@@ -338,17 +349,29 @@ function gambarTabel() {
       <td><b style="font-weight:600">${esc(p.nama)}</b><div class="kecil">${esc(p.email || '')}</div></td>
       <td>${esc(p.instansi || '')}</td><td>${esc(p.peran || '')}</td><td style="white-space:nowrap">${esc(p.nomor)}</td>
       <td class="kecil" style="white-space:nowrap">${esc(Umum.waktuJam(p.waktu))}</td>
+      <td>${!p.email ? '<span class="kecil">Tanpa email</span>' : p.email_status === 'terkirim' ? '<span class="chip ok">Terkirim</span>' : p.email_status === 'gagal' ? '<span class="chip merah">Gagal</span>' : p.email_status === 'dikirim' ? '<span class="chip biru">Diproses</span>' : '<span class="chip tutup">Belum</span>'}</td>
       <td class="aksi"><div class="baris-tombol" style="gap:6px">
         <button class="tombol garis kecil" data-aksi="unduh" ${p.status === 'dicabut' ? 'disabled' : ''}>PDF</button>
+        <button class="tombol garis kecil" data-aksi="email" ${p.status === 'dicabut' || !p.email ? 'disabled' : ''}>Kirim Email</button>
         <button class="tombol garis kecil" data-aksi="ubah">Ubah</button>
         <button class="tombol ${p.status === 'dicabut' ? 'garis' : 'bahaya'} kecil" data-aksi="status">${p.status === 'dicabut' ? 'Pulihkan' : 'Batalkan'}</button>
-      </div></td></tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--redup);padding:28px">${dataPeserta.length ? 'Tidak ada yang cocok dengan pencarian.' : 'Belum ada sertifikat terbit. Bagikan tautan daftar hadir kepada peserta.'}</td></tr>`;
+      </div></td></tr>`).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--redup);padding:28px">${dataPeserta.length ? 'Tidak ada yang cocok dengan pencarian.' : 'Belum ada sertifikat terbit. Bagikan tautan daftar hadir kepada peserta.'}</td></tr>`;
 }
 
 async function aksiTabel(e) {
   const b = e.target.closest('[data-aksi]'); if (!b) return;
   const pk = b.closest('tr').dataset.pk, p = dataPeserta.find((x) => x.pk === pk);
   if (b.dataset.aksi === 'unduh') { b.disabled = true; try { await Sertifikat.unduh(dataAcara, p); } finally { b.disabled = false; } }
+  if (b.dataset.aksi === 'email') {
+    b.disabled = true; b.innerHTML = '<span class="memuat"></span>';
+    try {
+      const doc = await Sertifikat.pdf(dataAcara, p);
+      const pdf = doc.output('datauristring').split(',')[1];
+      const d = await Umum.api(`/api/kirim/${dataAcara.id}/${p.kode}`, { method: 'POST', body: { pdf } });
+      if (d.lewati) Umum.toast('Pengiriman email belum diatur. Buka menu Pengaturan Email.'); else { p.email_status = 'terkirim'; Umum.toast('Email terkirim ke ' + p.email); }
+    } catch (err) { p.email_status = 'gagal'; Umum.toast(err.message); }
+    gambarTabel();
+  }
   if (b.dataset.aksi === 'ubah') bukaDialog(p);
   if (b.dataset.aksi === 'status') {
     const baru = p.status === 'dicabut' ? 'sah' : 'dicabut';
@@ -387,21 +410,70 @@ function bukaDialog(p) {
 }
 
 function unduhCsv() {
-  const kolom = ['No', 'Nama', 'Email', 'Instansi', 'Peran', 'Nomor', 'Kode Verifikasi', 'Status', 'Waktu (WIB)'];
+  const kolom = ['No', 'Nama', 'Email', 'Instansi', 'Peran', 'Nomor', 'Kode Verifikasi', 'Status', 'Waktu (WIB)', 'Status Email'];
   const sel = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const baris = dataPeserta.map((p) => [p.urut, p.nama, p.email, p.instansi, p.peran, p.nomor, p.kode, p.status === 'dicabut' ? 'Dibatalkan' : 'Sah', Umum.waktuJam(p.waktu)].map(sel).join(','));
+  const baris = dataPeserta.map((p) => [p.urut, p.nama, p.email, p.instansi, p.peran, p.nomor, p.kode, p.status === 'dicabut' ? 'Dibatalkan' : 'Sah', Umum.waktuJam(p.waktu), p.email_status || ''].map(sel).join(','));
   const blob = new Blob(['﻿' + [kolom.map(sel).join(','), ...baris].join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = 'Rekap Sertifikat ' + dataAcara.judul.replace(/[\\/:*?"<>|]+/g, ' ') + '.csv'; l.click();
+}
+
+// ---------------- pengaturan email ----------------
+async function layarEmail() {
+  const d = (await Umum.api('/api/pengaturan')).pengaturan;
+  layar.innerHTML = `<div class="judul-hal"><h1>Pengaturan Email</h1>${d.siap ? '<span class="chip ok">Email otomatis aktif</span>' : '<span class="chip tutup">Belum aktif</span>'}</div>
+  <div class="tata-ubah">
+    <div class="kartu">
+      <h3>Hubungkan Gmail Pengirim (sekali saja)</h3>
+      <ol class="ket" style="margin-left:18px;line-height:1.75">
+        <li>Klik <b>Salin Kode</b> di bawah ini.</li>
+        <li>Buka <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener"><b>script.google.com</b></a> dengan Gmail yang akan menjadi pengirim. Proyek baru langsung terbuka.</li>
+        <li>Hapus isi editor, tempel kode, lalu klik ikon <b>Simpan</b>.</li>
+        <li>Klik <b>Terapkan</b>, <b>Deployment baru</b>, pilih jenis <b>Aplikasi web</b>. Atur <b>Jalankan sebagai: Saya</b> dan <b>Yang memiliki akses: Siapa saja</b>, lalu klik <b>Terapkan</b>.</li>
+        <li>Klik <b>Berikan akses</b>, pilih akun Gmail, klik <b>Lanjutan</b>, <b>Buka (tidak aman)</b>, lalu <b>Izinkan</b>. Peringatan ini wajar untuk skrip buatan sendiri.</li>
+        <li>Salin <b>URL Aplikasi web</b> yang muncul, tempel di kolom kanan, lalu klik <b>Simpan</b>.</li>
+      </ol>
+      <button class="tombol emas" type="button" id="salinKode" style="margin-top:12px">Salin Kode</button>
+      <p class="kecil" style="margin-top:12px">Gmail biasa dapat mengirim sekitar 100 email per hari. Sertifikat tetap dapat diunduh langsung oleh peserta walaupun kuota habis.</p>
+    </div>
+    <form class="kartu" id="formEmail">
+      <h3>Isian Email</h3>
+      <div class="kolom">
+        <label class="isian"><span class="wajib">URL Aplikasi web Apps Script</span><input type="text" name="mailerUrl" value="${esc(d.mailerUrl)}" placeholder="https://script.google.com/macros/s/.../exec"></label>
+        <label class="isian">Nama pengirim<input type="text" name="namaPengirim" value="${esc(d.namaPengirim)}" placeholder="Kantor Wilayah Kementerian Hukum Sumatera Utara" maxlength="100"></label>
+        <label class="isian">Subjek email<input type="text" name="subjek" value="${esc(d.subjek)}" maxlength="150"></label>
+        <label class="isian">Isi email<textarea name="isi" rows="8" maxlength="3000">${esc(d.isi)}</textarea><small>Boleh memakai {nama}, {acara}, {nomor}, {tautan}, dan {pengirim}.</small></label>
+      </div>
+      <div id="galatEmail" class="pesan galat tersembunyi"></div>
+      <button class="tombol emas lebar" type="submit" style="margin-top:16px">Simpan</button>
+      <h3 style="margin-top:22px">Uji Pengiriman</h3>
+      <div class="cari"><input type="email" id="emailUji" placeholder="Email tujuan uji" style="text-transform:none;letter-spacing:0;font-weight:500"><button class="tombol garis" type="button" id="kirimUji">Kirim Uji</button></div>
+    </form>
+  </div>`;
+  $('#salinKode').addEventListener('click', async () => { const t = await (await fetch('/pengirim-email.txt')).text(); Umum.salin(t); Umum.toast('Kode disalin'); });
+  $('#formEmail').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target), body = {};
+    for (const k of ['mailerUrl', 'namaPengirim', 'subjek', 'isi']) body[k] = (fd.get(k) || '').toString();
+    try { await Umum.api('/api/pengaturan', { method: 'PUT', body }); Umum.toast('Pengaturan email tersimpan'); layarEmail(); }
+    catch (err) { const g = $('#galatEmail'); g.textContent = err.message; g.classList.remove('tersembunyi'); }
+  });
+  $('#kirimUji').addEventListener('click', async () => {
+    const t = $('#kirimUji'); t.disabled = true; t.innerHTML = '<span class="memuat"></span>';
+    try { await Umum.api('/api/pengaturan/uji', { method: 'POST', body: { email: $('#emailUji').value.trim() } }); Umum.toast('Email uji terkirim. Periksa kotak masuk.'); }
+    catch (err) { Umum.toast(err.message); }
+    t.disabled = false; t.textContent = 'Kirim Uji';
+  });
 }
 
 // ---------------- rute ----------------
 async function rute() {
   if (!Umum.kode.ambil()) return layarMasuk();
-  $('#keluar').classList.remove('tersembunyi');
+  $('#keluar').classList.remove('tersembunyi'); $('#navEmail').classList.remove('tersembunyi');
   const h = location.hash.replace(/^#/, '') || '/';
   try {
     let m;
     if (h === '/') await layarDaftar();
+    else if (h === '/email') await layarEmail();
     else if (h === '/baru') await layarUbah(null);
     else if ((m = h.match(/^\/ubah\/([A-Za-z0-9]+)$/))) await layarUbah(m[1]);
     else if ((m = h.match(/^\/acara\/([A-Za-z0-9]+)$/))) await layarAcara(m[1]);
