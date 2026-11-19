@@ -1,0 +1,64 @@
+name: E-Sertifikat Kanwil Sumut
+
+on:
+  push:
+    paths:
+      - 'e-sertifikat/**'
+      - '.github/workflows/esertifikat.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: esertifikat
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  pasang:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e-sertifikat
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pasang ke Cloudflare
+        id: pasang
+        run: |
+          set -o pipefail
+          catat() { printf '%s\n' "$@" >> /tmp/catatan.txt; }
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then catat "GAGAL: secret CLOUDFLARE_API_TOKEN belum diisi di GitHub."; exit 1; fi
+          npm i -g wrangler@4 > /dev/null 2>&1
+          ID=$(wrangler d1 list --json 2>/tmp/galat.txt | jq -r '.[] | select(.name=="esertifikat") | .uuid' || true)
+          if [ -z "$ID" ]; then
+            wrangler d1 create esertifikat --location apac 2>&1 | tail -5 | tee -a /tmp/galat.txt
+            ID=$(wrangler d1 list --json | jq -r '.[] | select(.name=="esertifikat") | .uuid')
+          fi
+          if [ -z "$ID" ]; then catat "GAGAL: database D1 tidak dapat dibuat."; cat /tmp/galat.txt >> /tmp/catatan.txt; exit 1; fi
+          sed -i "s/DATABASE_ID_PLACEHOLDER/$ID/" wrangler.toml
+          wrangler d1 execute esertifikat --remote --file schema.sql 2>&1 | tail -3
+          wrangler deploy 2>&1 | tee /tmp/deploy.txt
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' /tmp/deploy.txt | head -1)
+          catat "BERHASIL" "Alamat: ${URL:-belum ada subdomain workers.dev}"
+      - name: Catat status
+        if: always()
+        run: |
+          {
+            echo "# Status pemasangan E-Sertifikat"
+            echo
+            echo "Waktu: $(TZ=Asia/Jakarta date '+%Y-%m-%d %H:%M WIB')"
+            echo "Commit: ${GITHUB_SHA::7}"
+            echo
+            cat /tmp/catatan.txt 2>/dev/null || echo "GAGAL: lihat log Actions."
+            if ! grep -q BERHASIL /tmp/catatan.txt 2>/dev/null; then echo; echo '```'; cat /tmp/galat.txt /tmp/deploy.txt 2>/dev/null | tail -30 | sed -E 's/[A-Za-z0-9_-]{40,}/[disamarkan]/g'; echo '```'; fi
+          } > STATUS.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add STATUS.md
+          git commit -m "Status pemasangan e-sertifikat [skip ci]" || exit 0
+          git push || (git pull --rebase && git push)

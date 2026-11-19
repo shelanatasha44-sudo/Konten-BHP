@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cek Keaslian Sertifikat | Kanwil Kemenkum Sumatera Utara</title>
+<link rel="icon" href="/img/logo.png">
+<link rel="stylesheet" href="/css/gaya.css">
+<style>
+  .sah .lencana svg{stroke:var(--emas)} .sah .lencana circle.isi{fill:rgba(201,161,59,.12)} .sah .status{color:var(--navy)}
+  .tidak .lencana svg{stroke:var(--merah)} .tidak .status{color:var(--merah)}
+  .dicabut .lencana svg{stroke:#9A7A2A} .dicabut .status{color:#9A7A2A}
+  .netral .lencana svg{stroke:var(--navy)} .netral .status{color:var(--navy)}
+  .lencana circle.tipis{stroke-width:1;opacity:.55}
+  .penerbit{margin-top:16px;text-align:center;font-size:13px;color:var(--redup)}
+  .penerbit b{display:block;color:var(--navy);font-size:14px;margin-top:2px}
+</style>
+</head>
+<body>
+<header class="kop"><div class="isi">
+  <a href="/"><img src="/img/logo.png" alt="Logo Kementerian Hukum"></a>
+  <div class="nama"><small>KEMENTERIAN HUKUM REPUBLIK INDONESIA</small><b>Kantor Wilayah Sumatera Utara</b></div>
+  <nav><a href="/">Beranda</a></nav>
+</div></header>
+
+<main><div class="wadah sempit">
+  <div style="text-align:center;margin-bottom:16px"><div class="label" style="color:#9A7A2A">Verifikasi Sertifikat</div></div>
+  <div class="kartu" id="hasil"><div style="text-align:center;padding:30px 0;color:var(--redup)"><span class="memuat"></span></div></div>
+  <form class="kartu" id="formCek">
+    <h2 style="font-size:16px">Periksa Kode Lain</h2>
+    <p class="ket" style="margin:4px 0 14px">Kode verifikasi tertera di bawah kode QR pada sertifikat.</p>
+    <div class="cari"><input type="text" id="kode" placeholder="Contoh: K7Q2M-X8FJ3" autocomplete="off" required><button class="tombol" type="submit">Periksa</button></div>
+  </form>
+</div></main>
+
+<footer class="kaki"><b>Kantor Wilayah Kementerian Hukum Sumatera Utara</b><br>Halaman resmi pemeriksaan keaslian sertifikat elektronik</footer>
+
+<script src="/js/umum.js"></script>
+<script>
+const el = document.getElementById('hasil');
+const ikon = {
+  sah: '<path d="M30 45l10 10 19-21"/>',
+  tidak: '<path d="M33 33l22 22M55 33L33 55"/>',
+  dicabut: '<path d="M44 30v18M44 57v1"/>',
+  netral: '<path d="M33 27h22v34H33zM38 37h12M38 44h12M38 51h8"/>',
+};
+const lencana = (j) => `<div class="lencana"><svg viewBox="0 0 88 88"><circle class="isi" cx="44" cy="44" r="40"/><circle class="tipis" cx="44" cy="44" r="33"/>${ikon[j]}</svg></div>`;
+
+function tampil(jenis, isi) { el.className = 'kartu ' + jenis; el.innerHTML = isi; }
+
+async function periksa(kode) {
+  if (!kode) {
+    tampil('netral', lencana('netral') + '<div class="status">CEK KEASLIAN</div><p class="ket" style="text-align:center;margin-top:8px">Pindai kode QR pada sertifikat, atau ketik kode verifikasinya pada kolom di bawah.</p>');
+    return;
+  }
+  try {
+    const d = await Umum.api('/api/verifikasi/' + kode);
+    if (d.status === 'tidak') {
+      tampil('tidak', lencana('tidak') + `<div class="status">TIDAK DITEMUKAN</div><p class="ket" style="text-align:center;margin-top:8px">Kode <b>${Umum.esc(kode.replace(/^(.{5})(.{5})$/, '$1-$2'))}</b> tidak tercatat sebagai sertifikat resmi. Periksa kembali kode pada sertifikat atau hubungi penyelenggara kegiatan.</p>`);
+      return;
+    }
+    const s = d.sertifikat, a = d.acara || {};
+    const baris = (l, v) => (v ? `<div><span>${l}</span><b>${Umum.esc(v).replace(/\//g, '/&#8203;')}</b></div>` : '');
+    const sah = d.status === 'sah';
+    tampil(sah ? 'sah' : 'dicabut',
+      lencana(sah ? 'sah' : 'dicabut') +
+      `<div class="status">${sah ? 'SERTIFIKAT SAH' : 'SERTIFIKAT DIBATALKAN'}</div>` +
+      `<p class="ket" style="text-align:center;margin-top:8px">${sah ? 'Sertifikat ini tercatat resmi dalam sistem e-sertifikat.' : 'Sertifikat ini pernah diterbitkan, tetapi telah dibatalkan oleh penyelenggara.'}</p>` +
+      '<div class="pemisah"></div>' +
+      `<div style="text-align:center" class="kecil">Diberikan kepada</div><div class="nama-besar" style="margin-top:4px">${Umum.esc(s.nama)}</div>` +
+      '<div class="rincian">' + baris('Nomor sertifikat', s.nomor) + baris('Sebagai', s.peran) + baris('Kegiatan', a.judul) + baris('Tanggal kegiatan', a.tanggal) + baris('Tempat', a.tempat) + baris('Diterbitkan', Umum.waktu(s.terbit)) + baris('Kode verifikasi', s.kode.replace(/^(.{5})(.{5})$/, '$1-$2')) + '</div>' +
+      (a.penyelenggara ? `<div class="penerbit">Penyelenggara<b>${Umum.esc(a.penyelenggara)}</b></div>` : ''));
+  } catch (e) {
+    tampil('tidak', lencana('tidak') + `<div class="status">GAGAL MEMERIKSA</div><p class="ket" style="text-align:center;margin-top:8px">${Umum.esc(e.message)}</p>`);
+  }
+}
+
+const dariAlamat = Umum.kodeBersih(decodeURIComponent(location.pathname.split('/')[2] || ''));
+periksa(dariAlamat);
+document.getElementById('formCek').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const k = Umum.kodeBersih(document.getElementById('kode').value);
+  if (k) location.href = '/v/' + k;
+});
+</script>
+</body>
+</html>

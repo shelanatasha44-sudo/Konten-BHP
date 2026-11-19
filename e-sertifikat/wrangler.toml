@@ -1,0 +1,14 @@
+name = "esertifikat-kanwil-sumut"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/hadir/*", "/v/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "esertifikat"
+database_id = "DATABASE_ID_PLACEHOLDER"
