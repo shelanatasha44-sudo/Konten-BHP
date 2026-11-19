@@ -1,12 +1,12 @@
 /**
  * SERTIFIKAT OTOMATIS
- * Sertifikat PDF dikirim otomatis ke email peserta yang sudah mendaftar,
- * beberapa menit setelah peserta mengisi daftar hadir.
+ * Sertifikat PDF dikirim otomatis ke email peserta beberapa menit setelah
+ * peserta mengisi daftar hadir. Peserta tidak perlu mendaftar terlebih dahulu.
  * Semua pengaturan ada di tab "Pengaturan", semua tombol ada di menu "Sertifikat".
  */
 
 const MASTER_DESAIN = '10yaUzigwrQSdaBTPRVTOztQRdZBOA12ieurAiXqj4uI';
-const TAB = { atur: 'Pengaturan', daftar: 'Pendaftaran', hadir: 'Daftar Hadir', terbit: 'Terbit' };
+const TAB = { atur: 'Pengaturan', hadir: 'Daftar Hadir', terbit: 'Terbit' };
 const KOLOM_TERBIT = ['Waktu', 'Nomor', 'Nama', 'Email', 'Kode Verifikasi', 'Status'];
 
 function onOpen() {
@@ -43,7 +43,6 @@ function bacaPengaturan() {
     mulai: ambil('aktif mulai') instanceof Date ? ambil('aktif mulai') : null,
     sampai: ambil('aktif sampai') instanceof Date ? ambil('aktif sampai') : null,
     linkVerifikasi: String(ambil('link verifikasi (web app)')).trim(),
-    tabDaftar: String(ambil('nama tab pendaftaran') || TAB.daftar),
     tabHadir: String(ambil('nama tab daftar hadir') || TAB.hadir),
   };
 }
@@ -82,9 +81,8 @@ function bacaTerbit() {
   if (!sh) { sh = ss.insertSheet(TAB.terbit); sh.appendRow(KOLOM_TERBIT); sh.setFrozenRows(1); }
   const rows = sh.getDataRange().getValues().slice(1);
   const sudah = new Set(rows.filter((r) => /^(Terkirim|Gagal)/.test(r[5])).map((r) => normEmail(r[3])));
-  const ditolak = new Set(rows.filter((r) => /^Ditolak/.test(r[5])).map((r) => normEmail(r[3])));
   const jumlah = rows.filter((r) => r[5] === 'Terkirim').length;
-  return { sh, rows, sudah, ditolak, jumlah };
+  return { sh, rows, sudah, jumlah };
 }
 
 // ---------- sertifikat ----------
@@ -140,27 +138,14 @@ function jalankan(manual) {
     const cfg = bacaPengaturan();
     const now = new Date();
     if (!manual && ((cfg.mulai && now < cfg.mulai) || (cfg.sampai && now > cfg.sampai))) return 0;
-    const daftar = bacaTab(cfg.tabDaftar), hadir = bacaTab(cfg.tabHadir);
-    const byEmail = new Map(), byHp = new Map();
-    daftar.rows.forEach((r) => {
-      const o = { nama: String(r[daftar.iNama] || '').trim(), email: normEmail(r[daftar.iEmail]) };
-      if (!o.nama || !emailSah(o.email)) return;
-      if (!byEmail.has(o.email)) byEmail.set(o.email, o);
-      const hp = daftar.iHp >= 0 ? normHp(r[daftar.iHp]) : '';
-      if (hp && !byHp.has(hp)) byHp.set(hp, o);
-    });
+    const hadir = bacaTab(cfg.tabHadir);
+    if (hadir.iNama < 0 || hadir.iEmail < 0) throw new Error('Tab daftar hadir harus punya kolom Nama dan Email.');
     const t = bacaTerbit();
     for (const r of hadir.rows) {
       const waktu = hadir.iWaktu >= 0 ? r[hadir.iWaktu] : null;
       if (waktu instanceof Date && now - waktu < cfg.jeda * 60000) continue;
-      const em = hadir.iEmail >= 0 ? normEmail(r[hadir.iEmail]) : '';
-      const hp = hadir.iHp >= 0 ? normHp(r[hadir.iHp]) : '';
-      const p = (em && byEmail.get(em)) || (hp && byHp.get(hp));
-      if (!p) {
-        // Hanya peserta yang terdaftar yang mendapat sertifikat.
-        if (em && !t.ditolak.has(em)) { t.sh.appendRow([now, '', '', em, '', 'Ditolak: tidak terdaftar']); t.ditolak.add(em); }
-        continue;
-      }
+      const p = { nama: String(r[hadir.iNama] || '').replace(/\s+/g, ' ').trim(), email: normEmail(r[hadir.iEmail]) };
+      if (!p.nama || !emailSah(p.email)) continue;
       if (t.sudah.has(p.email)) continue;
       if (MailApp.getRemainingDailyQuota() < 1) break;
       const nomor = formatNomor(cfg.formatNomor, t.jumlah + 1);
@@ -195,7 +180,7 @@ function siapkan() {
   } else pesan += 'Desain sertifikat sudah siap.\n\n';
   bacaTerbit();
   const ss = SpreadsheetApp.getActive();
-  [cfg.tabDaftar, cfg.tabHadir].forEach((n) => { if (!ss.getSheetByName(n)) pesan += 'Tab "' + n + '" belum ada. Hubungkan Google Form lalu ganti nama tab hasilnya.\n'; });
+  if (!ss.getSheetByName(cfg.tabHadir)) pesan += 'Tab "' + cfg.tabHadir + '" belum ada. Hubungkan Google Form daftar hadir lalu ganti nama tab hasilnya.\n';
   ui.alert('Siap', pesan.trim(), ui.ButtonSet.OK);
 }
 
