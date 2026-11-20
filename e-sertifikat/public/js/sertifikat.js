@@ -232,16 +232,32 @@
 
   const kodeTampil = (k) => (k || '').replace(/^(.{5})(.{5})$/, '$1-$2');
 
-  async function pdf(acara, peserta) {
-    const kanvas = document.createElement('canvas');
+  // menggambar satu halaman sertifikat ke dalam dokumen PDF
+  async function halaman(doc, acara, peserta, kanvas) {
     const tautan = location.origin + '/v/' + peserta.kode;
     await gambar(kanvas, acara, peserta, { skala: 2.5, tautan });
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     doc.addImage(kanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
     const q = kanvas._qr;
     if (q && peserta.kode) doc.link(q.x * 297 / W, q.y * 210 / H, q.s * 297 / W, q.s * 210 / H, { url: tautan });
+  }
+  const dokumenBaru = () => new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+
+  async function pdf(acara, peserta) {
+    const doc = dokumenBaru();
+    await halaman(doc, acara, peserta, document.createElement('canvas'));
     doc.setProperties({ title: 'Sertifikat ' + (peserta.nama || ''), subject: acara.judul || '', creator: acara.penyelenggara || '' });
+    return doc;
+  }
+
+  // banyak peserta dalam satu berkas PDF, satu halaman per peserta
+  async function pdfGabung(acara, daftar, kemajuan) {
+    const doc = dokumenBaru(), kanvas = document.createElement('canvas');
+    for (let i = 0; i < daftar.length; i++) {
+      if (i) doc.addPage();
+      await halaman(doc, acara, daftar[i], kanvas);
+      if (kemajuan) kemajuan(i + 1, daftar.length);
+    }
+    doc.setProperties({ title: 'Sertifikat ' + (acara.judul || ''), subject: acara.judul || '', creator: acara.penyelenggara || '' });
     return doc;
   }
 
@@ -252,5 +268,5 @@
     doc.save(namaBerkas(peserta.nama));
   }
 
-  window.Sertifikat = { gambar, pdf, unduh, kodeTampil, namaBerkas, TEMA };
+  window.Sertifikat = { gambar, pdf, pdfGabung, unduh, kodeTampil, namaBerkas, TEMA };
 })();
