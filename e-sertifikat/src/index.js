@@ -108,7 +108,7 @@ function rapikanAcara(masuk, lama = {}) {
     pembuka: bersih(m.pembuka, 80),
     kalimat: bersih(m.kalimat, 120),
     peran: bersih(m.peran, 40) || 'Peserta',
-    formatNomor: bersih(m.formatNomor, 60) || '{n}/SERT',
+    formatNomor: bersih(m.formatNomor, 60),
     tempatTanggal: bersih(m.tempatTanggal, 80),
     tampilQr: m.tampilQr !== false,
     kirimEmail: m.kirimEmail !== false,
@@ -154,7 +154,7 @@ const untukPeserta = (r) => ({ pk: r.pk, nama: r.nama, nomor: r.nomor, kode: r.k
 async function terbitkan(env, acara, d) {
   const lama = await env.DB.prepare('SELECT * FROM peserta WHERE acara = ? AND pk = ?').bind(acara.id, d.pk).first();
   if (lama) return { rec: lama, ulang: true };
-  const pola = acara.formatNomor || '{n}/SERT';
+  const pola = acara.formatNomor || '';
   for (let i = 0; i < 5; i++) {
     const kode = acak(10);
     try {
@@ -181,7 +181,9 @@ function isiEmail(atur, acara, rec, asal, susulan) {
   const pengirim = atur.namaPengirim || acara.penyelenggara || NAMA_KANWIL;
   const ganti = (s) => String(s || '').replace(/\{nama\}/g, rec.nama).replace(/\{acara\}/g, acara.judul).replace(/\{nomor\}/g, rec.nomor)
     .replace(/\{tautan\}/g, tautan).replace(/\{pengirim\}/g, pengirim);
-  let teks = ganti(atur.isi || ISI_EMAIL);
+  let isi = atur.isi || ISI_EMAIL;
+  if (!rec.nomor) isi = isi.replace(/\s*dengan nomor \{nomor\}/g, '');
+  let teks = ganti(isi);
   // tautan cek keaslian selalu ikut, walaupun isi email diubah panitia
   if (!teks.includes(tautan)) teks += '\n\nCek keaslian sertifikat: ' + tautan;
   if (susulan) teks += '\n\nBerkas PDF sertifikat dapat diunduh melalui tautan di atas.';

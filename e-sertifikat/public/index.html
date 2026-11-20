@@ -148,14 +148,14 @@ let tunda;
 function gambarPratinjau() {
   clearTimeout(tunda);
   tunda = setTimeout(() => {
-    Sertifikat.gambar($('pratinjau'), acara, { nama: $('nama').value.trim() || 'Nama Lengkap Anda', nomor: (acara.formatNomor || '{n}').replace('{n}', '...'), kode: '', peran: acara.peran }, { skala: 1, contoh: true }).catch(() => {});
+    Sertifikat.gambar($('pratinjau'), acara, { nama: $('nama').value.trim() || 'Nama Lengkap Anda', nomor: (acara.formatNomor || '').replace('{n}', '...'), kode: '', peran: acara.peran }, { skala: 1, contoh: true }).catch(() => {});
   }, 180);
 }
 $('nama').addEventListener('input', gambarPratinjau);
 $('bukaPratinjau').addEventListener('click', (e) => {
   e.preventDefault();
   $('dlgPratinjau').showModal();
-  Sertifikat.gambar($('pratinjauHp'), acara, { nama: $('nama').value.trim() || 'Nama Lengkap Anda', nomor: (acara.formatNomor || '{n}').replace('{n}', '...'), kode: '', peran: acara.peran }, { skala: 1, contoh: true }).catch(() => {});
+  Sertifikat.gambar($('pratinjauHp'), acara, { nama: $('nama').value.trim() || 'Nama Lengkap Anda', nomor: (acara.formatNomor || '').replace('{n}', '...'), kode: '', peran: acara.peran }, { skala: 1, contoh: true }).catch(() => {});
 });
 $('tutupPratinjau').addEventListener('click', () => $('dlgPratinjau').close());
 

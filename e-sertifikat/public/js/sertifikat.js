@@ -147,6 +147,7 @@
         if (i < info.length - 1) { belahKetupat(ctx, xi + sela / 2, y - 4, 3.2, t.aksen); xi += sela; }
       });
     }
+    return y;
   }
   function kotakQr(ctx, peserta, opsi, t, cx, qy, sisi) {
     const qx = cx - sisi / 2;
@@ -170,34 +171,44 @@
     tulis(ctx, peserta.nama || 'Nama Peserta', CX, 358, { keluarga: '"Cormorant Garamond"', gaya: 'italic', tebal: 600, ukuran: 54, warna: t.teks, maks: 860, min: 26 });
     pemisah(ctx, 380, 560, t.aksen);
     kalimatPeran(ctx, acara, peserta, t, CX, 414, 'tengah');
-    judulAcara(ctx, acara, t, CX, 450, 880, 'tengah');
+    const yAkhir = judulAcara(ctx, acara, t, CX, 450, 880, 'tengah');
 
-    // blok pengesahan di kanan: jabatan, QR, nama (tanpa tanda tangan basah)
-    const KX = 828;
+    // blok pengesahan di tengah sesuai tata naskah dinas: tempat tanggal, jabatan, QR (TTE), nama, NIP
     const p = (acara.penandatangan || [])[0];
     const pakaiQr = acara.tampilQr !== false && (peserta.kode || opsi.contoh);
+    const ATAS = yAkhir + 24, BAWAH = 732;
     let qr = null;
     if (p && (p.nama || p.jabatan)) {
-      if (acara.tempatTanggal) tulis(ctx, acara.tempatTanggal, KX, 548, { keluarga: 'Inter', tebal: 500, ukuran: 12.5, warna: t.lembut, maks: 290 });
-      ctx.font = '600 12.5px Inter';
-      bungkusSeimbang(ctx, p.jabatan || '', 290).slice(0, 2).forEach((b, k) => tulis(ctx, b, KX, 567 + k * 16, { keluarga: 'Inter', tebal: 600, ukuran: 12.5, warna: t.teks, maks: 300 }));
-      if (pakaiQr) qr = kotakQr(ctx, peserta, opsi, t, KX, 600, 78);
-      const n = tulis(ctx, p.nama || '', KX, 706, { keluarga: 'Inter', tebal: 600, ukuran: 13.5, warna: t.teks, maks: 300 });
-      ctx.strokeStyle = t.teks; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(KX - n.lebar / 2, 710); ctx.lineTo(KX + n.lebar / 2, 710); ctx.stroke();
-      if (p.nip) tulis(ctx, 'NIP. ' + p.nip, KX, 725, { keluarga: 'Inter', tebal: 400, ukuran: 11, warna: t.redup, maks: 300 });
+      ctx.font = '600 13px Inter';
+      const jab = bungkusSeimbang(ctx, p.jabatan || '', 300).slice(0, 2);
+      const adaTT = !!acara.tempatTanggal, adaNama = !!(p.nama || '').trim(), adaNip = !!(p.nip || '').trim();
+      let sisi = 76;
+      const tinggi = () => (adaTT ? 18 : 0) + jab.length * 17 + (pakaiQr ? 12 + sisi + 14 : 52) + (adaNama ? 18 : 0) + (adaNip ? 16 : 0);
+      while (pakaiQr && tinggi() > BAWAH - ATAS && sisi > 60) sisi -= 2;
+      let y = Math.max(ATAS, ATAS + (BAWAH - ATAS - tinggi()) / 2);
+      if (adaTT) { tulis(ctx, acara.tempatTanggal, CX, y + 12, { keluarga: 'Inter', tebal: 500, ukuran: 12.5, warna: t.lembut, maks: 400 }); y += 18; }
+      jab.forEach((b) => { tulis(ctx, b, CX, y + 13, { keluarga: 'Inter', tebal: 600, ukuran: 13, warna: t.teks, maks: 400 }); y += 17; });
+      if (pakaiQr) { y += 12; qr = kotakQr(ctx, peserta, opsi, t, CX, y + 4, sisi - 8); y += sisi + 14; } else y += 52;
+      if (adaNama) {
+        const n = tulis(ctx, p.nama, CX, y + 12, { keluarga: 'Inter', tebal: 600, ukuran: 13.5, warna: t.teks, maks: 400 });
+        ctx.strokeStyle = t.teks; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(CX - n.lebar / 2, y + 16); ctx.lineTo(CX + n.lebar / 2, y + 16); ctx.stroke();
+        y += 18;
+      }
+      if (adaNip) tulis(ctx, 'NIP. ' + p.nip, CX, y + 13, { keluarga: 'Inter', tebal: 400, ukuran: 11, warna: t.redup, maks: 400 });
     } else if (pakaiQr) {
-      qr = kotakQr(ctx, peserta, opsi, t, KX, 604, 92);
+      qr = kotakQr(ctx, peserta, opsi, t, CX, Math.max(ATAS, ATAS + (BAWAH - ATAS - 92) / 2) + 4, 84);
     }
 
-    // keterangan sertifikat elektronik di kiri bawah
+    // keterangan sertifikat elektronik di kiri bawah, tidak bersinggungan dengan blok pengesahan
     if (pakaiQr) {
-      const X = 100, tautan = (opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH'))).replace(/^https?:\/\//, '');
-      const g = ctx.createLinearGradient(0, 652, 0, 724); g.addColorStop(0, t.aksen); g.addColorStop(1, t.aksen + '33');
-      ctx.fillStyle = g; ctx.fillRect(X, 652, 2, 72);
-      tulis(ctx, 'SERTIFIKAT ELEKTRONIK', X + 12, 665, { keluarga: 'Cinzel', tebal: 700, ukuran: 10.5, jarak: 1.6, warna: t.kop2, rata: 'kiri' });
-      tulis(ctx, 'Keaslian sertifikat dapat diperiksa dengan memindai', X + 12, 682, { keluarga: 'Inter', tebal: 400, ukuran: 10.5, warna: t.redup, rata: 'kiri' });
-      tulis(ctx, 'kode QR atau membuka ' + tautan, X + 12, 697, { keluarga: 'Inter', tebal: 400, ukuran: 10.5, warna: t.redup, rata: 'kiri', maks: 420 });
-      tulis(ctx, 'Kode verifikasi: ' + (peserta.kode ? kodeTampil(peserta.kode) : 'KODE-CONTOH'), X + 12, 714, { keluarga: 'Inter', tebal: 600, ukuran: 10.5, jarak: 0.4, warna: t.nomor, rata: 'kiri' });
+      const X = 92, M = 272, tautan = (opsi.tautan || (location.origin + '/v/' + (peserta.kode || 'CONTOH'))).replace(/^https?:\/\//, '');
+      const g = ctx.createLinearGradient(0, 652, 0, 728); g.addColorStop(0, t.aksen); g.addColorStop(1, t.aksen + '33');
+      ctx.fillStyle = g; ctx.fillRect(X, 652, 2, 76);
+      tulis(ctx, 'SERTIFIKAT ELEKTRONIK', X + 12, 664, { keluarga: 'Cinzel', tebal: 700, ukuran: 10, jarak: 1.5, warna: t.kop2, rata: 'kiri', maks: M });
+      tulis(ctx, 'Keaslian dapat diperiksa dengan memindai', X + 12, 680, { keluarga: 'Inter', tebal: 400, ukuran: 10, warna: t.redup, rata: 'kiri', maks: M });
+      tulis(ctx, 'kode QR atau membuka laman berikut:', X + 12, 694, { keluarga: 'Inter', tebal: 400, ukuran: 10, warna: t.redup, rata: 'kiri', maks: M });
+      tulis(ctx, tautan, X + 12, 708, { keluarga: 'Inter', tebal: 500, ukuran: 10, warna: t.redup, rata: 'kiri', maks: M, min: 7.5 });
+      tulis(ctx, 'Kode verifikasi: ' + (peserta.kode ? kodeTampil(peserta.kode) : 'KODE-CONTOH'), X + 12, 724, { keluarga: 'Inter', tebal: 600, ukuran: 10, jarak: 0.4, warna: t.nomor, rata: 'kiri', maks: M });
     }
     return qr;
   }

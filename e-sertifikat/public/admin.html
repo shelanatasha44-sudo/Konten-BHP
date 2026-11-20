@@ -226,7 +226,7 @@ function layarRingkas() {
 // ---------------- data kegiatan ----------------
 function layarKegiatan(baru) {
   const d = new Date(Date.now() + 7 * 3600e3);
-  const a = baru ? { judul: '', tanggal: '', tempat: '', tema: '', buka: true, peran: 'Peserta', formatNomor: `{n}/SERT/KWSU/${ROMAWI[d.getUTCMonth()]}/${d.getUTCFullYear()}`,
+  const a = baru ? { judul: '', tanggal: '', tempat: '', tema: '', buka: true, peran: 'Peserta', formatNomor: '',
     kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', penyelenggara: 'Kantor Wilayah Kementerian Hukum Sumatera Utara',
     pembuka: 'diberikan kepada', kalimat: 'atas partisipasinya sebagai {peran} dalam', desain: 'resmi', tampilQr: true, kirimEmail: true,
     penandatangan: (acara && acara.penandatangan) || [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '' }] } : acara;
@@ -242,7 +242,7 @@ function layarKegiatan(baru) {
         <label class="isian">Absen dibuka mulai (WIB)<input type="datetime-local" name="mulai" value="${Umum.dariIso(a.mulai)}"></label>
         <label class="isian">Absen ditutup pada (WIB)<input type="datetime-local" name="sampai" value="${Umum.dariIso(a.sampai)}"></label>
       </div>
-      <div class="kolom dua">${isian('formatNomor', 'Format nomor ({n} = 001, 002, ...)', '')}${isian('peran', 'Peran peserta', 'Peserta')}</div>
+      <div class="kolom dua">${isian('formatNomor', 'Nomor sertifikat (satu nomor untuk semua peserta)', 'Contoh: W.2-HN.04.02-1555')}${isian('peran', 'Peran peserta', 'Peserta')}</div>
       <div class="kolom dua">${isian('kop1', 'Kop baris 1', '')}${isian('kop2', 'Kop baris 2', '')}</div>
       <div class="kolom dua">${isian('pembuka', 'Kalimat pembuka', '')}${isian('kalimat', 'Kalimat peran ({peran})', '')}</div>
       ${isian('penyelenggara', 'Penyelenggara (tampil di halaman cek keaslian)', '')}
@@ -267,7 +267,7 @@ function layarKegiatan(baru) {
 let tunda;
 function pratinjau(kanvas, a) {
   clearTimeout(tunda);
-  tunda = setTimeout(() => Sertifikat.gambar(kanvas, a, { nama: 'Nama Peserta, S.H., M.H.', nomor: (a.formatNomor || '{n}').replace(/\{n\}/g, '001'), kode: '', peran: a.peran }, { skala: 1, contoh: true }).catch(() => {}), 150);
+  tunda = setTimeout(() => Sertifikat.gambar(kanvas, a, { nama: 'Nama Peserta, S.H., M.H.', nomor: (a.formatNomor || '').replace(/\{n\}/g, '001'), kode: '', peran: a.peran }, { skala: 1, contoh: true }).catch(() => {}), 150);
 }
 
 function lihatPratinjau(a) {
