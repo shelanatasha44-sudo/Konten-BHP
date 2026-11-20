@@ -81,6 +81,42 @@ async function pengelola(req, env) {
   return !!(r && Date.parse(r.kadaluarsa) > Date.now());
 }
 
+// Isian tambahan daftar hadir yang diatur admin per kegiatan (misalnya nomor HP, jabatan, NIP).
+const JENIS_ISIAN = ['teks', 'hp', 'angka', 'pilihan'];
+const daftarPilihan = (x) => (Array.isArray(x) ? x : String(x || '').split(/\n|,/)).map((v) => bersih(v, 80)).filter(Boolean).slice(0, 40);
+function rapikanIsian(daftar) {
+  if (!Array.isArray(daftar)) return [];
+  const sudah = new Set();
+  return daftar.slice(0, 12).map((f) => {
+    let id = String((f && f.id) || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+    if (!id || sudah.has(id) || id === 'nama' || id === 'email' || id === 'instansi') id = 'f' + acak(6).toLowerCase();
+    sudah.add(id);
+    const jenis = JENIS_ISIAN.includes(f && f.jenis) ? f.jenis : 'teks';
+    return { id, label: bersih(f && f.label, 60), jenis, wajib: !!(f && f.wajib), pilihan: jenis === 'pilihan' ? daftarPilihan(f.pilihan) : [] };
+  }).filter((f) => f.label && (f.jenis !== 'pilihan' || f.pilihan.length));
+}
+// Memeriksa jawaban peserta terhadap isian kegiatan. Mengembalikan { data } atau { galat }.
+function periksaIsian(acara, masuk, longgar) {
+  const data = {};
+  const jawab = masuk && typeof masuk === 'object' ? masuk : {};
+  for (const f of acara.isian || []) {
+    const v = bersih(jawab[f.id], 150);
+    if (!v) { if (f.wajib && !longgar) return { galat: f.label + ' wajib diisi.' }; continue; }
+    if (f.jenis === 'hp' && !/^\+?[0-9][0-9\s-]{7,18}$/.test(v)) return { galat: f.label + ' belum benar. Tulis angka saja, misalnya 081234567890.' };
+    if (f.jenis === 'angka' && !/^[0-9][0-9\s.]*$/.test(v)) return { galat: f.label + ' hanya boleh berisi angka.' };
+    if (f.jenis === 'pilihan' && !f.pilihan.includes(v)) return { galat: 'Pilih ' + f.label + ' dari daftar.' };
+    data[f.id] = v;
+  }
+  return { data };
+}
+function periksaInstansi(acara, v, longgar) {
+  const mode = acara.instansiMode || 'opsional';
+  if (mode === 'sembunyi') return { nilai: '' };
+  if (!v && mode === 'wajib' && !longgar) return { galat: 'Instansi wajib diisi.' };
+  if (v && (acara.instansiPilihan || []).length && !acara.instansiPilihan.includes(v) && !longgar) return { galat: 'Pilih instansi dari daftar.' };
+  return { nilai: v };
+}
+
 const waktuSah = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? '' : d.toISOString(); };
 
 function rapikanAcara(masuk, lama = {}) {
@@ -116,6 +152,9 @@ function rapikanAcara(masuk, lama = {}) {
     mulai: waktuSah(m.mulai),
     sampai: waktuSah(m.sampai),
     penandatangan: ttd,
+    isian: rapikanIsian(m.isian),
+    instansiMode: ['opsional', 'wajib', 'sembunyi'].includes(m.instansiMode) ? m.instansiMode : 'opsional',
+    instansiPilihan: daftarPilihan(m.instansiPilihan),
   };
 }
 
@@ -132,7 +171,13 @@ const SKEMA = [
 ];
 let dbSiap = null;
 function siapkanDb(env) {
-  if (!dbSiap) dbSiap = env.DB.batch(SKEMA.map((q) => env.DB.prepare(q))).catch((e) => { dbSiap = null; throw e; });
+  if (!dbSiap) {
+    dbSiap = env.DB.batch(SKEMA.map((q) => env.DB.prepare(q)))
+      .then(() => env.DB.prepare('ALTER TABLE peserta ADD COLUMN data TEXT').run().catch((e) => {
+        if (!/duplicate column/i.test(String(e && e.message))) throw e;
+      }))
+      .catch((e) => { dbSiap = null; throw e; });
+  }
   return dbSiap;
 }
 
@@ -159,11 +204,11 @@ async function terbitkan(env, acara, d) {
     const kode = acak(10);
     try {
       await env.DB.prepare(
-        `INSERT INTO peserta (acara, pk, urut, nomor, kode, nama, email, instansi, peran, status, sumber, waktu)
-         SELECT ?1, ?2, n, replace(?3, '{n}', printf('%03d', n)), ?4, ?5, ?6, ?7, ?8, 'sah', ?9, ?10
+        `INSERT INTO peserta (acara, pk, urut, nomor, kode, nama, email, instansi, peran, status, sumber, waktu, data)
+         SELECT ?1, ?2, n, replace(?3, '{n}', printf('%03d', n)), ?4, ?5, ?6, ?7, ?8, 'sah', ?9, ?10, ?11
          FROM (SELECT COALESCE(MAX(urut), 0) + 1 AS n FROM peserta WHERE acara = ?1) WHERE true
          ON CONFLICT (acara, pk) DO NOTHING`
-      ).bind(acara.id, d.pk, pola, kode, d.nama, d.email || '', d.instansi || '', d.peran || acara.peran || 'Peserta', d.sumber || 'hadir', new Date().toISOString()).run();
+      ).bind(acara.id, d.pk, pola, kode, d.nama, d.email || '', d.instansi || '', d.peran || acara.peran || 'Peserta', d.sumber || 'hadir', new Date().toISOString(), JSON.stringify(d.data || {})).run();
       break;
     } catch (e) {
       if (!/UNIQUE/i.test(String(e && e.message))) throw e;
@@ -399,11 +444,15 @@ async function api(req, env, url) {
     if (acara.mulai && now < Date.parse(acara.mulai)) return salah('Daftar hadir belum dibuka.', 403);
     if (acara.sampai && now > Date.parse(acara.sampai)) return salah('Daftar hadir sudah ditutup.', 403);
     const b = await badan();
-    const nama = bersih(b.nama, 120), email = bersih(b.email, 120).toLowerCase(), instansi = bersih(b.instansi, 120);
+    const nama = bersih(b.nama, 120), email = bersih(b.email, 120).toLowerCase();
     if (nama.length < 3) return salah('Nama lengkap wajib diisi.');
     if (!emailSah(email)) return salah('Alamat email belum benar.');
+    const ins = periksaInstansi(acara, bersih(b.instansi, 120));
+    if (ins.galat) return salah(ins.galat);
+    const isi = periksaIsian(acara, b.isian);
+    if (isi.galat) return salah(isi.galat);
     const pk = (await sha('email:' + email)).slice(0, 24);
-    const { rec, ulang } = await terbitkan(env, acara, { pk, nama, email, instansi, sumber: 'hadir' });
+    const { rec, ulang } = await terbitkan(env, acara, { pk, nama, email, instansi: ins.nilai, data: isi.data, sumber: 'hadir' });
     if (rec.status === 'dicabut') return salah('Sertifikat untuk email ini telah dibatalkan oleh panitia.', 403);
     const atur = await ambilPengaturan(env);
     if (atur.asal !== url.origin) await simpanAtur('asal', url.origin).run();
@@ -425,7 +474,9 @@ async function api(req, env, url) {
       if (nama.length < 3) return salah('Nama wajib diisi.');
       if (email && !emailSah(email)) return salah('Alamat email belum benar.');
       const pk = email ? (await sha('email:' + email)).slice(0, 24) : 'm' + acak(12).toLowerCase();
-      const { rec, ulang } = await terbitkan(env, acara, { pk, nama, email, instansi: bersih(b.instansi, 120), peran: bersih(b.peran, 40) || acara.peran, sumber: 'manual' });
+      const isi = periksaIsian(acara, b.isian, true);
+      if (isi.galat) return salah(isi.galat);
+      const { rec, ulang } = await terbitkan(env, acara, { pk, nama, email, instansi: bersih(b.instansi, 120), data: isi.data, peran: bersih(b.peran, 40) || acara.peran, sumber: 'manual' });
       return json({ ok: true, ulang, peserta: rec });
     }
     if (p[2] && m === 'PATCH') {
@@ -437,8 +488,14 @@ async function api(req, env, url) {
       const peran = b.peran !== undefined ? (bersih(b.peran, 40) || rec.peran) : rec.peran;
       const instansi = b.instansi !== undefined ? bersih(b.instansi, 120) : rec.instansi;
       const status = ['sah', 'dicabut'].includes(b.status) ? b.status : rec.status;
-      await env.DB.prepare('UPDATE peserta SET nama = ?, peran = ?, instansi = ?, status = ? WHERE acara = ? AND pk = ?').bind(nama, peran, instansi, status, p[1], p[2]).run();
-      return json({ ok: true, peserta: { ...rec, nama, peran, instansi, status } });
+      let data = rec.data || '{}';
+      if (b.isian !== undefined) {
+        const isi = periksaIsian(acara, b.isian, true);
+        if (isi.galat) return salah(isi.galat);
+        data = JSON.stringify(isi.data);
+      }
+      await env.DB.prepare('UPDATE peserta SET nama = ?, peran = ?, instansi = ?, status = ?, data = ? WHERE acara = ? AND pk = ?').bind(nama, peran, instansi, status, data, p[1], p[2]).run();
+      return json({ ok: true, peserta: { ...rec, nama, peran, instansi, status, data } });
     }
   }
 

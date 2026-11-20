@@ -8,7 +8,7 @@
 <link rel="icon" href="/img/logo.png">
 <link rel="stylesheet" href="/css/gaya.css">
 <style>
-  .admin{max-width:1180px;margin:0 auto;padding:22px 20px 40px;display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:start}
+  .admin{width:100%;max-width:1180px;margin:0 auto;padding:22px 20px 40px;display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:start}
   .menu{position:sticky;top:16px;background:#fff;border:1px solid var(--garis);border-radius:18px;padding:10px;box-shadow:var(--bayang)}
   .menu .judul-menu{font-size:11px;letter-spacing:.2em;color:var(--redup);font-weight:600;padding:10px 12px 6px}
   .menu a{display:flex;gap:11px;align-items:center;padding:10px 12px;border-radius:11px;color:var(--lembut);font-weight:600;font-size:14px;text-decoration:none}
@@ -66,6 +66,24 @@
   .pes .aksi{display:flex;gap:6px;flex:none}
   .qr-besar{background:#fff;border:1px solid var(--garis);border-radius:16px;padding:14px;text-align:center}
   .qr-besar canvas{width:220px;height:220px;margin:0 auto}
+  .pes input.pilihP{width:18px;height:18px;flex:none;accent-color:var(--navy);cursor:pointer}
+  .pes.dipilih{border-color:var(--emas);background:#FFFCF3}
+  .alat{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border:1px solid var(--garis);border-radius:12px;background:#FCFBF7}
+  .alat .centang{font-weight:600;color:var(--navy)}
+  .rekap-ins{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  .rekap-ins th,.rekap-ins td{border-bottom:1px solid var(--garis);padding:7px 6px;text-align:left}
+  .rekap-ins th{font-size:12px;color:var(--redup);font-weight:600;letter-spacing:.04em}
+  .rekap-ins td.n,.rekap-ins th.n{text-align:right;width:70px}
+  .isian-baris{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--garis);border-radius:12px;background:#fff}
+  .isian-baris textarea{grid-column:1 / -1}
+  .isian-baris .centang{font-size:13px;white-space:nowrap}
+  .cepat{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  select{width:100%;padding:10px 12px;border:1px solid #DAD3C2;border-radius:10px;background:#fff;font:inherit;font-size:14px;color:var(--teks)}
+  .proses{position:fixed;inset:0;background:rgba(20,26,50,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .proses .kartu{max-width:360px;width:100%;text-align:center}
+  .proses .bar{height:8px;border-radius:99px;background:var(--latar);overflow:hidden;margin-top:12px}
+  .proses .bar i{display:block;height:100%;width:0;background:var(--emas);transition:width .2s}
+  @media (max-width:600px){.isian-baris{grid-template-columns:minmax(0,1fr) auto auto}.isian-baris input[type=text]{grid-column:1 / -1}}
   .masuk{max-width:420px;margin:34px auto}
   .masuk .lencana{width:64px;height:64px;margin:0 auto 6px}
   @media (max-width:860px){
@@ -111,6 +129,7 @@
 </div>
 
 <dialog id="dialog"><form class="kartu" method="dialog" id="formDialog"></form></dialog>
+<div class="proses tersembunyi" id="proses"><div class="kartu"><b id="prosesJudul">Menyiapkan sertifikat</b><p class="kecil" id="prosesKet" style="margin-top:6px"></p><div class="bar"><i id="prosesBar"></i></div></div></div>
 
 <footer class="kaki"><b>Kantor Wilayah Kementerian Hukum Sumatera Utara</b><br>Admin Sertifikat Elektronik</footer>
 
@@ -133,10 +152,11 @@ const IKON = {
   email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/>',
   semua: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   sandi: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  isian: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
 };
 const ikon = (n) => `<svg viewBox="0 0 24 24" class="ikon">${IKON[n]}</svg>`;
 const MENU = [
-  ['', 'ringkas', 'Ringkasan'], ['kegiatan', 'kegiatan', 'Data Kegiatan'], ['desain', 'desain', 'Desain Sertifikat'], ['ttd', 'ttd', 'Pengesahan dan QR'],
+  ['', 'ringkas', 'Ringkasan'], ['kegiatan', 'kegiatan', 'Data Kegiatan'], ['isian', 'isian', 'Isian Absen'], ['desain', 'desain', 'Desain Sertifikat'], ['ttd', 'ttd', 'Pengesahan dan QR'],
   ['peserta', 'peserta', 'Peserta'], ['bagikan', 'bagikan', 'Bagikan Absen'], ['email', 'email', 'Email Otomatis'], ['semua', 'semua', 'Semua Kegiatan'], ['sandi', 'sandi', 'Kata Sandi'],
 ];
 let acara = null, peserta = [], aturEmail = null;
@@ -209,9 +229,10 @@ function layarRingkas() {
     </div>
     <div class="ubin">
       ${ub('kegiatan', 'kegiatan', 'Data Kegiatan', 'Nama, tanggal, tempat')}
+      ${ub('isian', 'isian', 'Isian Absen', (acara.isian || []).length ? (acara.isian || []).map((f) => f.label).join(', ') : 'Tambah nomor HP, jabatan, dll.')}
       ${ub('desain', 'desain', 'Desain', 'Pilih desain atau unggah dari Canva')}
       ${ub('ttd', 'ttd', 'Pengesahan', 'Pejabat dan kode QR')}
-      ${ub('peserta', 'peserta', 'Peserta', sah + ' sertifikat, unduh rekap')}
+      ${ub('peserta', 'peserta', 'Peserta', sah + ' sertifikat, unduh PDF dan rekap')}
       ${ub('bagikan', 'bagikan', 'Bagikan Absen', 'QR dan tautan absen')}
       ${ub('email', 'email', 'Email', aturEmail && aturEmail.siap ? 'Aktif' : 'Belum diatur')}
     </div>
@@ -229,7 +250,8 @@ function layarKegiatan(baru) {
   const a = baru ? { judul: '', tanggal: '', tempat: '', tema: '', buka: true, peran: 'Peserta', formatNomor: '',
     kop1: 'KEMENTERIAN HUKUM REPUBLIK INDONESIA', kop2: 'KANTOR WILAYAH SUMATERA UTARA', penyelenggara: 'Kantor Wilayah Kementerian Hukum Sumatera Utara',
     pembuka: 'diberikan kepada', kalimat: 'atas partisipasinya sebagai {peran} dalam', desain: 'resmi', tampilQr: true, kirimEmail: true,
-    penandatangan: (acara && acara.penandatangan) || [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '' }] } : acara;
+    penandatangan: (acara && acara.penandatangan) || [{ jabatan: 'Kepala Kantor Wilayah Kementerian Hukum Sumatera Utara', nama: '', nip: '' }],
+    isian: (acara && acara.isian) || [], instansiMode: (acara && acara.instansiMode) || 'opsional', instansiPilihan: (acara && acara.instansiPilihan) || [] } : acara;
   const isian = (n, l, ph, w) => `<label class="isian"><span class="${w ? 'wajib' : ''}">${l}</span><input type="text" name="${n}" value="${esc(a[n] || '')}" placeholder="${esc(ph || '')}" maxlength="200"></label>`;
   layar.innerHTML = kepala(baru ? 'Kegiatan Baru' : 'Data Kegiatan') + `<form class="kartu" id="f">
     <div class="kolom">
@@ -260,6 +282,75 @@ function layarKegiatan(baru) {
       if (baru) { await Umum.api('/api/acara', { method: 'POST', body: { ...a, ...o } }); await muatAktif(); Umum.toast('Kegiatan dibuat dan langsung tampil di halaman absen'); location.hash = '#/'; }
       else { await simpanAcara(o); Umum.toast('Tersimpan'); location.hash = '#/'; }
     } catch (err) { $('#galat').textContent = err.message; $('#galat').classList.remove('tersembunyi'); }
+  });
+}
+
+// ---------------- isian absen ----------------
+const JENIS = { teks: 'Teks bebas', hp: 'Nomor HP', angka: 'Angka (NIP, dll.)', pilihan: 'Pilihan (daftar)' };
+const CEPAT = [['Nomor HP', 'hp', true], ['Jabatan', 'teks', true], ['NIP', 'angka', false], ['Pangkat/Golongan', 'teks', false], ['Jenis Kelamin', 'pilihan', false, ['Laki-laki', 'Perempuan']]];
+function layarIsian() {
+  let daftar = (acara.isian || []).map((f) => ({ ...f }));
+  layar.innerHTML = kepala('Isian Absen') + `<form class="kartu" id="f">
+    <p class="ket sembunyi-hp" style="margin-bottom:12px">Atur isian yang diminta di halaman absen. Nama dan email selalu ada. Perubahan berlaku untuk kegiatan <b>${esc(acara.judul)}</b>.</p>
+    <div class="kolom">
+      <div class="isian-baris" style="grid-template-columns:1fr"><b style="font-size:14px">Nama lengkap dan gelar <span class="chip tutup">wajib</span> &nbsp; Email <span class="chip tutup">wajib</span></b></div>
+      <div class="isian-baris" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)">
+        <b style="font-size:14px">Instansi atau unit kerja</b>
+        <select name="instansiMode">
+          <option value="opsional" ${acara.instansiMode !== 'wajib' && acara.instansiMode !== 'sembunyi' ? 'selected' : ''}>Boleh kosong</option>
+          <option value="wajib" ${acara.instansiMode === 'wajib' ? 'selected' : ''}>Wajib diisi</option>
+          <option value="sembunyi" ${acara.instansiMode === 'sembunyi' ? 'selected' : ''}>Tidak ditanyakan</option>
+        </select>
+        <textarea name="instansiPilihan" rows="2" placeholder="Daftar instansi untuk dipilih peserta, satu per baris (kosongkan bila peserta mengetik sendiri)" style="grid-column:1 / -1">${esc((acara.instansiPilihan || []).join('\n'))}</textarea>
+      </div>
+      <div class="kolom" id="daftarIsian" style="gap:10px"></div>
+    </div>
+    <div class="cepat">${CEPAT.map((c, i) => `<button class="tombol garis kecil" type="button" data-cepat="${i}">+ ${esc(c[0])}</button>`).join('')}<button class="tombol garis kecil" type="button" data-cepat="lain">+ Isian lain</button></div>
+    <button class="tombol emas lebar" type="submit" style="margin-top:16px">Simpan Isian</button>
+  </form>`;
+  const wadah = $('#daftarIsian');
+  const ambil = () => {
+    wadah.querySelectorAll('[data-i]').forEach((el) => {
+      const f = daftar[+el.dataset.i];
+      f.label = el.querySelector('[name=label]').value.trim();
+      f.jenis = el.querySelector('[name=jenis]').value;
+      f.wajib = el.querySelector('[name=wajib]').checked;
+      const t = el.querySelector('[name=pilihan]');
+      f.pilihan = t ? t.value.split('\n').map((v) => v.trim()).filter(Boolean) : (f.pilihan || []);
+    });
+  };
+  const gambar = () => {
+    wadah.innerHTML = daftar.map((f, i) => `<div class="isian-baris" data-i="${i}">
+      <input type="text" name="label" value="${esc(f.label)}" placeholder="Nama isian, misalnya Jabatan" maxlength="60">
+      <select name="jenis">${Object.entries(JENIS).map(([k, v]) => `<option value="${k}" ${f.jenis === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <label class="centang"><input type="checkbox" name="wajib" ${f.wajib ? 'checked' : ''}><span>Wajib</span></label>
+      <button class="tombol garis kecil" type="button" data-hapus="${i}" title="Hapus">Hapus</button>
+      ${f.jenis === 'pilihan' ? `<textarea name="pilihan" rows="2" placeholder="Pilihan, satu per baris">${esc((f.pilihan || []).join('\n'))}</textarea>` : ''}
+    </div>`).join('') || '<p class="kecil" style="text-align:center;padding:6px">Belum ada isian tambahan. Tekan tombol di bawah untuk menambah.</p>';
+  };
+  gambar();
+  wadah.addEventListener('change', (e) => { if (e.target.name === 'jenis') { ambil(); gambar(); } });
+  $('#f').addEventListener('click', (e) => {
+    const h = e.target.closest('[data-hapus]'), c = e.target.closest('[data-cepat]');
+    if (h) { ambil(); daftar.splice(+h.dataset.hapus, 1); gambar(); }
+    if (c) {
+      ambil();
+      const k = c.dataset.cepat === 'lain' ? ['', 'teks', false] : CEPAT[+c.dataset.cepat];
+      if (k[0] && daftar.some((f) => f.label.toLowerCase() === k[0].toLowerCase())) return Umum.toast(k[0] + ' sudah ada');
+      if (daftar.length >= 12) return Umum.toast('Paling banyak 12 isian tambahan');
+      daftar.push({ id: '', label: k[0], jenis: k[1], wajib: k[2], pilihan: k[3] || [] }); gambar();
+      const baru = wadah.querySelector(`[data-i="${daftar.length - 1}"] [name=label]`); if (baru && !k[0]) baru.focus();
+    }
+  });
+  $('#f').addEventListener('submit', async (e) => {
+    e.preventDefault(); ambil();
+    if (daftar.some((f) => !f.label)) return Umum.toast('Nama isian belum diisi');
+    if (daftar.some((f) => f.jenis === 'pilihan' && !(f.pilihan || []).length)) return Umum.toast('Isi daftar pilihan untuk isian jenis Pilihan');
+    const fd = new FormData(e.target);
+    try {
+      await simpanAcara({ isian: daftar, instansiMode: fd.get('instansiMode'), instansiPilihan: (fd.get('instansiPilihan') || '').split('\n').map((v) => v.trim()).filter(Boolean) });
+      Umum.toast('Isian absen tersimpan'); location.hash = '#/';
+    } catch (err) { Umum.toast(err.message); }
   });
 }
 
@@ -361,28 +452,86 @@ function layarTtd() {
 }
 
 // ---------------- peserta ----------------
+const pilihan = new Set();
+const dataP = (p) => { try { return JSON.parse(p.data || '{}') || {}; } catch (e) { return {}; } };
+const bersihNama = (t) => String(t || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').replace(/[.\s]+$/, '').trim();
 function layarPeserta() {
+  pilihan.clear();
   layar.innerHTML = kepala('Peserta', '<div class="baris-tombol"><button class="tombol garis kecil" id="tambah">+ Tambah</button><button class="tombol garis kecil" id="csv">Unduh Rekap</button></div>') +
-    `<div class="kartu"><input type="search" id="cari" placeholder="Cari nama, email, atau nomor"><div class="kecil" id="ringkas" style="margin-top:8px"></div><div class="daftar-peserta" id="dp"></div></div>`;
+    `<div class="kartu"><input type="search" id="cari" placeholder="Cari nama, email, instansi, atau nomor"><div class="kecil" id="ringkas" style="margin-top:8px"></div>
+      <div class="alat"><label class="centang"><input type="checkbox" id="pilihSemua"> <span>Pilih semua</span></label>
+        <div class="baris-tombol"><button class="tombol garis kecil" id="unduhPilih" type="button" disabled>Unduh Terpilih</button><button class="tombol emas kecil" id="unduhSemua" type="button">Unduh Semua PDF</button></div></div>
+      <div class="daftar-peserta" id="dp"></div></div>
+    <details class="kartu" id="kartuIns" style="margin-top:14px"><summary style="cursor:pointer;font-weight:700;color:var(--navy)">Rekap per Instansi</summary><div id="rekapIns"></div></details>`;
   $('#cari').addEventListener('input', gambarPeserta);
   $('#tambah').addEventListener('click', () => dialogPeserta(null));
   $('#csv').addEventListener('click', unduhCsv);
   $('#dp').addEventListener('click', aksiPeserta);
+  $('#dp').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('pilihP')) return;
+    const pk = e.target.closest('[data-pk]').dataset.pk;
+    e.target.checked ? pilihan.add(pk) : pilihan.delete(pk);
+    e.target.closest('.pes').classList.toggle('dipilih', e.target.checked);
+    segarPilih();
+  });
+  $('#pilihSemua').addEventListener('change', (e) => {
+    terlihat().filter((p) => p.status !== 'dicabut').forEach((p) => (e.target.checked ? pilihan.add(p.pk) : pilihan.delete(p.pk)));
+    gambarPeserta();
+  });
+  $('#unduhPilih').addEventListener('click', () => unduhBanyak(acara, peserta.filter((p) => pilihan.has(p.pk))));
+  $('#unduhSemua').addEventListener('click', () => unduhBanyak(acara, peserta));
   gambarPeserta();
+}
+function terlihat() {
+  const kata = (($('#cari') && $('#cari').value) || '').toLowerCase();
+  return peserta.filter((p) => !kata || [p.nama, p.email, p.nomor, p.instansi, ...Object.values(dataP(p))].join(' ').toLowerCase().includes(kata));
+}
+function segarPilih() {
+  const n = pilihan.size;
+  $('#unduhPilih').disabled = !n;
+  $('#unduhPilih').textContent = n ? `Unduh Terpilih (${n})` : 'Unduh Terpilih';
+  const bisa = terlihat().filter((p) => p.status !== 'dicabut');
+  $('#pilihSemua').checked = bisa.length > 0 && bisa.every((p) => pilihan.has(p.pk));
 }
 function chipEmail(p) {
   if (!p.email) return '';
   return p.email_status === 'terkirim' ? '<span class="chip ok">Email terkirim</span>' : p.email_status === 'gagal' ? '<span class="chip merah">Email gagal</span>' : '<span class="chip tutup">Email belum</span>';
 }
 function gambarPeserta() {
-  const kata = ($('#cari').value || '').toLowerCase();
-  const d = peserta.filter((p) => !kata || [p.nama, p.email, p.nomor, p.instansi].join(' ').toLowerCase().includes(kata));
+  const d = terlihat();
   $('#ringkas').textContent = peserta.filter((p) => p.status !== 'dicabut').length + ' sertifikat sah';
-  $('#dp').innerHTML = d.length ? d.slice().reverse().map((p) => `<div class="pes ${p.status === 'dicabut' ? 'dicabut' : ''}" data-pk="${esc(p.pk)}">
+  const isian = acara.isian || [];
+  $('#dp').innerHTML = d.length ? d.slice().reverse().map((p) => {
+    const x = dataP(p), tambahan = isian.filter((f) => x[f.id]).map((f) => esc(f.label) + ': ' + esc(x[f.id])).join(' · ');
+    const dip = pilihan.has(p.pk);
+    return `<div class="pes ${p.status === 'dicabut' ? 'dicabut' : ''} ${dip ? 'dipilih' : ''}" data-pk="${esc(p.pk)}">
+      <input type="checkbox" class="pilihP" ${dip ? 'checked' : ''} ${p.status === 'dicabut' ? 'disabled' : ''} aria-label="Pilih ${esc(p.nama)}">
       <div class="no">${p.urut}</div>
-      <div class="isi"><b>${esc(p.nama)}</b><small>${esc(p.nomor)} · ${esc(p.peran || '')}${p.instansi ? ' · ' + esc(p.instansi) : ''}</small><div style="margin-top:4px">${chipEmail(p)}${p.status === 'dicabut' ? ' <span class="chip merah">Dibatalkan</span>' : ''}</div></div>
+      <div class="isi"><b>${esc(p.nama)}</b><small>${[p.nomor, p.peran, p.instansi].filter(Boolean).map(esc).join(' · ')}</small>${tambahan ? `<small>${tambahan}</small>` : ''}<div style="margin-top:4px">${chipEmail(p)}${p.status === 'dicabut' ? ' <span class="chip merah">Dibatalkan</span>' : ''}</div></div>
       <div class="aksi"><button class="tombol garis kecil" data-aksi="menu" type="button">Kelola</button></div>
-    </div>`).join('') : `<p class="kecil" style="text-align:center;padding:20px">${peserta.length ? 'Tidak ada yang cocok.' : 'Belum ada peserta. Bagikan QR absen kepada peserta.'}</p>`;
+    </div>`;
+  }).join('') : `<p class="kecil" style="text-align:center;padding:20px">${peserta.length ? 'Tidak ada yang cocok.' : 'Belum ada peserta. Bagikan QR absen kepada peserta.'}</p>`;
+  segarPilih();
+  gambarRekapIns();
+}
+// jumlah peserta per instansi; ejaan berbeda (huruf besar, spasi) dianggap sama
+function rekapInstansi() {
+  const grup = new Map();
+  for (const p of peserta) {
+    if (p.status === 'dicabut') continue;
+    const asli = String(p.instansi || '').replace(/\s+/g, ' ').trim(), k = asli.toLowerCase().replace(/[.,]/g, '') || '~';
+    if (!grup.has(k)) grup.set(k, { nama: asli || '(tanpa instansi)', jumlah: 0, ejaan: {} });
+    const g = grup.get(k); g.jumlah++; g.ejaan[asli] = (g.ejaan[asli] || 0) + 1;
+  }
+  return [...grup.values()].map((g) => ({ nama: g.nama === '(tanpa instansi)' ? g.nama : Object.entries(g.ejaan).sort((a, b) => b[1] - a[1])[0][0], jumlah: g.jumlah }))
+    .sort((a, b) => (a.nama === '(tanpa instansi)') - (b.nama === '(tanpa instansi)') || b.jumlah - a.jumlah || a.nama.localeCompare(b.nama, 'id'));
+}
+function gambarRekapIns() {
+  const r = rekapInstansi(), total = r.reduce((a, x) => a + x.jumlah, 0);
+  $('#kartuIns').querySelector('summary').textContent = `Rekap per Instansi (${r.filter((x) => x.nama !== '(tanpa instansi)').length} instansi)`;
+  $('#rekapIns').innerHTML = r.length ? `<table class="rekap-ins"><thead><tr><th style="width:40px">NO</th><th>INSTANSI</th><th class="n">PESERTA</th></tr></thead><tbody>${r.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.nama)}</td><td class="n">${x.jumlah}</td></tr>`).join('')}<tr><td></td><td><b>Jumlah</b></td><td class="n"><b>${total}</b></td></tr></tbody></table>
+    <button class="tombol garis kecil" type="button" id="csvIns" style="margin-top:10px">Unduh Rekap Instansi</button>` : '<p class="kecil" style="margin-top:8px">Belum ada peserta.</p>';
+  const t = $('#csvIns'); if (t) t.onclick = () => simpanCsv(['No', 'Instansi', 'Jumlah Peserta'], [...r.map((x, i) => [i + 1, x.nama, x.jumlah]), ['', 'Jumlah', total]], 'Rekap Instansi ' + acara.judul);
 }
 function aksiPeserta(e) {
   const b = e.target.closest('[data-aksi]'); if (!b) return;
@@ -392,7 +541,7 @@ function aksiPeserta(e) {
     <div class="kolom">
       <button class="tombol garis lebar" value="pdf" ${p.status === 'dicabut' ? 'disabled' : ''}>Unduh PDF</button>
       <button class="tombol garis lebar" value="email" ${p.status === 'dicabut' || !p.email ? 'disabled' : ''}>Kirim Ulang ke Email</button>
-      <button class="tombol garis lebar" value="ubah">Ubah Nama atau Peran</button>
+      <button class="tombol garis lebar" value="ubah">Ubah Data</button>
       <button class="tombol ${p.status === 'dicabut' ? 'garis' : 'bahaya'} lebar" value="status">${p.status === 'dicabut' ? 'Pulihkan Sertifikat' : 'Batalkan Sertifikat'}</button>
       <button class="tombol garis lebar" value="tutup">Tutup</button>
     </div>`;
@@ -410,38 +559,124 @@ function aksiPeserta(e) {
     if (v === 'status') {
       const baru = p.status === 'dicabut' ? 'sah' : 'dicabut';
       if (baru === 'dicabut' && !confirm('Batalkan sertifikat ' + p.nama + '?')) return;
-      try { const d = await Umum.api(`/api/peserta/${acara.id}/${p.pk}`, { method: 'PATCH', body: { status: baru } }); Object.assign(p, d.peserta); gambarPeserta(); } catch (err) { Umum.toast(err.message); }
+      try { const d = await Umum.api(`/api/peserta/${acara.id}/${p.pk}`, { method: 'PATCH', body: { status: baru } }); Object.assign(p, d.peserta); if (baru === 'dicabut') pilihan.delete(p.pk); gambarPeserta(); } catch (err) { Umum.toast(err.message); }
     }
   };
 }
 function dialogPeserta(p) {
-  const dlg = $('#dialog'), f = $('#formDialog');
+  const dlg = $('#dialog'), f = $('#formDialog'), x = p ? dataP(p) : {};
   dlg.onclose = null;
+  const isian = (acara.isian || []).map((k) => k.jenis === 'pilihan'
+    ? `<select name="i_${k.id}"><option value="">${esc(k.label)}</option>${k.pilihan.map((v) => `<option ${x[k.id] === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`
+    : `<input type="text" name="i_${k.id}" value="${esc(x[k.id] || '')}" placeholder="${esc(k.label)}" maxlength="150">`).join('');
   f.innerHTML = `<h2 style="font-size:17px">${p ? 'Ubah Data' : 'Tambah Sertifikat'}</h2><p class="kecil" style="margin:4px 0 14px">${p ? 'Perubahan langsung berlaku saat diunduh ulang.' : 'Untuk narasumber, moderator, atau panitia.'}</p>
     <div class="kolom">
       <input type="text" name="nama" value="${esc(p ? p.nama : '')}" placeholder="Nama lengkap dan gelar" maxlength="120">
       ${p ? '' : '<input type="email" name="email" placeholder="Email (boleh kosong)" maxlength="120">'}
+      <input type="text" name="instansi" value="${esc(p ? p.instansi || '' : '')}" placeholder="Instansi (boleh kosong)" maxlength="120">
       <input type="text" name="peran" value="${esc(p ? p.peran : 'Narasumber')}" placeholder="Peran" maxlength="40" list="peranL">
       <datalist id="peranL"><option>Peserta</option><option>Narasumber</option><option>Moderator</option><option>Pembawa Acara</option><option>Panitia</option></datalist>
+      ${isian}
     </div>
     <div class="baris-tombol" style="margin-top:14px;justify-content:flex-end"><button class="tombol garis" value="batal" formnovalidate>Batal</button><button class="tombol emas" id="okD" type="button">Simpan</button></div>`;
   dlg.showModal();
   $('#okD').onclick = async () => {
-    const fd = new FormData(f), body = { nama: (fd.get('nama') || '').trim(), peran: (fd.get('peran') || '').trim() };
+    const fd = new FormData(f), body = { nama: (fd.get('nama') || '').trim(), peran: (fd.get('peran') || '').trim(), instansi: (fd.get('instansi') || '').trim(), isian: {} };
+    for (const k of acara.isian || []) { const v = (fd.get('i_' + k.id) || '').toString().trim(); if (v) body.isian[k.id] = v; }
     if (!p) body.email = (fd.get('email') || '').trim();
     try {
       if (p) { const d = await Umum.api(`/api/peserta/${acara.id}/${p.pk}`, { method: 'PATCH', body }); Object.assign(p, d.peserta); }
-      else { const d = await Umum.api(`/api/peserta/${acara.id}`, { method: 'POST', body }); if (!peserta.find((x) => x.pk === d.peserta.pk)) peserta.push(d.peserta); }
+      else { const d = await Umum.api(`/api/peserta/${acara.id}`, { method: 'POST', body }); if (!peserta.find((y) => y.pk === d.peserta.pk)) peserta.push(d.peserta); }
       dlg.close(); gambarPeserta(); Umum.toast('Tersimpan');
     } catch (err) { Umum.toast(err.message); }
   };
 }
-function unduhCsv() {
-  const kolom = ['No', 'Nama', 'Email', 'Instansi', 'Peran', 'Nomor', 'Kode Verifikasi', 'Status', 'Waktu (WIB)', 'Status Email'];
+function simpanCsv(kolom, baris, nama) {
   const sel = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const baris = peserta.map((p) => [p.urut, p.nama, p.email, p.instansi, p.peran, p.nomor, p.kode, p.status === 'dicabut' ? 'Dibatalkan' : 'Sah', Umum.waktuJam(p.waktu), p.email_status || ''].map(sel).join(','));
-  const blob = new Blob(['﻿' + [kolom.map(sel).join(','), ...baris].join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = 'Rekap Sertifikat ' + acara.judul.replace(/[\\/:*?"<>|]+/g, ' ') + '.csv'; l.click();
+  const blob = new Blob(['﻿' + [kolom, ...baris].map((r) => r.map(sel).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = bersihNama(nama) + '.csv'; l.click();
+}
+function unduhCsv() {
+  const isian = acara.isian || [];
+  const kolom = ['No', 'Nama', 'Email', 'Instansi', ...isian.map((f) => f.label), 'Peran', 'Nomor', 'Kode Verifikasi', 'Status', 'Waktu (WIB)', 'Status Email'];
+  const baris = peserta.map((p) => { const x = dataP(p); return [p.urut, p.nama, p.email, p.instansi, ...isian.map((f) => x[f.id] || ''), p.peran, p.nomor, p.kode, p.status === 'dicabut' ? 'Dibatalkan' : 'Sah', Umum.waktuJam(p.waktu), p.email_status || '']; });
+  simpanCsv(kolom, baris, 'Rekap Sertifikat ' + acara.judul);
+}
+
+// ---------------- unduh banyak sertifikat ----------------
+const TABEL_CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u) { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = TABEL_CRC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+// ZIP tanpa kompresi (PDF sudah terkompresi), nama berkas UTF-8
+function buatZip(berkas) {
+  const enc = new TextEncoder(), isi = [], pusat = [], d = new Date();
+  const tgl = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), jam = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  let posisi = 0;
+  for (const b of berkas) {
+    const n = enc.encode(b.nama), c = crc32(b.data), uk = b.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(10, jam, true); h.setUint16(12, tgl, true);
+    h.setUint32(14, c, true); h.setUint32(18, uk, true); h.setUint32(22, uk, true); h.setUint16(26, n.length, true);
+    isi.push(h.buffer, n, b.data);
+    const p = new DataView(new ArrayBuffer(46));
+    p.setUint32(0, 0x02014b50, true); p.setUint16(4, 20, true); p.setUint16(6, 20, true); p.setUint16(8, 0x0800, true); p.setUint16(12, jam, true); p.setUint16(14, tgl, true);
+    p.setUint32(16, c, true); p.setUint32(20, uk, true); p.setUint32(24, uk, true); p.setUint16(28, n.length, true); p.setUint32(42, posisi, true);
+    pusat.push(p.buffer, n);
+    posisi += 30 + n.length + uk;
+  }
+  const ukPusat = pusat.reduce((a, x) => a + x.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, berkas.length, true); e.setUint16(10, berkas.length, true); e.setUint32(12, ukPusat, true); e.setUint32(16, posisi, true);
+  return new Blob([...isi, ...pusat, e.buffer], { type: 'application/zip' });
+}
+function proses(judul, i, n) {
+  const el = $('#proses');
+  if (judul === null) return el.classList.add('tersembunyi');
+  el.classList.remove('tersembunyi');
+  $('#prosesJudul').textContent = judul;
+  $('#prosesKet').textContent = n ? `${i} dari ${n} sertifikat` : '';
+  $('#prosesBar').style.width = n ? Math.round(i / n * 100) + '%' : '0';
+}
+function simpanBlob(blob, nama) {
+  const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = nama; document.body.appendChild(l); l.click(); l.remove();
+  setTimeout(() => URL.revokeObjectURL(l.href), 60000);
+}
+async function unduhBanyak(a, daftar) {
+  daftar = daftar.filter((p) => p.status !== 'dicabut').sort((x, y) => x.urut - y.urut);
+  if (!daftar.length) return Umum.toast('Belum ada sertifikat untuk diunduh');
+  if (daftar.length === 1) { Umum.toast('Menyiapkan PDF...'); return Sertifikat.unduh(a, daftar[0]); }
+  const dlg = $('#dialog'), f = $('#formDialog');
+  f.innerHTML = `<h2 style="font-size:17px">Unduh ${daftar.length} Sertifikat</h2><p class="kecil" style="margin:4px 0 14px">${esc(a.judul)}</p>
+    <div class="kolom">
+      <button class="tombol emas lebar" value="zip">Berkas PDF per peserta (ZIP)</button>
+      <button class="tombol garis lebar" value="gabung">Satu PDF berisi semua</button>
+      <button class="tombol garis lebar" value="tutup">Batal</button>
+    </div>`;
+  dlg.onclose = async () => {
+    const v = dlg.returnValue; dlg.onclose = null;
+    if (v !== 'zip' && v !== 'gabung') return;
+    const judul = bersihNama('Sertifikat ' + a.judul);
+    try {
+      if (v === 'gabung') {
+        proses('Menyiapkan PDF', 0, daftar.length);
+        const doc = await Sertifikat.pdfGabung(a, daftar, (i, n) => proses('Menyiapkan PDF', i, n));
+        simpanBlob(doc.output('blob'), judul + '.pdf');
+      } else {
+        const berkas = [], dipakai = {};
+        for (let i = 0; i < daftar.length; i++) {
+          proses('Menyiapkan ZIP', i, daftar.length);
+          const doc = await Sertifikat.pdf(a, daftar[i]);
+          let nama = Sertifikat.namaBerkas(daftar[i].nama).replace(/\.pdf$/, '');
+          const k = nama.toLowerCase(); dipakai[k] = (dipakai[k] || 0) + 1;
+          if (dipakai[k] > 1) nama += ' (' + dipakai[k] + ')';
+          berkas.push({ nama: String(daftar[i].urut).padStart(3, '0') + ' ' + nama + '.pdf', data: new Uint8Array(doc.output('arraybuffer')) });
+        }
+        proses('Menyiapkan ZIP', daftar.length, daftar.length);
+        simpanBlob(buatZip(berkas), judul + '.zip');
+      }
+      Umum.toast('Unduhan siap');
+    } catch (err) { Umum.toast('Gagal menyiapkan berkas: ' + err.message); }
+    proses(null);
+  };
+  dlg.showModal();
 }
 
 // ---------------- bagikan ----------------
@@ -505,8 +740,17 @@ async function layarSemua() {
   const d = await Umum.api('/api/acara');
   layar.innerHTML = kepala('Semua Kegiatan', '<a class="tombol emas kecil" href="#/kegiatan-baru">+ Baru</a>') + `<div class="kartu"><div class="daftar-peserta" id="daftarSemua" style="margin-top:0">${d.acara.map((x) => `
     <div class="pes"><div class="isi"><b>${esc(x.judul)}</b><small>${esc([x.tanggal, x.jumlah + ' sertifikat'].filter(Boolean).join(' · '))}</small></div>
-    <div class="aksi">${x.aktif ? '<span class="chip ok">Aktif</span>' : `<button class="tombol garis kecil" data-id="${x.id}">Jadikan Aktif</button>`}</div></div>`).join('') || '<p class="kecil">Belum ada kegiatan.</p>'}</div></div>`;
+    <div class="aksi">${x.jumlah ? `<button class="tombol garis kecil" data-unduh="${x.id}">Unduh PDF</button>` : ''}${x.aktif ? '<span class="chip ok">Aktif</span>' : `<button class="tombol garis kecil" data-id="${x.id}">Jadikan Aktif</button>`}</div></div>`).join('') || '<p class="kecil">Belum ada kegiatan.</p>'}</div></div>`;
   $('#daftarSemua').onclick = async (e) => {
+    const u = e.target.closest('[data-unduh]');
+    if (u) {
+      try {
+        proses('Memuat peserta', 0, 0);
+        const [ac, ps] = await Promise.all([Umum.api('/api/acara/' + u.dataset.unduh), Umum.api('/api/peserta/' + u.dataset.unduh)]);
+        proses(null); unduhBanyak(ac.acara, ps.peserta);
+      } catch (err) { proses(null); Umum.toast(err.message); }
+      return;
+    }
     const b = e.target.closest('[data-id]'); if (!b) return;
     try { await Umum.api('/api/aktif', { method: 'PUT', body: { id: b.dataset.id } }); await muatAktif(); Umum.toast('Kegiatan aktif diganti'); location.hash = '#/'; } catch (err) { Umum.toast(err.message); }
   };
@@ -537,10 +781,10 @@ async function rute() {
     if (!sudahMuat) { await muatAktif(); aturEmail = (await Umum.api('/api/pengaturan')).pengaturan; sudahMuat = true; }
     $('#menu').classList.remove('tersembunyi'); $('#keluar').classList.remove('tersembunyi');
     gambarMenu(r);
-    const perluAcara = ['kegiatan', 'desain', 'ttd', 'peserta', 'bagikan'].includes(r);
+    const perluAcara = ['kegiatan', 'isian', 'desain', 'ttd', 'peserta', 'bagikan'].includes(r);
     if (perluAcara && !acara) return layarRingkas();
     if (r === 'peserta') peserta = (await Umum.api('/api/peserta/' + acara.id)).peserta;
-    ({ '': layarRingkas, kegiatan: () => layarKegiatan(false), 'kegiatan-baru': () => layarKegiatan(true), desain: layarDesain, ttd: layarTtd, peserta: layarPeserta, bagikan: layarBagikan, email: layarEmail, semua: layarSemua, sandi: layarSandi }[r] || layarRingkas)();
+    ({ '': layarRingkas, kegiatan: () => layarKegiatan(false), isian: layarIsian, 'kegiatan-baru': () => layarKegiatan(true), desain: layarDesain, ttd: layarTtd, peserta: layarPeserta, bagikan: layarBagikan, email: layarEmail, semua: layarSemua, sandi: layarSandi }[r] || layarRingkas)();
     window.scrollTo(0, 0);
   } catch (e) {
     if (e.status === 401) { Umum.kode.hapus(); sudahMuat = false; return layarMasuk('Sesi berakhir, silakan masuk lagi.'); }
