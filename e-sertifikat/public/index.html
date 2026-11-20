@@ -58,7 +58,7 @@
     <div class="tata tersembunyi" id="tataForm">
       <form class="kartu" id="form" novalidate>
         <h2 class="hanya-lebar">Isi Daftar Hadir</h2>
-        <p class="ket hanya-lebar" style="margin:4px 0 18px">Setelah daftar hadir terkirim, sertifikat elektronik dikirim ke email Anda.</p>
+        <p class="ket hanya-lebar" style="margin:4px 0 18px">Setelah daftar hadir terkirim, sertifikat elektronik akan dikirim panitia ke email Anda.</p>
         <div class="kolom">
           <label class="isian"><span class="wajib">Nama lengkap dan gelar</span>
             <input type="text" id="nama" maxlength="120" autocomplete="name" placeholder="Tulis persis seperti di sertifikat" required>
@@ -205,7 +205,7 @@ $('form').addEventListener('submit', async (e) => {
     const d = await Umum.api('/api/hadir/' + id, { method: 'POST', body: { nama, email, instansi, isian } });
     hasil = d.peserta;
     $('selesaiKet').innerHTML = (d.ulang ? 'Anda sudah mengisi daftar hadir sebelumnya. ' : 'Terima kasih atas kehadiran Anda. ') +
-      (d.emailAktif ? 'Sertifikat elektronik dikirim ke email Anda.' : 'Sertifikat elektronik akan dibagikan oleh panitia.');
+      'Sertifikat elektronik akan dikirim panitia ke email Anda.';
     const baris = [['Nama', hasil.nama], ['Email', email]];
     if (instansi && acara.instansiMode !== 'sembunyi') baris.push(['Instansi', instansi]);
     for (const f of acara.isian || []) if (isian[f.id]) baris.push([f.label, isian[f.id]]);
@@ -217,7 +217,6 @@ $('form').addEventListener('submit', async (e) => {
     document.body.classList.add('sudah');
     $('selesai').classList.remove('tersembunyi');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (d.emailAktif) kirimEmail(email);
   } catch (err) {
     galat(err.message);
   } finally {
@@ -228,19 +227,6 @@ $('form').addEventListener('submit', async (e) => {
 let dokumen = null;
 // PDF hanya dibuat untuk dilampirkan di email; peserta tidak mengunduhnya di halaman ini.
 async function siapkanPdf() { if (!dokumen) dokumen = await Sertifikat.pdf(acara, hasil); return dokumen; }
-
-async function kirimEmail(email) {
-  const el = $('statusEmail');
-  el.classList.remove('tersembunyi'); el.innerHTML = '<span class="memuat" style="width:12px;height:12px"></span> Mengirim sertifikat ke ' + Umum.esc(email) + '...';
-  try {
-    const pdf = (await siapkanPdf()).output('datauristring').split(',')[1];
-    const r = await Umum.api(`/api/kirim/${id}/${hasil.kode}`, { method: 'POST', body: { pdf } });
-    if (r.email_status === 'belum diatur') el.classList.add('tersembunyi');
-    else el.textContent = (r.lewati ? 'Sertifikat sudah pernah dikirim ke ' : 'Sertifikat juga sudah dikirim ke ') + email + '.';
-  } catch (e) {
-    el.textContent = 'Email belum terkirim. Panitia akan mengirimkan sertifikat Anda.';
-  }
-}
 
 mulai();
 </script>

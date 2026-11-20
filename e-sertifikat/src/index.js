@@ -409,21 +409,16 @@ async function api(req, env, url) {
 
   // ---- kirim sertifikat PDF ke email peserta ----
   if (p[0] === 'kirim' && p[1] && p[2] && m === 'POST') {
+    if (!admin) return salah('Pengiriman email hanya dapat dilakukan oleh admin.', 401);
     const acara = await ambilAcara(env, p[1]);
     if (!acara) return salah('Acara tidak ditemukan.', 404);
     const rec = await env.DB.prepare('SELECT * FROM peserta WHERE acara = ? AND kode = ?').bind(p[1], p[2].toUpperCase()).first();
     if (!rec || rec.status !== 'sah') return salah('Sertifikat tidak ditemukan.', 404);
     if (!rec.email) return salah('Peserta ini tidak memiliki email.');
-    if (!admin && (acara.kirimEmail === false || rec.email_status === 'terkirim' || rec.email_status === 'dikirim')) return json({ ok: true, lewati: true, email_status: rec.email_status });
     const atur = await ambilPengaturan(env);
     if (!atur.mailerUrl || !atur.mailerKunci) return json({ ok: true, lewati: true, email_status: 'belum diatur' });
     const b = await badan();
     if (typeof b.pdf !== 'string' || b.pdf.length > 4000000 || !b.pdf.startsWith('JVBER')) return salah('Berkas PDF tidak sah.');
-    // tandai lebih dulu agar tidak terkirim dua kali bila tombol ditekan berulang
-    if (!admin) {
-      const r = await env.DB.prepare("UPDATE peserta SET email_status = 'dikirim', email_waktu = ? WHERE acara = ? AND pk = ? AND (email_status IS NULL OR email_status = 'gagal')").bind(new Date().toISOString(), p[1], rec.pk).run();
-      if (!r.meta.changes) return json({ ok: true, lewati: true });
-    }
     const e = isiEmail(atur, acara, rec, url.origin);
     try {
       await kirimLewatMailer(atur, { to: rec.email, subject: e.subjek, html: e.html, text: e.teks, nama: e.pengirim, pdf: b.pdf, namaBerkas: 'Sertifikat ' + rec.nama.replace(/[\\/:*?"<>|]+/g, ' ').replace(/[.\s]+$/, '').trim() + '.pdf' });
@@ -456,7 +451,7 @@ async function api(req, env, url) {
     if (rec.status === 'dicabut') return salah('Sertifikat untuk email ini telah dibatalkan oleh panitia.', 403);
     const atur = await ambilPengaturan(env);
     if (atur.asal !== url.origin) await simpanAtur('asal', url.origin).run();
-    return json({ ok: true, ulang, emailAktif: !!(atur.mailerUrl && atur.mailerKunci) && acara.kirimEmail !== false, peserta: untukPeserta(rec) });
+    return json({ ok: true, ulang, peserta: untukPeserta(rec) });
   }
 
   // ---- kelola peserta (pengelola) ----
@@ -517,37 +512,9 @@ async function api(req, env, url) {
   return salah('Alamat tidak dikenal.', 404);
 }
 
-// ---------- pengiriman susulan: email yang belum terkirim dari halaman peserta ----------
-async function emailSusulan(env) {
-  await siapkanDb(env);
-  const atur = await ambilPengaturan(env);
-  if (!atur.mailerUrl || !atur.mailerKunci || !atur.asal) return;
-  const kini = Date.now(), iso = (ms) => new Date(kini - ms).toISOString();
-  const { results } = await env.DB.prepare(
-    `SELECT * FROM peserta WHERE sumber = 'hadir' AND status = 'sah' AND email <> '' AND waktu > ?
-       AND ((email_status IS NULL AND waktu < ?) OR (email_status = 'dikirim' AND email_waktu < ?))
-     ORDER BY waktu LIMIT 15`).bind(iso(864e5), iso(75e3), iso(18e4)).all();
-  const daftarAcara = {};
-  for (const rec of results) {
-    const acara = daftarAcara[rec.acara] || (daftarAcara[rec.acara] = await ambilAcara(env, rec.acara));
-    if (!acara || acara.kirimEmail === false) continue;
-    const klaim = await env.DB.prepare(
-      `UPDATE peserta SET email_status = 'dikirim', email_waktu = ? WHERE acara = ? AND pk = ?
-         AND (email_status IS NULL OR (email_status = 'dikirim' AND email_waktu < ?))`).bind(new Date().toISOString(), rec.acara, rec.pk, iso(18e4)).run();
-    if (!klaim.meta.changes) continue;
-    try {
-      const e = isiEmail(atur, acara, rec, atur.asal, true);
-      await kirimLewatMailer(atur, { to: rec.email, subject: e.subjek, html: e.html, text: e.teks, nama: e.pengirim });
-      await env.DB.prepare("UPDATE peserta SET email_status = 'terkirim', email_waktu = ? WHERE acara = ? AND pk = ?").bind(new Date().toISOString(), rec.acara, rec.pk).run();
-    } catch (err) {
-      await env.DB.prepare("UPDATE peserta SET email_status = 'gagal', email_waktu = ? WHERE acara = ? AND pk = ?").bind(new Date().toISOString(), rec.acara, rec.pk).run();
-    }
-  }
-}
-
 export default {
   async scheduled(ev, env, ctx) {
-    ctx.waitUntil(emailSusulan(env));
+    // email hanya dikirim oleh admin dari menu Peserta
   },
   async fetch(req, env) {
     const url = new URL(req.url);

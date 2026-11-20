@@ -461,6 +461,8 @@ function layarPeserta() {
     `<div class="kartu"><input type="search" id="cari" placeholder="Cari nama, email, instansi, atau nomor"><div class="kecil" id="ringkas" style="margin-top:8px"></div>
       <div class="alat"><label class="centang"><input type="checkbox" id="pilihSemua"> <span>Pilih semua</span></label>
         <div class="baris-tombol"><button class="tombol garis kecil" id="unduhPilih" type="button" disabled>Unduh Terpilih</button><button class="tombol emas kecil" id="unduhSemua" type="button">Unduh Semua PDF</button></div></div>
+      <div class="alat" style="margin-top:8px"><span class="kecil">Kirim sertifikat ke email peserta</span>
+        <div class="baris-tombol"><button class="tombol garis kecil" id="emailPilih" type="button" disabled>Kirim Email Terpilih</button><button class="tombol emas kecil" id="emailSemua" type="button">Kirim ke yang Belum</button></div></div>
       <div class="daftar-peserta" id="dp"></div></div>
     <details class="kartu" id="kartuIns" style="margin-top:14px"><summary style="cursor:pointer;font-weight:700;color:var(--navy)">Rekap per Instansi</summary><div id="rekapIns"></div></details>`;
   $('#cari').addEventListener('input', gambarPeserta);
@@ -480,6 +482,8 @@ function layarPeserta() {
   });
   $('#unduhPilih').addEventListener('click', () => unduhBanyak(acara, peserta.filter((p) => pilihan.has(p.pk))));
   $('#unduhSemua').addEventListener('click', () => unduhBanyak(acara, peserta));
+  $('#emailPilih').addEventListener('click', () => kirimBanyak(acara, peserta.filter((p) => pilihan.has(p.pk))));
+  $('#emailSemua').addEventListener('click', () => kirimBanyak(acara, peserta.filter((p) => p.email_status !== 'terkirim')));
   gambarPeserta();
 }
 function terlihat() {
@@ -490,6 +494,8 @@ function segarPilih() {
   const n = pilihan.size;
   $('#unduhPilih').disabled = !n;
   $('#unduhPilih').textContent = n ? `Unduh Terpilih (${n})` : 'Unduh Terpilih';
+  $('#emailPilih').disabled = !n;
+  $('#emailPilih').textContent = n ? `Kirim Email Terpilih (${n})` : 'Kirim Email Terpilih';
   const bisa = terlihat().filter((p) => p.status !== 'dicabut');
   $('#pilihSemua').checked = bisa.length > 0 && bisa.every((p) => pilihan.has(p.pk));
 }
@@ -540,7 +546,7 @@ function aksiPeserta(e) {
   f.innerHTML = `<h2 style="font-size:17px">${esc(p.nama)}</h2><p class="kecil" style="margin:4px 0 14px">${esc(p.nomor)}${p.email ? ' · ' + esc(p.email) : ''}</p>
     <div class="kolom">
       <button class="tombol garis lebar" value="pdf" ${p.status === 'dicabut' ? 'disabled' : ''}>Unduh PDF</button>
-      <button class="tombol garis lebar" value="email" ${p.status === 'dicabut' || !p.email ? 'disabled' : ''}>Kirim Ulang ke Email</button>
+      <button class="tombol garis lebar" value="email" ${p.status === 'dicabut' || !p.email ? 'disabled' : ''}>Kirim ke Email</button>
       <button class="tombol garis lebar" value="ubah">Ubah Data</button>
       <button class="tombol ${p.status === 'dicabut' ? 'garis' : 'bahaya'} lebar" value="status">${p.status === 'dicabut' ? 'Pulihkan Sertifikat' : 'Batalkan Sertifikat'}</button>
       <button class="tombol garis lebar" value="tutup">Tutup</button>
@@ -639,6 +645,24 @@ function simpanBlob(blob, nama) {
   const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = nama; document.body.appendChild(l); l.click(); l.remove();
   setTimeout(() => URL.revokeObjectURL(l.href), 60000);
 }
+async function kirimBanyak(a, daftar) {
+  daftar = daftar.filter((p) => p.status !== 'dicabut' && p.email).sort((x, y) => x.urut - y.urut);
+  if (!daftar.length) return Umum.toast('Tidak ada peserta dengan email untuk dikirimi');
+  if (!confirm(`Kirim sertifikat ke email ${daftar.length} peserta?`)) return;
+  let ok = 0, gagal = 0;
+  for (let i = 0; i < daftar.length; i++) {
+    proses('Mengirim email', i, daftar.length);
+    const p = daftar[i];
+    try {
+      const pdf = (await Sertifikat.pdf(a, p)).output('datauristring').split(',')[1];
+      const d = await Umum.api(`/api/kirim/${a.id}/${p.kode}`, { method: 'POST', body: { pdf } });
+      if (d.lewati) { proses(null); gambarPeserta(); return Umum.toast('Email belum diatur. Buka menu Email Otomatis.'); }
+      p.email_status = 'terkirim'; ok++;
+    } catch (err) { p.email_status = 'gagal'; gagal++; }
+  }
+  proses(null); gambarPeserta();
+  Umum.toast(gagal ? `${ok} email terkirim, ${gagal} gagal` : `${ok} email terkirim`, 5000);
+}
 async function unduhBanyak(a, daftar) {
   daftar = daftar.filter((p) => p.status !== 'dicabut').sort((x, y) => x.urut - y.urut);
   if (!daftar.length) return Umum.toast('Belum ada sertifikat untuk diunduh');
@@ -702,7 +726,7 @@ async function layarEmail() {
   aturEmail = (await Umum.api('/api/pengaturan')).pengaturan;
   const d = aturEmail;
   layar.innerHTML = kepala('Email Otomatis', d.siap ? '<span class="chip ok">Aktif</span>' : '<span class="chip tutup">Belum aktif</span>') + `<form class="kartu" id="f">
-    <p class="ket sembunyi-hp">Setelah absen, peserta otomatis menerima email berisi sertifikat PDF dan tautan cek keaslian.</p>
+    <p class="ket sembunyi-hp">Email tidak terkirim otomatis. Admin mengirim sertifikat PDF beserta tautan cek keaslian dari menu Peserta, per peserta, yang dicentang, atau semua yang belum menerima.</p>
     <details class="lain"><summary>${d.siap ? 'Cara menghubungkan Gmail' : 'Langkah menghubungkan Gmail (wajib, sekali saja)'}</summary>
       <ol class="kecil" style="margin-left:18px;line-height:1.75">
         <li>Klik <b>Salin Kode</b>.</li>
