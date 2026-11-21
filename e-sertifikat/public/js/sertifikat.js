@@ -14,22 +14,22 @@
     },
     // desain bercorak Pengayoman, latar dibuat dengan alat/latar-mewah.mjs
     pengayoman: {
-      latar: '/desain/pengayoman.jpg', foil: ['#D9BC78', '#B8923A', '#8E6D24', '#C9A24C', '#7E601D'],
+      latar: '/desain/pengayoman.jpg', logoY: 38, foil: ['#D9BC78', '#B8923A', '#8E6D24', '#C9A24C', '#7E601D'],
       kop1: '#6B5A3A', kop2: '#3A2E1A', aksen: '#B8923A', teks: '#2B2416', lembut: '#5E5240', redup: '#7D7262',
       acara: '#8E6D24', peran: '#A7802C', nomor: '#8E6D24', bingkaiQr: '#B8923A',
     },
     agung: {
-      latar: '/desain/agung.jpg', judul: '#1F2A5A',
+      latar: '/desain/agung.jpg', logoY: 38, judul: '#1F2A5A',
       kop1: '#3F4A6E', kop2: '#1F2A5A', aksen: '#B8923A', teks: '#1A2340', lembut: '#4A5578', redup: '#6B7490',
       acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
     },
     marun: {
-      latar: '/desain/marun.jpg', judul: '#6B0F1E',
+      latar: '/desain/marun.jpg', logoY: 38, judul: '#6B0F1E',
       kop1: '#7A4A50', kop2: '#5A0F1C', aksen: '#BE9443', teks: '#3A1A1E', lembut: '#6A4A4E', redup: '#86696C',
       acara: '#6E1423', peran: '#A97F31', nomor: '#9A7430', bingkaiQr: '#BE9443',
     },
     gorga: {
-      latar: '/desain/gorga.jpg', judul: '#141414',
+      latar: '/desain/gorga.jpg', logoY: 38, judul: '#141414',
       kop1: '#4A3F36', kop2: '#141414', aksen: '#B8923A', teks: '#1A1614', lembut: '#4E4640', redup: '#776E66',
       acara: '#8A1A28', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
     },
@@ -181,7 +181,7 @@
   // ---------- satu tata letak resmi untuk semua desain ----------
   function modelResmi(ctx, acara, peserta, opsi, t, logo) {
     if (acara.tampilKop !== false) {
-      ctx.drawImage(logo, CX - 32, 48, 64, 70);
+      ctx.drawImage(logo, CX - 32, t.logoY || 48, 64, 70);
       tulis(ctx, (acara.kop1 || '').toUpperCase(), CX, 142, { keluarga: 'Cinzel', tebal: 600, ukuran: 12.5, jarak: 2.6, warna: t.kop1, maks: 760 });
       tulis(ctx, (acara.kop2 || '').toUpperCase(), CX, 162, { keluarga: 'Cinzel', tebal: 700, ukuran: 15.5, jarak: 1.6, warna: t.kop2, maks: 760 });
       pemisah(ctx, 178, 320, t.aksen);
