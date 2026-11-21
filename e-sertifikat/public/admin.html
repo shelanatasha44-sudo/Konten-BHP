@@ -375,7 +375,7 @@ function layarDesain() {
   layar.innerHTML = kepala('Desain Sertifikat') + `<form class="kartu" id="f"><div class="dua-kolom">
     <div>
       <div class="pilih">
-        ${[['pengayoman', 'Pengayoman Emas'], ['agung', 'Navy Agung'], ['marun', 'Marun Kencana'], ['zamrud', 'Zamrud Emas'], ['resmi', 'Resmi'], ['gading', 'Gading']].map(([k, l]) =>
+        ${[['pengayoman', 'Pengayoman Ulos Emas'], ['agung', 'Navy Agung Ragidup'], ['marun', 'Ulos Marun Kencana'], ['gorga', 'Gorga Sitolu Bolit'], ['resmi', 'Resmi'], ['gading', 'Gading']].map(([k, l]) =>
           `<label><input type="radio" name="desain" value="${k}" ${(a.desain || 'resmi') === k ? 'checked' : ''}><img src="/desain/${k}.jpg" alt="">${l}</label>`).join('')}
         <label><input type="radio" name="desain" value="sendiri" ${a.desain === 'sendiri' ? 'checked' : ''}>${a.latarVersi ? `<img id="gbrSendiri" src="/api/latar/${a.id}?v=${a.latarVersi}" alt="">` : '<span class="kosong" id="gbrSendiri"><b>+</b>Canva</span>'}Desain Sendiri</label>
       </div>

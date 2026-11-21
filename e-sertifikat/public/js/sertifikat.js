@@ -24,14 +24,14 @@
       acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
     },
     marun: {
-      latar: '/desain/marun.jpg', judul: '#6E1423',
+      latar: '/desain/marun.jpg', judul: '#6B0F1E',
       kop1: '#7A4A50', kop2: '#5A0F1C', aksen: '#BE9443', teks: '#3A1A1E', lembut: '#6A4A4E', redup: '#86696C',
       acara: '#6E1423', peran: '#A97F31', nomor: '#9A7430', bingkaiQr: '#BE9443',
     },
-    zamrud: {
-      latar: '/desain/zamrud.jpg', judul: '#0D4A3A',
-      kop1: '#3E5E54', kop2: '#0D4A3A', aksen: '#B8923A', teks: '#12302A', lembut: '#3F5A52', redup: '#66807A',
-      acara: '#0D4A3A', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
+    gorga: {
+      latar: '/desain/gorga.jpg', judul: '#141414',
+      kop1: '#4A3F36', kop2: '#141414', aksen: '#B8923A', teks: '#1A1614', lembut: '#4E4640', redup: '#776E66',
+      acara: '#8A1A28', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
     },
   };
   const hex = (w, cadangan) => (/^#[0-9a-fA-F]{6}$/.test(w || '') ? w : cadangan);
@@ -181,7 +181,7 @@
   // ---------- satu tata letak resmi untuk semua desain ----------
   function modelResmi(ctx, acara, peserta, opsi, t, logo) {
     if (acara.tampilKop !== false) {
-      ctx.drawImage(logo, CX - 31, 48, 62, 70);
+      ctx.drawImage(logo, CX - 32, 48, 64, 70);
       tulis(ctx, (acara.kop1 || '').toUpperCase(), CX, 142, { keluarga: 'Cinzel', tebal: 600, ukuran: 12.5, jarak: 2.6, warna: t.kop1, maks: 760 });
       tulis(ctx, (acara.kop2 || '').toUpperCase(), CX, 162, { keluarga: 'Cinzel', tebal: 700, ukuran: 15.5, jarak: 1.6, warna: t.kop2, maks: 760 });
       pemisah(ctx, 178, 320, t.aksen);

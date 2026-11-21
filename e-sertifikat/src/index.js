@@ -132,7 +132,7 @@ function rapikanAcara(masuk, lama = {}) {
     tanggal: bersih(m.tanggal, 80),
     tempat: bersih(m.tempat, 120),
     penyelenggara: bersih(m.penyelenggara, 120),
-    desain: ['resmi', 'gading', 'pengayoman', 'agung', 'marun', 'zamrud', 'sendiri'].includes(m.desain) ? m.desain : 'resmi',
+    desain: ['resmi', 'gading', 'pengayoman', 'agung', 'marun', 'gorga', 'sendiri'].includes(m.desain) ? m.desain : 'resmi',
     warnaTeks: hexSah(m.warnaTeks, '#1F2A5A'),
     warnaAksen: hexSah(m.warnaAksen, '#B8923A'),
     tampilKop: m.tampilKop !== false,
@@ -168,7 +168,24 @@ const SKEMA = [
   'CREATE TABLE IF NOT EXISTS latar (acara TEXT PRIMARY KEY, data TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS pengaturan (k TEXT PRIMARY KEY, v TEXT)',
   'CREATE TABLE IF NOT EXISTS sesi (token TEXT PRIMARY KEY, kadaluarsa TEXT NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS berkas (jalur TEXT PRIMARY KEY, tipe TEXT NOT NULL, data TEXT NOT NULL, diubah TEXT NOT NULL)',
 ];
+
+// ---------- berkas halaman pengganti ----------
+// Bila sebuah berkas di folder public belum bisa ikut terpasang lewat wrangler, isinya dapat disimpan di tabel berkas
+// (data base64). Worker menyajikannya lebih dulu; bila tidak ada, berkas biasa dari folder public yang dipakai.
+// Kosongkan tabel ini setelah pemasangan biasa berhasil.
+const BERKAS_TIMPA = /^\/(admin\.html|js\/[\w.-]+|img\/[\w.-]+|desain\/[\w.-]+)$/;
+const cacheBerkas = new Map();
+async function berkasTimpaan(env, jalur) {
+  const kini = Date.now(), c = cacheBerkas.get(jalur);
+  if (c && kini - c.t < 60000) return c.r;
+  let r = null;
+  try { r = await env.DB.prepare('SELECT tipe, data, diubah FROM berkas WHERE jalur = ?').bind(jalur).first(); } catch { r = null; }
+  if (r) r = { tipe: r.tipe, isi: Uint8Array.from(atob(r.data), (x) => x.charCodeAt(0)), etag: '"' + r.diubah + '"' };
+  cacheBerkas.set(jalur, { t: kini, r });
+  return r;
+}
 let dbSiap = null;
 function siapkanDb(env) {
   if (!dbSiap) {
@@ -537,6 +554,15 @@ export default {
       if (/^\/hadir\/[A-Za-z0-9]+\/?$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/', url), req));
       if (/^\/kelola\/?$/.test(url.pathname)) return Response.redirect(new URL('/admin', url), 302);
       if (/^\/v\/[A-Za-z0-9-]+\/?$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/v', url), req));
+      const jalur = /^\/admin\/?$/.test(url.pathname) ? '/admin.html' : url.pathname;
+      if (BERKAS_TIMPA.test(jalur) && (req.method === 'GET' || req.method === 'HEAD')) {
+        const b = await berkasTimpaan(env, jalur);
+        if (b) {
+          const hdr = { 'content-type': b.tipe, etag: b.etag, 'cache-control': /^image\//.test(b.tipe) ? 'public, max-age=3600' : 'public, max-age=0, must-revalidate' };
+          if (req.headers.get('if-none-match') === b.etag) return new Response(null, { status: 304, headers: hdr });
+          return new Response(req.method === 'HEAD' ? null : b.isi, { headers: hdr });
+        }
+      }
       return env.ASSETS.fetch(req);
     } catch (e) {
       return salah('Terjadi gangguan: ' + String((e && e.message) || e), 500);

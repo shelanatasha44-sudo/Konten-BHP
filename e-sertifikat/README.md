@@ -9,3 +9,14 @@ Web sertifikat elektronik. Halaman utama adalah daftar hadir kegiatan aktif. Pes
 - `src/index.js` Cloudflare Worker (API); tabel database D1 dibuat otomatis saat pertama dipakai
 - Desain sertifikat: Resmi Navy Emas, Gading Lembut, atau desain sendiri (misalnya dari Canva)
 - Email otomatis lewat Google Apps Script milik panitia (menu Email Otomatis), dengan pengiriman susulan tiap menit
+
+## Logo dan desain bercorak Pengayoman
+
+- `alat/logo.mjs` logo Pengayoman geometris; `node alat/buat-logo.mjs` membuat `public/img/logo.png` dan `logo.svg`
+- `node alat/latar-mewah.mjs` membuat latar desain Pengayoman Ulos Emas, Navy Agung Ragidup, Ulos Marun Kencana, dan Gorga Sitolu Bolit di `public/desain/`
+
+## Tabel `berkas` (berkas pengganti)
+
+Worker menyajikan berkas di tabel D1 `berkas` (kolom `jalur`, `tipe`, `data` base64) lebih dulu daripada folder `public`
+untuk `/admin`, `/js/*`, `/img/*`, dan `/desain/*`. Ini dipakai bila berkas belum bisa ikut terpasang lewat wrangler.
+Setelah `npx wrangler deploy` biasa berhasil memasang folder `public`, kosongkan tabel ini: `DELETE FROM berkas`.
