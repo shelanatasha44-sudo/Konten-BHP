@@ -558,7 +558,7 @@ export default {
       if (BERKAS_TIMPA.test(jalur) && (req.method === 'GET' || req.method === 'HEAD')) {
         const b = await berkasTimpaan(env, jalur);
         if (b) {
-          const hdr = { 'content-type': b.tipe, etag: b.etag, 'cache-control': /^image\//.test(b.tipe) ? 'public, max-age=3600' : 'public, max-age=0, must-revalidate' };
+          const hdr = { 'content-type': b.tipe, etag: b.etag, 'cache-control': 'public, max-age=0, must-revalidate' };
           if (req.headers.get('if-none-match') === b.etag) return new Response(null, { status: 304, headers: hdr });
           return new Response(req.method === 'HEAD' ? null : b.isi, { headers: hdr });
         }
