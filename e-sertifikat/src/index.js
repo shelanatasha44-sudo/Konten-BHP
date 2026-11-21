@@ -430,8 +430,15 @@ async function api(req, env, url) {
       const b = await badan();
       const ke = bersih(b.email, 120).toLowerCase();
       if (!emailSah(ke)) return salah('Alamat email uji belum benar.');
-      const contoh = { nama: 'Nama Peserta', nomor: '001/SERT', kode: 'CONTOH0000' };
-      const e = isiEmail(atur, { judul: 'Contoh Kegiatan', penyelenggara: BAWAAN.penyelenggara }, contoh, url.origin);
+      // email uji memakai data kegiatan aktif (judul, penyelenggara, pola nomor) dengan nama peserta contoh
+      let aktif = atur.acaraAktif ? await ambilAcara(env, atur.acaraAktif) : null;
+      if (!aktif) {
+        const r = await env.DB.prepare('SELECT id FROM acara ORDER BY dibuat DESC LIMIT 1').first();
+        aktif = r ? await ambilAcara(env, r.id) : null;
+      }
+      const ac = aktif || { judul: 'Contoh Kegiatan', penyelenggara: BAWAAN.penyelenggara, formatNomor: '' };
+      const contoh = { nama: 'Nama Peserta', nomor: (ac.formatNomor || '').replace(/\{n\}/g, '001'), kode: 'CONTOH0000' };
+      const e = isiEmail(atur, ac, contoh, url.origin);
       try { const d = await kirimLewatMailer(atur, { to: ke, subject: '[Uji] ' + e.subjek, html: e.html, text: e.teks, nama: e.pengirim }); return json({ ok: true, sisa: d.sisa }); }
       catch (err) { return salah(err.message, 502); }
     }
