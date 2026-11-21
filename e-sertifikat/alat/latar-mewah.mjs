@@ -204,19 +204,6 @@ function tandaAirMotif(id, nama, warna, kuat = 0.09, x = 0, y = 0, lebar = W, ti
     </g>`;
 }
 
-// celah kop: bidang kertas polos di tengah atas tempat logo, sehingga pita ulos, garis bingkai, dan motif
-// tidak menumpuk di belakang logo. Ujung yang terpotong ditutup garis emas rapi.
-const L_CELAH = 92, B_CELAH = 124;
-const celahKop = (kertas, emas) => {
-  const x0 = CX - L_CELAH, x1 = CX + L_CELAH, r = 16;
-  const d = `M${x0} 0 V${B_CELAH - r} Q${x0} ${B_CELAH} ${x0 + r} ${B_CELAH} H${x1 - r} Q${x1} ${B_CELAH} ${x1} ${B_CELAH - r} V0 Z`;
-  return `<defs><clipPath id="klipCelah"><path d="${d}"/></clipPath></defs>
-    <path d="${d}" fill="url(#${kertas})"/>
-    <g clip-path="url(#klipCelah)">${serat(.14)}</g>
-    <path d="M${x0} 0 V${B_CELAH - r} Q${x0} ${B_CELAH} ${x0 + r} ${B_CELAH} H${x1 - r} Q${x1} ${B_CELAH} ${x1} ${B_CELAH - r} V0" fill="none" stroke="${emas}" stroke-width="1.4"/>
-    <path d="M${x0 + 5} 0 V${B_CELAH - r - 1} Q${x0 + 5} ${B_CELAH - 5} ${x0 + r + 3} ${B_CELAH - 5} H${x1 - r - 3} Q${x1 - 5} ${B_CELAH - 5} ${x1 - 5} ${B_CELAH - r - 1} V0" fill="none" stroke="${emas}" stroke-width=".45"/>`;
-};
-
 // ---------- 1. PENGAYOMAN ULOS EMAS (unggulan) ----------
 const w1 = { dasar: '#1A2350', garis: '#7A1626', emas: 'url(#e1)', aksen: '#E9D39A', motif: 'ragidup' };
 const pengayoman = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
@@ -233,7 +220,6 @@ const pengayoman = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmln
   <rect x="56" y="56" width="${W - 112}" height="${H - 112}" fill="none" stroke="url(#e1)" stroke-width="1.6"/>
   <rect x="61" y="61" width="${W - 122}" height="${H - 122}" fill="none" stroke="url(#e1)" stroke-width=".5"/>
   ${[[35, 35], [W - 35, 35], [35, H - 35], [W - 35, H - 35]].map(([x, y]) => medali(x, y, 24, '#1A2350', 'url(#e1)', '#F0D78E')).join('')}
-  ${celahKop('k1', 'url(#e1)')}
 </svg>`;
 
 // ---------- 2. NAVY AGUNG RAGIDUP ----------
@@ -253,7 +239,6 @@ const agung = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="ht
   <rect x="56" y="56" width="${W - 112}" height="${H - 112}" fill="none" stroke="url(#e2)" stroke-width=".6"/>
   ${gorga(60, 60, 1, 1, w2, .95)}${gorga(W - 60, 60, -1, 1, w2, .95)}
   ${[[27, 27], [W - 27, 27], [27, H - 27], [W - 27, H - 27]].map(([x, y]) => medali(x, y, 20, '#121A3E', 'url(#e2)', '#F0D78E')).join('')}
-  ${celahKop('k2', 'url(#e2)')}
 </svg>`;
 
 // ---------- 3. ULOS MARUN KENCANA ----------
@@ -270,7 +255,6 @@ const marun = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="ht
   <rect x="56" y="56" width="${W - 112}" height="${H - 112}" fill="none" stroke="url(#e3)" stroke-width="1.4"/>
   <rect x="61" y="61" width="${W - 122}" height="${H - 122}" fill="none" stroke="#6B0F1E" stroke-width=".6" opacity=".6"/>
   ${[[33, 33], [W - 33, 33], [33, H - 33], [W - 33, H - 33]].map(([x, y]) => medali(x, y, 22, '#151515', 'url(#e3)', '#F0D78E')).join('')}
-  ${celahKop('k3', 'url(#e3)')}
 </svg>`;
 
 // ---------- 4. GORGA SITOLU BOLIT (hitam, merah, putih, emas) ----------
@@ -289,7 +273,6 @@ const gorgaD = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="h
   <rect x="54" y="54" width="${W - 108}" height="${H - 108}" fill="none" stroke="url(#e4)" stroke-width=".5"/>
   ${gorga(56, 56, 1, 1, w4, 1.05)}${gorga(W - 56, 56, -1, 1, w4, 1.05)}
   ${[[21, 21], [W - 21, 21], [21, H - 21], [W - 21, H - 21]].map(([x, y]) => medali(x, y, 16, '#141414', 'url(#e4)', '#F0D78E')).join('')}
-  ${celahKop('k4', 'url(#e4)')}
 </svg>`;
 
 const keluar = new URL('../public/desain/', import.meta.url);
