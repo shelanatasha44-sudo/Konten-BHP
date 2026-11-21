@@ -264,7 +264,7 @@ function layarKegiatan(baru) {
         <label class="isian">Absen dibuka mulai (WIB)<input type="datetime-local" name="mulai" value="${Umum.dariIso(a.mulai)}"></label>
         <label class="isian">Absen ditutup pada (WIB)<input type="datetime-local" name="sampai" value="${Umum.dariIso(a.sampai)}"></label>
       </div>
-      <div class="kolom dua">${isian('formatNomor', 'Nomor sertifikat (satu nomor untuk semua peserta)', 'Contoh: W.2-HN.04.02-1555')}${isian('peran', 'Peran peserta', 'Peserta')}</div>
+      <div class="kolom dua">${isian('formatNomor', 'Nomor sertifikat ({n} = nomor urut peserta)', 'Contoh: {n}/SERT/KWSU/XI/2026')}${isian('peran', 'Peran peserta', 'Peserta')}</div>
       <div class="kolom dua">${isian('kop1', 'Kop baris 1', '')}${isian('kop2', 'Kop baris 2', '')}</div>
       <div class="kolom dua">${isian('pembuka', 'Kalimat pembuka', '')}${isian('kalimat', 'Kalimat peran ({peran})', '')}</div>
       ${isian('penyelenggara', 'Penyelenggara (tampil di halaman cek keaslian)', '')}
@@ -743,6 +743,7 @@ async function layarEmail() {
     <details class="lain"><summary>Ubah isi email (boleh dilewati)</summary><div class="kolom">
       <label class="isian">Subjek<input type="text" name="subjek" value="${esc(d.subjek)}" maxlength="150"></label>
       <label class="isian">Isi email<textarea name="isi" rows="6" maxlength="3000">${esc(d.isi)}</textarea></label>
+      <p class="kecil">Kata dalam kurung kurawal diganti otomatis untuk tiap peserta: <b>{nama}</b> nama peserta, <b>{acara}</b> nama kegiatan, <b>{nomor}</b> nomor sertifikat, <b>{tautan}</b> tautan cek keaslian, <b>{pengirim}</b> nama pengirim atau penyelenggara. Tulisan seperti {Nama lengkap dan gelar} atau {Nomor sertifikat} juga dikenali.</p>
     </div></details>
     <button class="tombol emas lebar" type="submit" style="margin-top:12px">Simpan</button>
     <div class="cari" style="margin-top:12px"><input type="email" id="uji" placeholder="Email untuk uji" style="text-transform:none;letter-spacing:0;font-weight:500"><button class="tombol garis" type="button" id="kirimUji">Kirim Uji</button></div>

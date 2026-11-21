@@ -221,13 +221,26 @@ async function terbitkan(env, acara, d) {
 
 // ---------- email lewat Google Apps Script milik panitia ----------
 const NAMA_KANWIL = 'Kantor Wilayah Kementerian Hukum Sumatera Utara';
+const ALIAS_EMAIL = {};
+for (const [kunci, nama] of Object.entries({
+  nama: ['nama', 'namapeserta', 'namalengkap', 'namalengkapdangelar', 'namadangelar'],
+  acara: ['acara', 'kegiatan', 'namakegiatan', 'namaacara', 'judul', 'judulkegiatan'],
+  nomor: ['nomor', 'nomorsertifikat', 'nosertifikat', 'no'],
+  tautan: ['tautan', 'link', 'tautancekkeaslian'],
+  pengirim: ['pengirim', 'namapengirim', 'penyelenggara'],
+})) for (const n of nama) ALIAS_EMAIL[n] = kunci;
 function isiEmail(atur, acara, rec, asal, susulan) {
   const tautan = asal + '/v/' + rec.kode + (susulan ? '?unduh=1' : '');
   const pengirim = atur.namaPengirim || acara.penyelenggara || NAMA_KANWIL;
-  const ganti = (s) => String(s || '').replace(/\{nama\}/g, rec.nama).replace(/\{acara\}/g, acara.judul).replace(/\{nomor\}/g, rec.nomor)
-    .replace(/\{tautan\}/g, tautan).replace(/\{pengirim\}/g, pengirim);
+  const nilai = { nama: rec.nama, acara: acara.judul, nomor: rec.nomor, tautan, pengirim };
+  // Kata kunci dalam kurung kurawal boleh ditulis dengan nama yang mudah diingat, misalnya {Nama lengkap dan gelar}
+  // atau {Nomor sertifikat}. Huruf besar kecil dan spasi tidak berpengaruh. Kata kunci yang tidak dikenal dibiarkan.
+  const ganti = (s) => String(s || '').replace(/\{([^{}\n]{1,40})\}/g, (asli, k) => {
+    const kunci = ALIAS_EMAIL[k.toLowerCase().replace(/[^a-z]/g, '')];
+    return kunci ? String(nilai[kunci] ?? '') : asli;
+  });
   let isi = atur.isi || ISI_EMAIL;
-  if (!rec.nomor) isi = isi.replace(/\s*dengan nomor \{nomor\}/g, '');
+  if (!rec.nomor) isi = isi.replace(/\s*dengan nomor \{nomor\}/gi, '').replace(/\s*dengan \{nomor ?sertifikat\}/gi, '');
   let teks = ganti(isi);
   // tautan cek keaslian selalu ikut, walaupun isi email diubah panitia
   if (!teks.includes(tautan)) teks += '\n\nCek keaslian sertifikat: ' + tautan;
