@@ -369,10 +369,12 @@ function lihatPratinjau(a) {
 }
 
 // ---------------- desain ----------------
-function layarDesain() {
+// target: kegiatan lain yang dipilih dari menu Semua Kegiatan; bila kosong, kegiatan aktif
+function layarDesain(target) {
   let latarBaru = '';
-  const a = acara;
-  layar.innerHTML = kepala('Desain Sertifikat') + `<form class="kartu" id="f"><div class="dua-kolom">
+  const a = target || acara;
+  const bukanAktif = !!(target && (!acara || target.id !== acara.id));
+  layar.innerHTML = kepala('Desain Sertifikat') + `<p class="ket" style="margin:-6px 0 14px">Kegiatan: <b>${esc(a.judul || '')}</b>${bukanAktif ? ' (tidak sedang aktif di halaman absen)' : ''}</p><form class="kartu" id="f"><div class="dua-kolom">
     <div>
       <div class="pilih">
         ${[['pengayoman', 'Pengayoman Ulos Emas'], ['agung', 'Navy Agung Ragidup'], ['marun', 'Ulos Marun Kencana'], ['gorga', 'Gorga Sitolu Bolit'], ['resmi', 'Resmi'], ['gading', 'Gading']].map(([k, l]) =>
@@ -403,10 +405,10 @@ function layarDesain() {
     const o = baca(); delete o.latarData;
     if (o.desain === 'sendiri' && !latarBaru && !a.latarVersi) return Umum.toast('Unggah gambar desain dari Canva dulu');
     try {
-      await simpanAcara(o);
+      await Umum.api('/api/acara/' + a.id, { method: 'PUT', body: { ...a, ...o } });
       if (latarBaru) await Umum.api('/api/latar/' + a.id, { method: 'PUT', body: { data: latarBaru } });
-      acara = (await Umum.api('/api/acara/' + a.id)).acara;
-      Umum.toast('Desain tersimpan'); location.hash = '#/';
+      if (!bukanAktif) acara = (await Umum.api('/api/acara/' + a.id)).acara;
+      Umum.toast('Desain tersimpan'); location.hash = bukanAktif ? '#/semua' : '#/';
     } catch (err) { Umum.toast(err.message); }
   });
 }
@@ -765,7 +767,7 @@ async function layarSemua() {
   const d = await Umum.api('/api/acara');
   layar.innerHTML = kepala('Semua Kegiatan', '<a class="tombol emas kecil" href="#/kegiatan-baru">+ Baru</a>') + `<div class="kartu"><div class="daftar-peserta" id="daftarSemua" style="margin-top:0">${d.acara.map((x) => `
     <div class="pes"><div class="isi"><b>${esc(x.judul)}</b><small>${esc([x.tanggal, x.jumlah + ' sertifikat'].filter(Boolean).join(' · '))}</small></div>
-    <div class="aksi">${x.jumlah ? `<button class="tombol garis kecil" data-unduh="${x.id}">Unduh PDF</button>` : ''}${x.aktif ? '<span class="chip ok">Aktif</span>' : `<button class="tombol garis kecil" data-id="${x.id}">Jadikan Aktif</button>`}</div></div>`).join('') || '<p class="kecil">Belum ada kegiatan.</p>'}</div></div>`;
+    <div class="aksi"><a class="tombol garis kecil" href="#/desain/${x.id}">Atur Desain</a>${x.jumlah ? `<button class="tombol garis kecil" data-unduh="${x.id}">Unduh PDF</button>` : ''}${x.aktif ? '<span class="chip ok">Aktif</span>' : `<button class="tombol garis kecil" data-id="${x.id}">Jadikan Aktif</button>`}</div></div>`).join('') || '<p class="kecil">Belum ada kegiatan.</p>'}</div></div>`;
   $('#daftarSemua').onclick = async (e) => {
     const u = e.target.closest('[data-unduh]');
     if (u) {
@@ -805,6 +807,12 @@ async function rute() {
   try {
     if (!sudahMuat) { await muatAktif(); aturEmail = (await Umum.api('/api/pengaturan')).pengaturan; sudahMuat = true; }
     $('#menu').classList.remove('tersembunyi'); $('#keluar').classList.remove('tersembunyi');
+    if (/^desain\/[A-Za-z0-9]+$/.test(r)) {
+      // desain kegiatan tertentu tanpa mengganti kegiatan aktif
+      gambarMenu('semua');
+      layarDesain((await Umum.api('/api/acara/' + r.slice(7))).acara);
+      return window.scrollTo(0, 0);
+    }
     gambarMenu(r);
     const perluAcara = ['kegiatan', 'isian', 'desain', 'ttd', 'peserta', 'bagikan'].includes(r);
     if (perluAcara && !acara) return layarRingkas();
