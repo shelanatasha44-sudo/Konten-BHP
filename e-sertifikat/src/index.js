@@ -132,7 +132,7 @@ function rapikanAcara(masuk, lama = {}) {
     tanggal: bersih(m.tanggal, 80),
     tempat: bersih(m.tempat, 120),
     penyelenggara: bersih(m.penyelenggara, 120),
-    desain: ['resmi', 'gading', 'sendiri'].includes(m.desain) ? m.desain : 'resmi',
+    desain: ['resmi', 'gading', 'pengayoman', 'agung', 'marun', 'zamrud', 'sendiri'].includes(m.desain) ? m.desain : 'resmi',
     warnaTeks: hexSah(m.warnaTeks, '#1F2A5A'),
     warnaAksen: hexSah(m.warnaAksen, '#B8923A'),
     tampilKop: m.tampilKop !== false,

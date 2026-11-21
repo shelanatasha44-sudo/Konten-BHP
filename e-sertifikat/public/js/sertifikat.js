@@ -12,6 +12,27 @@
       kop1: '#8A786B', kop2: '#3A2E2A', aksen: '#C7A465', teks: '#3A2E2A', lembut: '#6B5D57', redup: '#857A73',
       acara: '#9C7A45', peran: '#A6766A', nomor: '#9C7A45', bingkaiQr: '#C7A465',
     },
+    // desain bercorak Pengayoman, latar dibuat dengan alat/latar-mewah.mjs
+    pengayoman: {
+      latar: '/desain/pengayoman.jpg', foil: ['#D9BC78', '#B8923A', '#8E6D24', '#C9A24C', '#7E601D'],
+      kop1: '#6B5A3A', kop2: '#3A2E1A', aksen: '#B8923A', teks: '#2B2416', lembut: '#5E5240', redup: '#7D7262',
+      acara: '#8E6D24', peran: '#A7802C', nomor: '#8E6D24', bingkaiQr: '#B8923A',
+    },
+    agung: {
+      latar: '/desain/agung.jpg', judul: '#1F2A5A',
+      kop1: '#3F4A6E', kop2: '#1F2A5A', aksen: '#B8923A', teks: '#1A2340', lembut: '#4A5578', redup: '#6B7490',
+      acara: '#1F2A5A', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
+    },
+    marun: {
+      latar: '/desain/marun.jpg', judul: '#6E1423',
+      kop1: '#7A4A50', kop2: '#5A0F1C', aksen: '#BE9443', teks: '#3A1A1E', lembut: '#6A4A4E', redup: '#86696C',
+      acara: '#6E1423', peran: '#A97F31', nomor: '#9A7430', bingkaiQr: '#BE9443',
+    },
+    zamrud: {
+      latar: '/desain/zamrud.jpg', judul: '#0D4A3A',
+      kop1: '#3E5E54', kop2: '#0D4A3A', aksen: '#B8923A', teks: '#12302A', lembut: '#3F5A52', redup: '#66807A',
+      acara: '#0D4A3A', peran: '#9A7A2A', nomor: '#8F6F24', bingkaiQr: '#B8923A',
+    },
   };
   const hex = (w, cadangan) => (/^#[0-9a-fA-F]{6}$/.test(w || '') ? w : cadangan);
   // tema untuk desain unggahan sendiri (misalnya dari Canva)
