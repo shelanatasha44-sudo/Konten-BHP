@@ -24,7 +24,7 @@ const CFG = {
   hadirSejak: env.HADIR_SEJAK || '2026-11-23 12:00:00',
   pengirim: env.GMAIL_USER || 'wilayah2bhpmedan@gmail.com',
   chrome: env.CHROME_PATH || '/usr/bin/google-chrome',
-  formatNomor: (n) => `W.2.AHU.AHU.1-UM.01.01-${n}`,
+  formatNomor: (n) => `${String(n).padStart(3, '0')}/SERT/WP/BHP.MDN/XI/2026`,
 };
 const SMTP_PASS = env.GMAIL_APP_PASSWORD || '';
 const KODE = env.SERTIFIKAT_KODE || '';
