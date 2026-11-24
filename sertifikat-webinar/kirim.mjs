@@ -192,7 +192,7 @@ function simpanVerifikasi(token, isi) {
 
 // ---------- email ----------
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-function isiEmail(d) {
+export function isiEmail(d) {
   const html = `<div style="background:#EEF0F5;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#FFFDF7;border-radius:10px;overflow:hidden;border:1px solid #E3D3A8">
 <tr><td style="background:#0B1A3A;padding:22px 28px;border-bottom:3px solid #C9A45C">
@@ -213,7 +213,7 @@ function isiEmail(d) {
   return { html, text };
 }
 
-function namaBerkas(nama) {
+export function namaBerkas(nama) {
   return ('E-Sertifikat Webinar Pengampuan - ' + nama).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120).replace(/[.\s]+$/, '') + '.pdf';
 }
 
