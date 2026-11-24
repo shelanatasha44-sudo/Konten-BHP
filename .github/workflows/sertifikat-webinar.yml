@@ -14,6 +14,12 @@ on:
         description: 'Kirim contoh sertifikat ke email ini (kosongkan untuk proses biasa)'
         required: false
         default: ''
+      mode:
+        description: 'biasa = hanya peserta terdaftar; pratinjau = buat PDF tanpa mengirim; kirim-semua = kirim ke semua pengisi daftar hadir'
+        required: false
+        default: 'biasa'
+        type: choice
+        options: [biasa, pratinjau, kirim-semua]
 
 permissions:
   contents: write
@@ -31,7 +37,9 @@ jobs:
         working-directory: sertifikat-webinar
     env:
       URL_VERIFIKASI: https://sertifikat-bhp-medan.cf-layar.workers.dev
-      JEDA_MENIT: '15'
+      JEDA_MENIT: ${{ (github.event.inputs.mode == 'pratinjau' || github.event.inputs.mode == 'kirim-semua') && '0' || '15' }}
+      SEMUA: ${{ (github.event.inputs.mode == 'pratinjau' || github.event.inputs.mode == 'kirim-semua') && '1' || '' }}
+      KERING: ${{ github.event.inputs.mode == 'pratinjau' && '1' || '' }}
       GAS_URL: https://script.google.com/macros/s/AKfycbxmeAy52VtAFQDenyAgEaUjCFa449vXUpFy-fNw_8sOIk8FuhDstCIM3qcMqCpyzsYj/exec
       UJI_EMAIL: ${{ github.event.inputs.uji_email || (github.event_name == 'push' && 'wilayah2bhpmedan@gmail.com') || '' }}
     steps:
@@ -59,8 +67,24 @@ jobs:
           SERTIFIKAT_KODE: ${{ secrets.SERTIFIKAT_KODE }}
           JOTFORM_API_KEY: ${{ secrets.JOTFORM_API_KEY }}
         run: node kirim.mjs
+      - name: Kunci pratinjau
+        if: steps.jadwal.outputs.jalan == '1' && env.KERING == '1'
+        run: |
+          tar -czf p.tgz keluaran
+          openssl rand -out k.bin 32
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in p.tgz -out pratinjau.enc -pass file:k.bin
+          openssl pkeyutl -encrypt -pubin -inkey kunci-pratinjau.pem -pkeyopt rsa_padding_mode:oaep -in k.bin -out kunci.enc
+          rm -rf keluaran p.tgz k.bin
+      - uses: actions/upload-artifact@v4
+        if: steps.jadwal.outputs.jalan == '1' && env.KERING == '1'
+        with:
+          name: pratinjau
+          path: |
+            sertifikat-webinar/pratinjau.enc
+            sertifikat-webinar/kunci.enc
+          retention-days: 1
       - name: Simpan status
-        if: always() && steps.jadwal.outputs.jalan == '1'
+        if: always() && steps.jadwal.outputs.jalan == '1' && env.KERING != '1'
         run: |
           git config user.name "sertifikat-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

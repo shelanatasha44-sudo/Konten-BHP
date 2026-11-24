@@ -33,6 +33,7 @@ const KUNCI = KODE || SMTP_PASS;
 const JF_KEY = env.JOTFORM_API_KEY || '';
 const UJI = (env.UJI_EMAIL || '').trim();
 const KERING = env.KERING === '1'; // tidak mengirim email, PDF disimpan ke folder keluaran
+const SEMUA = env.SEMUA === '1'; // kirim juga ke pengisi daftar hadir yang tidak tercatat di data pendaftar
 const STATUS = path.join(DIR, 'data/status.json');
 const sensor = (x) => String(x).replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}/gi, '<email>');
 const log = (...a) => console.log(new Date().toISOString(), ...a.map(sensor));
@@ -45,6 +46,34 @@ const normHp = (p) => String(p || '').replace(/\D/g, '').replace(/^(62|0)/, '');
 const normNama = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
 const normEmail = (s) => String(s || '').trim().toLowerCase();
 const emailSah = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const hashLewati = (email) => crypto.createHash('sha256').update('lewati:' + normEmail(email)).digest('hex').slice(0, 32);
+
+// Merapikan penulisan nama dan gelar untuk sertifikat.
+const GELAR = {
+  sh: 'S.H.', mh: 'M.H.', mkn: 'M.Kn.', mhum: 'M.Hum.', mhli: 'M.H.Li.', llm: 'LL.M.', se: 'S.E.', ssos: 'S.Sos.', spd: 'S.Pd.', mpd: 'M.Pd.',
+  skom: 'S.Kom.', st: 'S.T.', ssi: 'S.Si.', sip: 'S.IP.', sap: 'S.AP.', sak: 'S.Ak.', mm: 'M.M.', msi: 'M.Si.', map: 'M.AP.', mak: 'M.Ak.',
+  ak: 'Ak.', amd: 'A.Md.', ske: 'S.Ke.', skm: 'S.K.M.', skep: 'S.Kep.', ns: 'Ns.', shi: 'S.H.I.', sag: 'S.Ag.', sei: 'S.E.I.', spsi: 'S.Psi.',
+  mpsi: 'M.Psi.', ssn: 'S.Sn.', sstp: 'S.STP.', mtr: 'M.Tr.', ked: 'S.Ked.', sked: 'S.Ked.', mkes: 'M.Kes.', cpns: '', phd: 'Ph.D.', cht: 'CHT.',
+};
+const kunciGelar = (t) => t.toLowerCase().replace(/[^a-z]/g, '');
+const huruf = (w) => w.split(/([-'’])/).map((x) => (/[-'’]/.test(x) ? x : x.charAt(0).toUpperCase() + x.slice(1).toLowerCase())).join('');
+export function rapikanNama(raw) {
+  let s = String(raw || '').replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
+  if (!s) return s;
+  let [depan, ...sisa] = s.split(', ');
+  // Gelar yang ditulis tanpa koma di belakang nama, misalnya "Budi SH MH".
+  const kata = depan.split(' ');
+  const ekor = [];
+  while (kata.length > 1 && GELAR[kunciGelar(kata[kata.length - 1])] !== undefined && /^[A-Za-z.]+$/.test(kata[kata.length - 1])) ekor.unshift(kata.pop());
+  depan = kata.join(' ');
+  const gelar = [...ekor, ...sisa.join(' ').split(/[\s,]+/)].filter(Boolean).map((g) => {
+    const k = kunciGelar(g);
+    return GELAR[k] !== undefined ? GELAR[k] : g;
+  }).filter(Boolean);
+  const hurufSama = depan === depan.toLowerCase() || depan === depan.toUpperCase();
+  if (hurufSama) depan = depan.split(' ').map(huruf).join(' ');
+  return gelar.length ? depan + ', ' + [...new Set(gelar)].join(', ') : depan;
+}
 
 function parseCSV(t) {
   const rows = []; let row = [], f = '', q = false;
@@ -106,7 +135,10 @@ async function ambilHadir() {
 function cocokkan(h, p) {
   // Hanya peserta yang terdaftar (email atau nomor WA ada di data pendaftar) yang mendapat sertifikat.
   const daftar = (h.email && p.byEmail.get(h.email)) || (h.hp && p.byHp.get(h.hp)) || null;
-  if (!daftar) return { email: '', nama: '', terdaftar: false };
+  if (!daftar) {
+    if (SEMUA && emailSah(h.email) && h.nama) return { email: h.email, nama: h.nama, terdaftar: true };
+    return { email: '', nama: '', terdaftar: false };
+  }
   const email = emailSah(daftar.email) ? daftar.email : emailSah(h.email) ? h.email : '';
   return { email, nama: daftar.nama, terdaftar: true };
 }
@@ -231,26 +263,35 @@ async function main() {
   if (now < CFG.mulai || now > CFG.selesai) { log('Di luar jadwal pengiriman, tidak ada yang dikerjakan.'); return; }
 
   const st = JSON.parse(fs.readFileSync(STATUS, 'utf8'));
-  const simpan = () => fs.writeFileSync(STATUS, JSON.stringify(st, null, 1));
+  const simpan = () => { if (!KERING) fs.writeFileSync(STATUS, JSON.stringify(st, null, 1)); };
+  const LEWATI = new Set(fs.existsSync(path.join(DIR, 'data/lewati.json')) ? JSON.parse(fs.readFileSync(path.join(DIR, 'data/lewati.json'), 'utf8')) : []);
   const [pendaftar, hadir] = await Promise.all([ambilPendaftar(), ambilHadir()]);
   log('Daftar hadir terbaca:', hadir.length);
 
-  const siap = [], dilihat = new Set();
+  const siap = [], dilihat = new Set(), namaDilihat = new Set();
+  let dilewati = 0;
   for (const h of hadir) {
     const o = cocokkan(h, pendaftar);
+    if (o.nama) o.nama = rapikanNama(o.nama);
     if (!o.terdaftar) { log('Lewati 1 isian daftar hadir: tidak terdaftar sebagai peserta'); continue; }
     if (!o.email || !o.nama) { log('Lewati 1 isian daftar hadir: data pendaftar tanpa email atau nama'); continue; }
     const k = kunciOrang(o.email);
     if (dilihat.has(k) || st.terkirim[k]) continue;
     dilihat.add(k);
-    if (!st.pending[k]) { st.pending[k] = now.toISOString(); continue; }
+    if (LEWATI.has(hashLewati(o.email))) { dilewati++; continue; }
+    const nn = normNama(o.nama);
+    if (namaDilihat.has(nn)) continue;
+    namaDilihat.add(nn);
+    if (!st.pending[k]) { st.pending[k] = now.toISOString(); if (CFG.jedaMenit > 0) continue; }
     if (now - new Date(st.pending[k]) >= CFG.jedaMenit * 60000) siap.push({ ...o, k });
   }
   simpan();
+  if (dilewati) log('Dilewati (sudah menerima sertifikat atau dikecualikan):', dilewati);
   log('Siap dikirim:', siap.length, '| menunggu:', Object.keys(st.pending).length - siap.length);
   if (!siap.length) return;
 
   const browser = await chromium.launch({ executablePath: CFG.chrome });
+  const pratinjau = [];
   let ok = 0;
   for (const o of siap) {
     try {
@@ -258,7 +299,8 @@ async function main() {
       const d = { email: o.email, nama: o.nama, nomor: CFG.formatNomor(n) };
       const { pdf, token, url } = await buatPdf(browser, d);
       await kirimEmail({ ...d, url }, pdf);
-      simpanVerifikasi(token, { nama: d.nama, nomor: d.nomor, peran: 'Peserta', terbit: new Date().toISOString() });
+      if (KERING) { pratinjau.push({ nama: d.nama, email: d.email, nomor: d.nomor, url, berkas: namaBerkas(d.nama) }); }
+      else simpanVerifikasi(token, { nama: d.nama, nomor: d.nomor, peran: 'Peserta', terbit: new Date().toISOString() });
       st.nomorTerakhir = n;
       st.terkirim[o.k] = { n, t: new Date().toISOString() };
       delete st.pending[o.k];
@@ -271,7 +313,8 @@ async function main() {
     }
   }
   await browser.close();
-  log('Terkirim pada putaran ini:', ok);
+  if (KERING) fs.writeFileSync(path.join(DIR, 'keluaran', 'daftar.json'), JSON.stringify(pratinjau, null, 1));
+  log(KERING ? 'Pratinjau dibuat:' : 'Terkirim pada putaran ini:', ok);
 }
 
-main().catch((e) => { console.error(sensor(e && e.stack || e)); process.exit(1); });
+if (!env.TANPA_MAIN) main().catch((e) => { console.error(sensor(e && e.stack || e)); process.exit(1); });
