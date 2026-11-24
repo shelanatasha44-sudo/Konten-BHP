@@ -2731,7 +2731,13 @@ $('#q').oninput=renderList;
 /* tautan publik (bit.ly/dokumensumpah) diarahkan ke …/exec?maintenance=1 → layar pemeliharaan; petugas tetap masuk lewat URL aplikasi biasa */
 function paramUrl(k){return new Promise(ok=>{if(!GAS||!google.script.url)return ok(new URLSearchParams(location.search).get(k));let done=false;setTimeout(()=>{if(!done){done=true;ok(null)}},1500);
   try{google.script.url.getLocation(l=>{if(done)return;done=true;ok(l&&l.parameter?l.parameter[k]||null:null)})}catch(e){done=true;ok(null)}})}
-async function modePemeliharaan(){if(!await paramUrl('maintenance'))return false;
+/* TUTUP_UMUM: alamat aplikasi ditutup untuk umum (layar pemeliharaan). Petugas membuka sekali dengan …/exec?petugas=1 —
+   perangkat itu lalu diingat dan selanjutnya bisa masuk lewat alamat biasa. Buka kembali untuk umum: ubah ke false. */
+const TUTUP_UMUM=true;
+async function modePemeliharaan(){const m=await paramUrl('maintenance'),pt=await paramUrl('petugas');
+  if(pt==='0'){try{localStorage.removeItem('bhpPetugas')}catch(e){}}else if(pt){try{localStorage.setItem('bhpPetugas','1')}catch(e){}}
+  let petugas=false;try{petugas=localStorage.getItem('bhpPetugas')==='1'}catch(e){}
+  if(!m&&!(TUTUP_UMUM&&!petugas))return false;
   document.body.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f6fb;font-family:system-ui,sans-serif"><div style="max-width:460px;width:100%;background:#fff;border-radius:18px;padding:32px 28px;text-align:center;box-shadow:0 10px 30px rgba(15,23,42,.08)">
   <img src="${LOGO_DEF}" alt="" style="height:64px;margin-bottom:12px"><div style="font-size:40px;line-height:1">🛠️</div>
   <h2 style="margin:12px 0 6px;color:#0f172a">Sedang Dalam Pemeliharaan</h2>
