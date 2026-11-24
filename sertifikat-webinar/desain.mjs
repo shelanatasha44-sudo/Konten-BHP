@@ -163,7 +163,7 @@ body { position: relative; overflow: hidden; background: #0B1A3A; -webkit-print-
 .ttd { position: absolute; left: 50%; transform: translateX(-50%); bottom: 0; width: 86mm; text-align: center; font-family: 'Cormorant Garamond'; color: #22314F; }
 .ttd .tgl { font-size: 11.5pt; font-weight: 500; }
 .ttd .jab { font-size: 11.5pt; font-weight: 600; color: #0B1A3A; margin-top: .2mm; }
-.qr { margin: 1.6mm auto 1.2mm; width: 19mm; height: 19mm; padding: 1.1mm; border: .3mm solid #C9A45C; border-radius: 1.4mm; background: #FFFDF8; }
+.qr { margin: 1.3mm auto 1mm; width: 20mm; height: 20mm; padding: 2.2mm; border: .3mm solid #C9A45C; border-radius: 1.4mm; background: #FFFDF8; }
 .qr svg { width: 100%; height: 100%; display: block; }
 .ttd .nm { font-family: 'Playfair Display'; font-weight: 600; font-size: 11pt; color: #0B1A3A; letter-spacing: .02em; }
 .ttd .nm::after { content: ''; display: block; width: 46mm; height: .25mm; margin: .9mm auto 0; background: linear-gradient(90deg, rgba(201,164,92,0), #C9A45C, rgba(201,164,92,0)); }

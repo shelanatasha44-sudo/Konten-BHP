@@ -10,6 +10,8 @@ import QRCode from 'qrcode';
 import nodemailer from 'nodemailer';
 import { chromium } from 'playwright-core';
 import { buatHtml } from './desain.mjs';
+import jsQR from 'jsqr';
+import { PNG } from 'pngjs';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -53,25 +55,26 @@ const GELAR = {
   sh: 'S.H.', mh: 'M.H.', mkn: 'M.Kn.', mhum: 'M.Hum.', mhli: 'M.H.Li.', llm: 'LL.M.', se: 'S.E.', ssos: 'S.Sos.', spd: 'S.Pd.', mpd: 'M.Pd.',
   skom: 'S.Kom.', st: 'S.T.', ssi: 'S.Si.', sip: 'S.IP.', sap: 'S.AP.', sak: 'S.Ak.', mm: 'M.M.', msi: 'M.Si.', map: 'M.AP.', mak: 'M.Ak.',
   ak: 'Ak.', amd: 'A.Md.', ske: 'S.Ke.', skm: 'S.K.M.', skep: 'S.Kep.', ns: 'Ns.', shi: 'S.H.I.', sag: 'S.Ag.', sei: 'S.E.I.', spsi: 'S.Psi.',
-  mpsi: 'M.Psi.', ssn: 'S.Sn.', sstp: 'S.STP.', mtr: 'M.Tr.', ked: 'S.Ked.', sked: 'S.Ked.', mkes: 'M.Kes.', cpns: '', phd: 'Ph.D.', cht: 'CHT.',
+  mpsi: 'M.Psi.', spt: 'S.Pt.', spn: 'Sp.N.', ssy: 'S.Sy.', sth: 'S.Th.', mth: 'M.Th.', mkom: 'M.Kom.', mt: 'M.T.', mba: 'M.B.A.', ssn: 'S.Sn.', sstp: 'S.STP.', mtr: 'M.Tr.', ked: 'S.Ked.', sked: 'S.Ked.', mkes: 'M.Kes.', cpns: '', phd: 'Ph.D.', cht: 'CHT.',
 };
 const kunciGelar = (t) => t.toLowerCase().replace(/[^a-z]/g, '');
 const huruf = (w) => w.split(/([-'’])/).map((x) => (/[-'’]/.test(x) ? x : x.charAt(0).toUpperCase() + x.slice(1).toLowerCase())).join('');
 export function rapikanNama(raw) {
-  let s = String(raw || '').replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
+  let s = String(raw || '').replace(/[\u3164\u115F\u1160\u200B-\u200D\u2060\uFEFF]/g, '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
   if (!s) return s;
   let [depan, ...sisa] = s.split(', ');
   // Gelar yang ditulis tanpa koma di belakang nama, misalnya "Budi SH MH".
   const kata = depan.split(' ');
   const ekor = [];
   while (kata.length > 1 && GELAR[kunciGelar(kata[kata.length - 1])] !== undefined && /^[A-Za-z.]+$/.test(kata[kata.length - 1])) ekor.unshift(kata.pop());
-  depan = kata.join(' ');
-  const gelar = [...ekor, ...sisa.join(' ').split(/[\s,]+/)].filter(Boolean).map((g) => {
+  depan = kata.filter((w, i) => i === 0 || w.toLowerCase() !== kata[i - 1].toLowerCase()).join(' ');
+  const kataNama = new Set(depan.toLowerCase().split(' '));
+  const gelar = [...ekor, ...sisa.join(' ').split(/[\s,]+/)].filter((g) => g && !kataNama.has(g.toLowerCase())).map((g) => {
     const k = kunciGelar(g);
     return GELAR[k] !== undefined ? GELAR[k] : g;
   }).filter(Boolean);
   const hurufSama = depan === depan.toLowerCase() || depan === depan.toUpperCase();
-  if (hurufSama) depan = depan.split(' ').map(huruf).join(' ');
+  depan = depan.split(' ').map((w) => (hurufSama || (w.length >= 3 && w === w.toUpperCase() && /[A-Z]/.test(w) && !/^[IVX]+$/.test(w)) ? huruf(w) : w)).join(' ');
   return gelar.length ? depan + ', ' + [...new Set(gelar)].join(', ') : depan;
 }
 
@@ -149,22 +152,31 @@ async function buatQr(url) {
   return svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMid meet" ');
 }
 
-async function buatPdf(browser, data) {
-  const token = tokenOrang(data.email);
+export async function buatPdf(browser, data, coba = 0) {
+  let gagalQr = false;
+  const token = coba ? crypto.randomBytes(11).toString('base64url').slice(0, 14) : tokenOrang(data.email);
   const url = `${CFG.urlVerifikasi}/#${token}`;
   const html = buatHtml({ nama: data.nama, nomor: data.nomor, qrSvg: await buatQr(url), urlVerifikasi: CFG.urlVerifikasi.replace(/^https?:\/\//, '') });
   const tmp = path.join(DIR, `.tmp-${crypto.randomBytes(4).toString('hex')}.html`);
   fs.writeFileSync(tmp, html);
-  const page = await browser.newPage();
+  const page = await browser.newPage({ deviceScaleFactor: 3 });
   try {
     await page.goto('file://' + tmp, { waitUntil: 'load' });
     await page.waitForFunction(() => document.body.dataset.siap === '1', null, { timeout: 20000 });
+    // Pastikan QR benar-benar terbaca sebelum PDF dibuat.
+    const png = PNG.sync.read(await page.locator('.qr').screenshot());
+    const hasil = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
+    if (!hasil || hasil.data !== url) gagalQr = true;
+    else {
     const pdf = await page.pdf({ width: '297mm', height: '210mm', printBackground: true, preferCSSPageSize: true });
     return { pdf, token, url };
+    }
   } finally {
     await page.close();
     fs.unlinkSync(tmp);
   }
+  if (coba >= 3) throw new Error('QR tidak terbaca setelah beberapa percobaan');
+  return buatPdf(browser, data, coba + 1);
 }
 
 // Data verifikasi disimpan terenkripsi. Hanya pemegang QR (token) yang bisa membukanya.
