@@ -329,7 +329,7 @@ async function main() {
     try {
       git('add situs');
       git('commit -m "Sertifikat webinar: data verifikasi"');
-      for (let i = 0; i < 3; i++) { try { git('pull --rebase -q'); git('push -q'); break; } catch (e) { if (i === 2) throw e; } }
+      for (let i = 0; i < 3; i++) { try { git('pull --rebase --autostash -q'); git('push -q'); break; } catch (e) { if (i === 2) throw e; } }
       const akhir = siapKirim[siapKirim.length - 1].id;
       let live = false;
       for (let i = 0; i < 40 && !live; i++) {
