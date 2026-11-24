@@ -2728,7 +2728,17 @@ async function simpanKunci(){try{ADA_AI=await api('apiSimpanKunciAI',$('#gk').va
 function toggleTheme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('bhpTheme',r.dataset.theme)}catch(e){}}
 document.documentElement.dataset.theme='light';document.documentElement.style.colorScheme='light';try{localStorage.removeItem('bhpTheme')}catch(e){}
 $('#q').oninput=renderList;
-(async()=>{TOKEN=ss('bhpTok');if(!TOKEN){TOKEN=await tokenDariUrl();if(TOKEN)try{localStorage.setItem('bhpTok',TOKEN)}catch(e){}}
+/* tautan publik (bit.ly/dokumensumpah) diarahkan ke …/exec?maintenance=1 → layar pemeliharaan; petugas tetap masuk lewat URL aplikasi biasa */
+function paramUrl(k){return new Promise(ok=>{if(!GAS||!google.script.url)return ok(new URLSearchParams(location.search).get(k));let done=false;setTimeout(()=>{if(!done){done=true;ok(null)}},1500);
+  try{google.script.url.getLocation(l=>{if(done)return;done=true;ok(l&&l.parameter?l.parameter[k]||null:null)})}catch(e){done=true;ok(null)}})}
+async function modePemeliharaan(){if(!await paramUrl('maintenance'))return false;
+  document.body.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f6fb;font-family:system-ui,sans-serif"><div style="max-width:460px;width:100%;background:#fff;border-radius:18px;padding:32px 28px;text-align:center;box-shadow:0 10px 30px rgba(15,23,42,.08)">
+  <img src="${LOGO_DEF}" alt="" style="height:64px;margin-bottom:12px"><div style="font-size:40px;line-height:1">🛠️</div>
+  <h2 style="margin:12px 0 6px;color:#0f172a">Sedang Dalam Pemeliharaan</h2>
+  <p style="margin:0 0 14px;color:#475569;line-height:1.55">Aplikasi <b>Dokumen Penyumpahan</b> Balai Harta Peninggalan Medan sedang dalam pemeliharaan sistem. Silakan coba kembali beberapa saat lagi.</p>
+  <p style="margin:0;color:#64748b;font-size:14px">Informasi layanan perwalian &amp; pengampuan: WhatsApp <b>${esc(DEF_SET.wa||'0851-2156-2136')}</b></p></div></div>`;
+  document.title='Sedang Pemeliharaan — Dokumen Penyumpahan BHP Medan';return true}
+(async()=>{if(await modePemeliharaan())return;TOKEN=ss('bhpTok');if(!TOKEN){TOKEN=await tokenDariUrl();if(TOKEN)try{localStorage.setItem('bhpTok',TOKEN)}catch(e){}}
   if(TOKEN)$('#login').innerHTML='<div style="text-align:center;margin-top:30vh"><div class="spin"></div><b>Memuat data…</b></div>',$('#login').hidden=false;boot()})();
 
 /* ===== Mode HP ===== */
