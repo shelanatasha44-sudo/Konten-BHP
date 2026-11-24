@@ -14,6 +14,10 @@ on:
         description: 'Kirim contoh sertifikat ke email ini (kosongkan untuk proses biasa)'
         required: false
         default: ''
+      uji_nama:
+        description: 'Nama pada sertifikat uji coba (opsional)'
+        required: false
+        default: ''
       mode:
         description: 'biasa = hanya peserta terdaftar; pratinjau = buat PDF tanpa mengirim; kirim-semua = kirim ke semua pengisi daftar hadir'
         required: false
@@ -41,6 +45,7 @@ jobs:
       SEMUA: ${{ (github.event.inputs.mode == 'pratinjau' || github.event.inputs.mode == 'kirim-semua') && '1' || '' }}
       KERING: ${{ github.event.inputs.mode == 'pratinjau' && '1' || '' }}
       GAS_URL: https://script.google.com/macros/s/AKfycbxmeAy52VtAFQDenyAgEaUjCFa449vXUpFy-fNw_8sOIk8FuhDstCIM3qcMqCpyzsYj/exec
+      UJI_NAMA: ${{ github.event.inputs.uji_nama }}
       UJI_EMAIL: ${{ github.event.inputs.uji_email || (github.event_name == 'push' && 'wilayah2bhpmedan@gmail.com') || '' }}
     steps:
       - uses: actions/checkout@v4

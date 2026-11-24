@@ -264,7 +264,7 @@ async function main() {
   if (UJI) {
     log('Mode uji: kirim contoh sertifikat');
     const browser = await chromium.launch({ executablePath: CFG.chrome });
-    const d = { email: normEmail(UJI), nama: env.UJI_NAMA || 'Contoh Nama Peserta, S.H.', nomor: '000/SERT/WP/BHP.MDN/XI/2026' };
+    const d = { email: normEmail(UJI), nama: rapikanNama(env.UJI_NAMA || 'Contoh Nama Peserta, S.H.'), nomor: '000/SERT/WP/BHP.MDN/XI/2026' };
     const { pdf, token, url } = await buatPdf(browser, d);
     await browser.close();
     simpanVerifikasi(token, { nama: d.nama, nomor: d.nomor, peran: 'Peserta (contoh)', terbit: now.toISOString() });
