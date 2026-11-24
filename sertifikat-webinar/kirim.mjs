@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
 import nodemailer from 'nodemailer';
@@ -304,28 +305,55 @@ async function main() {
 
   const browser = await chromium.launch({ executablePath: CFG.chrome });
   const pratinjau = [];
-  let ok = 0;
+  // Tahap 1: buat semua PDF dan data verifikasi lebih dulu.
+  const siapKirim = [];
+  let n = st.nomorTerakhir;
   for (const o of siap) {
     try {
-      const n = st.nomorTerakhir + 1;
-      const d = { email: o.email, nama: o.nama, nomor: CFG.formatNomor(n) };
+      const d = { email: o.email, nama: o.nama, nomor: CFG.formatNomor(n + 1) };
       const { pdf, token, url } = await buatPdf(browser, d);
-      await kirimEmail({ ...d, url }, pdf);
-      if (KERING) { pratinjau.push({ nama: d.nama, email: d.email, nomor: d.nomor, url, berkas: namaBerkas(d.nama) }); }
-      else simpanVerifikasi(token, { nama: d.nama, nomor: d.nomor, peran: 'Peserta', terbit: new Date().toISOString() });
-      st.nomorTerakhir = n;
-      st.terkirim[o.k] = { n, t: new Date().toISOString() };
-      delete st.pending[o.k];
-      simpan();
-      ok++;
-      await new Promise((r) => setTimeout(r, 1500));
-    } catch (e) {
-      log('Gagal mengirim satu sertifikat:', e.message);
-      if (/limit|quota|kuota|Invalid login|auth|Kode salah|akses web app/i.test(e.message)) break;
-    }
+      n++;
+      if (KERING) { await kirimEmail({ ...d, url }, pdf); pratinjau.push({ nama: d.nama, email: d.email, nomor: d.nomor, url, berkas: namaBerkas(d.nama) }); continue; }
+      simpanVerifikasi(token, { nama: d.nama, nomor: d.nomor, peran: 'Peserta', terbit: new Date().toISOString() });
+      siapKirim.push({ o, d, pdf, url, n, id: crypto.createHash('sha256').update(token).digest('hex').slice(0, 24) });
+    } catch (e) { log('Gagal membuat satu sertifikat:', e.message); }
   }
   await browser.close();
-  if (KERING) fs.writeFileSync(path.join(DIR, 'keluaran', 'daftar.json'), JSON.stringify(pratinjau, null, 1));
+  let ok = 0;
+  if (KERING) {
+    fs.writeFileSync(path.join(DIR, 'keluaran', 'daftar.json'), JSON.stringify(pratinjau, null, 1));
+    ok = pratinjau.length;
+  } else if (siapKirim.length) {
+    // Tahap 2: terbitkan data verifikasi dan tunggu sampai bisa dibuka, supaya QR langsung sah saat email diterima.
+    const git = (c) => execSync('git -c user.name=sertifikat-bot -c user.email=41898282+github-actions[bot]@users.noreply.github.com ' + c, { cwd: DIR, stdio: 'pipe' }).toString();
+    try {
+      git('add situs');
+      git('commit -m "Sertifikat webinar: data verifikasi"');
+      for (let i = 0; i < 3; i++) { try { git('pull --rebase -q'); git('push -q'); break; } catch (e) { if (i === 2) throw e; } }
+      const akhir = siapKirim[siapKirim.length - 1].id;
+      let live = false;
+      for (let i = 0; i < 40 && !live; i++) {
+        const kode = execSync(`curl -s -o /dev/null -w "%{http_code}" ${CFG.urlVerifikasi}/v/${akhir}.json`).toString().trim();
+        if (kode === '200') live = true; else await new Promise((r) => setTimeout(r, 15000));
+      }
+      log(live ? 'Data verifikasi sudah aktif.' : 'Data verifikasi belum aktif setelah 10 menit, pengiriman tetap dilanjutkan.');
+    } catch (e) { log('Gagal menerbitkan data verifikasi:', e.message); return; }
+    // Tahap 3: kirim email.
+    for (const x of siapKirim) {
+      try {
+        await kirimEmail({ ...x.d, url: x.url }, x.pdf);
+        st.nomorTerakhir = Math.max(st.nomorTerakhir, x.n);
+        st.terkirim[x.o.k] = { n: x.n, t: new Date().toISOString() };
+        delete st.pending[x.o.k];
+        simpan();
+        ok++;
+        await new Promise((r) => setTimeout(r, 1500));
+      } catch (e) {
+        log('Gagal mengirim satu sertifikat:', e.message);
+        if (/limit|quota|kuota|Invalid login|auth|Kode salah|akses web app/i.test(e.message)) break;
+      }
+    }
+  }
   log(KERING ? 'Pratinjau dibuat:' : 'Terkirim pada putaran ini:', ok);
 }
 
