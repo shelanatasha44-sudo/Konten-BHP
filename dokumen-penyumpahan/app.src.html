@@ -2733,7 +2733,7 @@ function paramUrl(k){return new Promise(ok=>{if(!GAS||!google.script.url)return 
   try{google.script.url.getLocation(l=>{if(done)return;done=true;ok(l&&l.parameter?l.parameter[k]||null:null)})}catch(e){done=true;ok(null)}})}
 /* TUTUP_UMUM: alamat aplikasi ditutup untuk umum (layar pemeliharaan). Petugas membuka sekali dengan …/exec?petugas=1 —
    perangkat itu lalu diingat dan selanjutnya bisa masuk lewat alamat biasa. Buka kembali untuk umum: ubah ke false. */
-const TUTUP_UMUM=true;
+const TUTUP_UMUM=false;
 async function modePemeliharaan(){const m=await paramUrl('maintenance'),pt=await paramUrl('petugas');
   if(pt==='0'){try{localStorage.removeItem('bhpPetugas')}catch(e){}}else if(pt){try{localStorage.setItem('bhpPetugas','1')}catch(e){}}
   let petugas=false;try{petugas=localStorage.getItem('bhpPetugas')==='1'}catch(e){}
