@@ -1057,6 +1057,7 @@ function cekCetak(r){const L=[],E=(tab,f,msg)=>L.push({lvl:'e',tab,f,msg}),W=(ta
   // 1. perkara
   if(!r.pengadilan)E('umum','pengadilan','Nama pengadilan kosong');
   if(!r.nomorPenetapan)E('umum','nomorPenetapan','Nomor penetapan kosong');
+  else{const sm=penetapanSama(r.nomorPenetapan,r).filter(x=>!x._dihapus);if(sm.length)W('umum','nomorPenetapan','Penetapan ini sudah pernah diupload di berkas lain: '+sm.slice(0,2).map(x=>(x.nama||'(tanpa nama)')+(x._meta&&x._meta.dibuatOleh?' (diupload '+x._meta.dibuatOleh+')':'')).join(', ')+' — periksa agar tidak ganda')}
   if(/x{3,}|\*{3,}/i.test(r.alamat||''))W('pihak','alamat','Alamat masih disamarkan (xxxx) — lengkapi dari berkas permohonan/KTP pemohon');
   else if(!/^\d+\s*\/\s*Pdt\.?\s*P\s*\/\s*\d{4}\s*\/\s*(PN|PA|MS)/i.test(r.nomorPenetapan))W('umum','nomorPenetapan','Format nomor penetapan tidak lazim (contoh: 12/Pdt.P/2026/PN Pbr)');
   if(!r.tglPenetapan)E('umum','tglPenetapan','Tanggal penetapan kosong');else if(r.tglPenetapan>t)E('umum','tglPenetapan','Tanggal penetapan di masa depan');
@@ -2312,6 +2313,7 @@ async function handlePenetapan(file){
     if(data&&rx){koreksiDariTeks(data,rx,teks);data=gabung(data,rx)}else data=data||rx;if(!data)throw new Error('Teks tidak terbaca dari file.');
     try{const h=hubDariTeks(teks,data);if(h&&h!==data.status){console.info('Hubungan dikoreksi dari teks penetapan:',data.status,'→',h);data.status=h}}catch(e){console.warn(e)}
     data._cek=verifikasiTeks(data,teks);data._detik=Math.round((Date.now()-t0)/1000);
+    if(penetapanSama(data.nomorPenetapan,penFill&&cur?cur:null).length)toast('⚠️ Penetapan '+(data.nomorPenetapan||'')+' sudah pernah diupload sebelumnya');
     if(pb&&data){const D=data;pb.then(bt=>{if(!bt)return toast('Isi BAP AI belum berhasil — dipakai susunan otomatis; bisa disusun ulang dengan tombol AI di tab BAP');
       const r=D._rec;if(!r){D.isiBap=bt;return}if(r._dihapus||!kosong(r.isiBap))return;r.isiBap=bt;simpanRec(r);if(cur===r)renderMain();toast('Isi BAP dari AI selesai disusun')})}
     data._file=file;
@@ -2591,9 +2593,21 @@ async function cekLagi(src,file){const r=cur;if(!r||CL2.jalan)return;const mode=
 
 const PEN_LBL={tempatLahir:'Tempat Lahir',jenis:'Jenis',pengadilan:'Pengadilan',nomorPenetapan:'Nomor Penetapan',tglPenetapan:'Tanggal Penetapan',nama:'Nama Pemohon (Wali/Pengampu)',nik:'NIK',jk:'Jenis Kelamin',tglLahir:'Tanggal Lahir',agama:'Agama',pekerjaan:'Pekerjaan',alamat:'Alamat',kelurahan:'Kelurahan/Kec/Kota',status:'Hubungan (terampu/anak adalah … pemohon)'};
 let PEN=null;
+/* ===== penetapan yang sama sudah pernah diupload (nomor penetapan sama, termasuk berkas yang sudah dihapus) ===== */
+function penetapanSama(nomor,kecuali){const k=nomorKunci(nomor);if(!k||!Array.isArray(DB))return[];
+  return DB.filter(r=>r!==kecuali&&(!kecuali||r.id!==kecuali.id)&&nomorKunci(r.nomorPenetapan)===k).sort((a,b)=>(a._dihapus?1:0)-(b._dihapus?1:0))}
+const infoBerkas=r=>`<b>${esc(r.nama||'(tanpa nama)')}</b> — ${esc(r.jenis||'')}${r._meta&&r._meta.dibuatOleh?`, diupload ${esc(r._meta.dibuatOleh)}`:''}${tglDibuat(r)?` ${esc(tglDibuat(r))}`:''}${r.tglSumpah?` · sumpah ${esc(tgl(r.tglSumpah))}`:''}${r._dihapus?' · <span style="color:var(--warn)">sudah dihapus</span>':''}`;
+function bannerSama(d){const kec=penFill&&cur?cur:null,L=penetapanSama(d.nomorPenetapan,kec);if(!L.length)return'';
+  return`<div style="border:1.5px solid #f59e0b;background:#fff7e6;color:#7c4a03;border-radius:12px;padding:10px 14px;margin:0 0 10px"><b>⚠️ Penetapan ini sudah pernah diupload sebelumnya</b> (nomor ${esc(d.nomorPenetapan)})
+    <ul style="margin:6px 0 4px;padding-left:18px">${L.slice(0,5).map(r=>`<li style="margin:3px 0">${infoBerkas(r)}<br><button type="button" class="link" onclick="bukaBerkasLama('${r.id}')">📂 Buka berkas ini</button>${r._dihapus?'':` · <button type="button" class="link" onclick="lengkapiBerkasLama('${r.id}')">➕ Lengkapi berkas ini (kolom kosong saja, tanpa berkas baru)</button>`}</li>`).join('')}</ul>
+    <small>Bila tetap dilanjutkan, akan ada berkas ganda untuk penetapan yang sama.</small></div>`}
+function tutupPen(){if($('#penDlg').open)penDlg.close();if(WZ.on){WZ.on=false;$('.wrap').classList.remove('wzmode')}}
+function bukaBerkasLama(id){const r=DB.find(x=>x.id===id);if(!r)return;tutupPen();if(r._dihapus&&!LIHAT_HAPUS)toast('Berkas ini sudah dihapus — pulihkan lewat menu Berkas Dihapus');pick(id)}
+function lengkapiBerkasLama(id){const r=DB.find(x=>x.id===id);if(!r||r._dihapus)return;const root=$('#wzBody')||$('#penBody');penFill=true;cur=r;
+  if(WZ.on){WZ.on=false;$('.wrap').classList.remove('wzmode')}applyPenetapan(root)}
 function reviewHtml(d){PEN=d;const w=d.jenis==='Perwalian';if(!d.kelurahan)d.kelurahan=kelDariAlamat(d.alamat);const korT=(d._koreksi||[]).length?`<p class="hint" style="color:#0b6b48">🛠 Dikoreksi otomatis sesuai teks penetapan: ${esc([...new Set(d._koreksi)].join(', '))}</p>`:'';const cekT=korT+((d._cek||[]).length?`<div style="border:1.5px solid #f6c343;background:#fff6db;color:#6b4e00;border-radius:12px;padding:10px 14px;margin:0 0 10px"><b>🔎 Cek silang dengan teks penetapan</b><ul style="margin:6px 0 0;padding-left:18px">${d._cek.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:(d._ai&&d._text?`<p class="hint" style="color:#0b6b48">✅ Nama & tanggal hasil AI cocok dengan teks penetapan${d._detik?` · selesai ${d._detik} detik`:''}</p>`:''));
   const row=(k,lbl,v,type='text')=>`<div><label>${lbl}</label><input type="${type}" value="${esc(v||'')}" data-pk="${k}" style="${v?'':'background:#fff6db;border-color:#f6c343'}"></div>`;
-  let h=cekT+`<div class="grid">`;
+  let h=bannerSama(d)+cekT+`<div class="grid">`;
   h+=`<div><label>Jenis</label><select data-pk="jenis">${['Pengampuan','Perwalian'].map(j=>`<option ${j===d.jenis?'selected':''}>${j}</option>`).join('')}</select></div>`;
   ['pengadilan','nomorPenetapan','tglPenetapan','nama','nik','jk','tglLahir','agama','pekerjaan','status'].forEach(k=>h+=row(k,PEN_LBL[k],d[k],/^tgl/.test(k)?'date':'text'));
   h+=`<div class="full">${row('alamat','Alamat',d.alamat)}</div><div class="full">${row('kelurahan','Kelurahan, Kecamatan, Kota tempat tinggal — wajib, tujuan Surat ke Lurah',d.kelurahan)}</div>`;
@@ -2661,6 +2675,8 @@ function pakaiBeda(){if(!BEDA)return;const{r,L}=BEDA,pilih=[...document.querySel
 function applyPenetapan(root,next){
   (root||$('#penBody')).querySelectorAll('[data-pk]').forEach(e=>{const ks=e.dataset.pk.split('.');let o=PEN;ks.slice(0,-1).forEach((k,i)=>{o[k]=o[k]??(/^\d+$/.test(ks[i+1])?[]:{});o=o[k]});o[ks.at(-1)]=e.value.trim()});
   {const k=cekKelayakan(penRec(PEN));if(k.tolak.length&&!PEN._paksa){toast('⛔ Penetapan ditolak otomatis: '+k.tolak.join(' '));catat('TOLAK_PENETAPAN','',PEN.nama||'',(PEN.nomorPenetapan||'')+' — '+k.tolak.join(' ')).catch(()=>{});return}}
+  {const ada=!(penFill&&cur&&!cur._dihapus)&&!PEN._lanjutGanda?penetapanSama(PEN.nomorPenetapan).filter(x=>!x._dihapus):[];
+   if(ada.length&&!confirm(`Penetapan ${PEN.nomorPenetapan} sudah pernah diupload sebelumnya:\n${ada.slice(0,3).map(x=>'• '+(x.nama||'(tanpa nama)')+(x._meta&&x._meta.dibuatOleh?' — diupload '+x._meta.dibuatOleh:'')).join('\n')}\n\nTetap buat berkas BARU (berkas ganda)?\nPilih "Batal" lalu gunakan "Lengkapi berkas ini" untuk mengisi berkas lama saja.`))return;if(ada.length)PEN._lanjutGanda=true}
   let r=(penFill&&cur&&!cur._dihapus)?cur:null;const baru=!r;let beda=[];if(!r)r=addRec(blank(),'Dibuat dari upload penetapan '+(PEN.nomorPenetapan||''));PEN._rec=r;
   /* berkas lama: hanya kolom kosong yang diisi, yang berbeda ditanyakan */
   if(!baru){beda=gabungKeBerkas(PEN,r);cur=r;if($('#penDlg').open)penDlg.close();renderList();if(next)next();else renderMain();save();catat('BACA_PENETAPAN',r.id,r.nama,'Kolom kosong diisi dari penetapan '+(PEN.nomorPenetapan||'')+(beda.length?` · ${beda.length} kolom berbeda tidak diubah`:'')).catch(()=>{});if(beda.length)dlgBeda(r,beda);toast('Kolom kosong diisi dari penetapan — isian lama tidak diubah');simpanPdfKeDrive(r,PEN._file);return}
